@@ -184,6 +184,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
       <button data-view="projects"><span class="ic">▣</span> المشاريع</button>
       <div class="sep"></div>
       <button data-view="custody"><span class="ic">💰</span> العهد والنثريات</button>
+      <button data-view="weekly"><span class="ic">🧾</span> دفعة الخميس</button>
       <button data-view="subcontractors"><span class="ic">🔧</span> مقاولو الباطن</button>
       <button data-view="labor"><span class="ic">👷</span> العمالة اليومية</button>
       <button data-view="salaries"><span class="ic">🧾</span> الرواتب</button>
@@ -280,6 +281,20 @@ table.data td.wrap{white-space:normal;min-width:160px}
         <div class="view-head"><div><h1></h1><p></p></div><button class="btn primary new-tx-btn">+ إيراد جديد</button></div>
         <div class="kpis gen-kpis"></div>
         <div class="tablewrap"><table class="data gen-table"></table></div>
+      </section>
+
+      <!-- ========== THURSDAY PAYMENT ========== -->
+      <section class="view" id="view-weekly">
+        <div class="view-head"><div><h1>دفعة الخميس</h1><p>ملخص العمالة والمقاولين والمصروفات والعهد، مع كشف ما يحتاج مراجعة قبل الصرف</p></div></div>
+        <div class="kpis" id="weeklyKpis"></div>
+        <div class="card" style="margin-bottom:16px"><div class="pad">
+          <h3>التكاليف حسب المشروع</h3>
+          <div class="tablewrap"><table class="data" id="weeklyProjectsTable"></table></div>
+        </div></div>
+        <div class="card"><div class="pad">
+          <h3>حركات بلا مشروع — يجب تحديد المشروع قبل الاعتماد</h3>
+          <div class="tablewrap"><table class="data" id="weeklyUnassignedTable"></table></div>
+        </div></div>
       </section>
 
       <!-- ========== IMPORT ========== -->
@@ -420,13 +435,14 @@ async function saveBatch(b){
 }
 
 /* ---------------- nav ---------------- */
-var VIEWS = ['dashboard','projects','projectDetail','custody','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
+var VIEWS = ['dashboard','projects','projectDetail','custody','weekly','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
 function go(view){
   VIEWS.forEach(function(v){ document.getElementById('view-'+v).classList.toggle('active', v===view); });
   document.querySelectorAll('.nav button[data-view]').forEach(function(b){ b.classList.toggle('active', b.dataset.view===view); });
   document.getElementById('navEl').classList.remove('open');
   if(view==='dashboard') renderDashboard();
   if(view==='projects') renderProjectsList();
+  if(view==='weekly') renderWeekly();
   if(view==='reports') renderReports();
   if(view==='settings') renderSettings();
   if(['custody','subcontractors','labor','salaries','purchases','revenues'].indexOf(view)!==-1) renderGenericView(view);
@@ -467,6 +483,40 @@ function renderDashboard(){
     itemsArr.map(function(r){return '<tr><td>'+esc(r.item)+'</td><td class="num">'+fmtMoney(r.total)+'</td></tr>';}).join('')+'</tbody></table>') :
     emptyState('لا توجد بيانات تكاليف بعد','');
 }
+function renderWeekly(){
+  var tx = allTx();
+  var labor = tx.filter(function(r){return r.type==='عمالة';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  var sub = tx.filter(function(r){return r.type==='مقاول باطن';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  var expenses = tx.filter(function(r){return ['نثريات','مشتريات','رواتب'].indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  var custody = tx.filter(function(r){return r.type==='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  var unassigned = tx.filter(function(r){return !r.project_id && r.type!=='عهدة-استلام';});
+  document.getElementById('weeklyKpis').innerHTML = [
+    kpi('إجمالي العمالة',fmtMoney(labor),''),
+    kpi('دفعات مقاولي الباطن',fmtMoney(sub),''),
+    kpi('مصروفات/مشتريات/رواتب',fmtMoney(expenses),''),
+    kpi('العهد المستلمة',fmtMoney(custody),'good'),
+    kpi('حركات بلا مشروع',unassigned.length,unassigned.length?'bad':'good')
+  ].join('');
+  var by={};
+  tx.filter(function(r){return r.project_id;}).forEach(function(r){
+    var p=r.project_id, type=r.type||'غير محدد';
+    if(!by[p]) by[p]={};
+    by[p][type]=(by[p][type]||0)+(Number(r.amount)||0);
+  });
+  var pids=Object.keys(by);
+  document.getElementById('weeklyProjectsTable').innerHTML = pids.length ?
+    '<thead><tr><th>المشروع</th><th class="num">عمالة</th><th class="num">مقاولون</th><th class="num">نثريات/مشتريات/رواتب</th><th class="num">الإجمالي</th></tr></thead><tbody>'+
+    pids.map(function(pid){
+      var a=by[pid], l=a['عمالة']||0, s=a['مقاول باطن']||0, e=(a['نثريات']||0)+(a['مشتريات']||0)+(a['رواتب']||0);
+      return '<tr><td class="wrap"><b>'+esc(projName(pid))+'</b></td><td class="num">'+fmtMoney(l)+'</td><td class="num">'+fmtMoney(s)+'</td><td class="num">'+fmtMoney(e)+'</td><td class="num"><b>'+fmtMoney(l+s+e)+'</b></td></tr>';
+    }).join('')+'</tbody>' :
+    '<tbody><tr><td><div class="empty">لا توجد حركات مرتبطة بمشاريع بعد</div></td></tr></tbody>';
+  document.getElementById('weeklyUnassignedTable').innerHTML = unassigned.length ?
+    '<thead><tr><th>التاريخ</th><th>النوع</th><th>الطرف</th><th>البيان</th><th class="num">المبلغ</th></tr></thead><tbody>'+
+    unassigned.map(function(r){return '<tr><td>'+fmtDate(r.date)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.party||'')+'</td><td class="wrap">'+esc(r.desc||'')+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>';}).join('')+'</tbody>' :
+    '<tbody><tr><td><div class="empty">ممتاز — كل الحركات الحالية مرتبطة بمشروع</div></td></tr></tbody>';
+}
+
 function kpi(label,val,cls){ return '<div class="kpi"><div class="label">'+label+'</div><div class="value '+(cls||'')+'">'+val+'</div></div>'; }
 function emptyState(title,sub){ return '<div class="empty"><div class="big">—</div><div style="font-weight:700">'+title+'</div><div class="helptext">'+ (sub||'') +'</div></div>'; }
 function typePill(t){ var slug = (t||'').replace(/\s+/g,'-'); return '<span class="pill t-'+slug+'">'+esc(t)+'</span>'; }
