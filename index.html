@@ -381,13 +381,38 @@ function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, function(c){re
 function projName(id){ var p = S.projects.find(function(p){return p.id===id;}); return p? p.name : (id||'—'); }
 function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2200); }
 
+/* ---------------- local db fallback (same API shape as window.claude db) ---------------- */
+function makeLocalDb(){
+  var KEY = 'moqawel_pro_db_v1';
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ return {}; } }
+  function persist(data){ localStorage.setItem(KEY, JSON.stringify(data)); }
+  function snap(id, val){ return {id:id, exists: val!==undefined, data:function(){ return JSON.parse(JSON.stringify(val)); }}; }
+  function docRef(coll, id){
+    return {
+      get: function(){ var d = load(); return Promise.resolve(snap(id, d[coll] && d[coll][id])); },
+      set: function(v){ var d = load(); d[coll] = d[coll]||{}; d[coll][id] = JSON.parse(JSON.stringify(v)); persist(d); return Promise.resolve(); },
+      delete: function(){ var d = load(); if(d[coll]) delete d[coll][id]; persist(d); return Promise.resolve(); }
+    };
+  }
+  return {
+    doc: function(path){ var p = path.split('/'); return docRef(p[0], p[1]); },
+    collection: function(name){
+      return {
+        doc: function(id){ return docRef(name, id); },
+        get: function(){ var d = load(); var c = d[name]||{}; return Promise.resolve({docs: Object.keys(c).map(function(id){ return snap(id, c[id]); })}); }
+      };
+    }
+  };
+}
+
 /* ---------------- db bootstrap ---------------- */
 async function boot(){
-  var db = await (window.claude && window.claude.use ? window.claude.use('db') : Promise.resolve(null));
+  var db = null, usingLocal = false;
+  try{ db = await (window.claude && window.claude.use ? window.claude.use('db') : Promise.resolve(null)); }catch(e){ db = null; }
+  if(!db){ db = makeLocalDb(); usingLocal = true; }
   S.db = db;
   var dot = document.getElementById('connDot'), txt = document.getElementById('connText');
-  if(!db){ dot.classList.remove('on'); txt.textContent='لا يمكن الاتصال بقاعدة البيانات في هذا العرض'; renderAll(); return; }
-  dot.classList.add('on'); txt.textContent='متصل';
+  dot.classList.add('on'); txt.textContent = usingLocal ? 'تخزين محلي على هذا الجهاز' : 'متصل';
   try{
     var cfgSnap = await db.doc('meta/config').get();
     if(cfgSnap.exists && cfgSnap.data().cost_items){ S.costItems = cfgSnap.data().cost_items; }
