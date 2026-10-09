@@ -1,6 +1,9 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>مقاول Pro | نظام إدارة وحسابات شركات المقاولات</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&family=Tajawal:wght@400;500;700&display=swap">
 <style>
 /* لوحة ألوان مستوحاة من مواقع البناء: كحلي ثقيل + كرميد/برتقالي الإنشاءات كلون مميز */
@@ -160,6 +163,13 @@ table.data td.wrap{white-space:normal;min-width:160px}
 .mapgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;align-items:center}
 .mapgrid .colname{font-size:12.5px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:6px 9px}
 
+.login-bg{position:fixed;inset:0;z-index:200;background:var(--navy);display:none;align-items:center;justify-content:center;padding:20px}
+.login-bg.show{display:flex}
+.login-card{background:var(--surface);border-radius:14px;max-width:380px;width:100%;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:14px}
+.login-card h2{margin:0;font-size:20px;text-align:center}
+.login-card p{margin:0;color:var(--fg-muted);font-size:13px;text-align:center}
+.login-err{color:var(--bad);font-size:12.5px;min-height:18px;text-align:center}
+
 @media (max-width:860px){
   .nav{position:fixed;inset-inline-start:0;top:0;bottom:0;z-index:40;transform:translateX(101%);transition:transform .2s;width:230px;padding-top:calc(14px + env(safe-area-inset-top,0px))}
   html[dir] .nav{}
@@ -170,12 +180,23 @@ table.data td.wrap{white-space:normal;min-width:160px}
 }
 </style>
 
+<div class="login-bg" id="loginBg">
+  <form class="login-card" id="loginForm" autocomplete="on">
+    <h2>مقاول Pro</h2>
+    <p>سجّل الدخول لمتابعة حسابات الشركة</p>
+    <div class="field"><label for="loginEmail">البريد الإلكتروني</label><input id="loginEmail" type="email" autocomplete="username" required dir="ltr"></div>
+    <div class="field"><label for="loginPass">كلمة المرور</label><input id="loginPass" type="password" autocomplete="current-password" required dir="ltr"></div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn primary" id="loginBtn" type="submit" style="justify-content:center">دخول</button>
+  </form>
+</div>
+
 <div id="app">
   <div class="topbar">
     <button class="burger" id="burgerBtn" aria-label="القائمة">☰</button>
     <div class="brand"><span class="mark">م</span> مقاول Pro</div>
     <div class="spacer"></div>
-    <div class="status"><span class="dot" id="connDot"></span><span id="connText">جارٍ الاتصال بقاعدة البيانات…</span></div>
+    <div class="status"><span class="dot" id="connDot"></span><span id="connText">جارٍ الاتصال بقاعدة البيانات…</span><button class="btn sm ghost" id="logoutBtn" style="display:none;color:#a9b3c4">خروج</button></div>
   </div>
 
   <div class="shell">
@@ -406,26 +427,87 @@ function makeLocalDb(){
 }
 
 /* ---------------- db bootstrap ---------------- */
-async function boot(){
-  var db = null, usingLocal = false;
-  try{ db = await (window.claude && window.claude.use ? window.claude.use('db') : Promise.resolve(null)); }catch(e){ db = null; }
-  if(!db){ db = makeLocalDb(); usingLocal = true; }
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBLIawlu2kJ3EAxcL8aYoCl4TwXlRAhu7Q",
+  authDomain: "moqawel-pro.firebaseapp.com",
+  projectId: "moqawel-pro",
+  storageBucket: "moqawel-pro.firebasestorage.app",
+  messagingSenderId: "636925561424",
+  appId: "1:636925561424:web:4d5b0b24ee43e445adf55"
+};
+
+async function loadData(db, label){
   S.db = db;
   var dot = document.getElementById('connDot'), txt = document.getElementById('connText');
-  dot.classList.add('on'); txt.textContent = usingLocal ? 'تخزين محلي على هذا الجهاز' : 'متصل';
+  dot.classList.add('on'); txt.textContent = label;
   try{
     var cfgSnap = await db.doc('meta/config').get();
     if(cfgSnap.exists && cfgSnap.data().cost_items){ S.costItems = cfgSnap.data().cost_items; }
-  }catch(e){}
+  }catch(e){ console.error('config', e); }
   try{
     var projSnap = await db.collection('projects').get();
     S.projects = projSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; if(!v.boq) v.boq=[]; return v; });
-  }catch(e){}
+  }catch(e){ console.error('projects', e); toast('⚠ تعذر تحميل المشاريع'); }
   try{
     var batchSnap = await db.collection('batches').get();
     S.batches = batchSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
-  }catch(e){}
+  }catch(e){ console.error('batches', e); toast('⚠ تعذر تحميل الحركات'); }
   renderAll();
+}
+
+function loginMessage(code){
+  var m = {
+    'auth/invalid-credential':'البريد أو كلمة المرور غير صحيحة',
+    'auth/wrong-password':'البريد أو كلمة المرور غير صحيحة',
+    'auth/user-not-found':'البريد أو كلمة المرور غير صحيحة',
+    'auth/invalid-email':'صيغة البريد غير صحيحة',
+    'auth/too-many-requests':'محاولات كثيرة، انتظر قليلًا ثم أعد المحاولة',
+    'auth/network-request-failed':'لا يوجد اتصال بالإنترنت',
+    'auth/api-key-not-valid.-please-pass-a-valid-api-key.':'مفتاح Firebase غير صحيح — راجع إعدادات الربط',
+    'auth/invalid-api-key':'مفتاح Firebase غير صحيح — راجع إعدادات الربط',
+    'auth/operation-not-allowed':'تسجيل الدخول بالبريد غير مفعّل في Firebase'
+  };
+  return m[code] || ('تعذر تسجيل الدخول ('+code+')');
+}
+
+async function boot(){
+  var dot = document.getElementById('connDot'), txt = document.getElementById('connText');
+  // 1) inside Claude artifacts: built-in db
+  var cdb = null;
+  try{ cdb = await (window.claude && window.claude.use ? window.claude.use('db') : Promise.resolve(null)); }catch(e){ cdb = null; }
+  if(cdb){ await loadData(cdb, 'متصل'); return; }
+  // 2) Firebase (shared cloud db for all users)
+  if(window.firebase && FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey){
+    try{
+      firebase.initializeApp(FIREBASE_CONFIG);
+      var auth = firebase.auth();
+      var bg = document.getElementById('loginBg'), errEl = document.getElementById('loginErr'), btn = document.getElementById('loginBtn');
+      document.getElementById('loginForm').addEventListener('submit', function(ev){
+        ev.preventDefault(); errEl.textContent=''; btn.disabled=true;
+        auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value.trim(), document.getElementById('loginPass').value)
+          .catch(function(e){ errEl.textContent = loginMessage(e.code||''); })
+          .then(function(){ btn.disabled=false; });
+      });
+      var lo = document.getElementById('logoutBtn');
+      lo.addEventListener('click', function(){ auth.signOut(); });
+      txt.textContent = 'بانتظار تسجيل الدخول…';
+      auth.onAuthStateChanged(function(user){
+        if(user){
+          bg.classList.remove('show'); lo.style.display='';
+          document.getElementById('loginPass').value='';
+          loadData(firebase.firestore(), 'متصل — '+(user.email||''));
+        } else {
+          S.db = null; S.projects = []; S.batches = [];
+          dot.classList.remove('on'); txt.textContent='غير مسجّل';
+          lo.style.display='none'; bg.classList.add('show');
+          try{ renderAll(); }catch(e){}
+        }
+      });
+      return;
+    }catch(e){ console.error('firebase init', e); }
+  }
+  // 3) fallback: this-device storage
+  await loadData(makeLocalDb(), 'تخزين محلي على هذا الجهاز');
 }
 
 function waitForDb(timeoutMs){
@@ -750,14 +832,10 @@ async function removeTx(batchId, idx){
   return ok;
 }
 async function addTxRow(row){
-  // single manual entries go in a rolling "manual" batch doc to avoid creating many tiny docs
-  var isNewBatch = !S.batches.some(function(b){return b.id==='manual-entries';});
-  var b = S.batches.find(function(b){return b.id==='manual-entries';});
-  if(!b){ b = {id:'manual-entries', label:'إدخال يدوي', rows:[]}; }
-  b.rows.push(row);
+  // one doc per manual entry so two users adding at the same time never overwrite each other
+  var b = {id:'manual-'+uid(), label:'إدخال يدوي', created_at:new Date().toISOString(), rows:[row]};
   var ok = await saveBatch(b);
-  if(ok && isNewBatch){ S.batches.push(b); }
-  else if(!ok){ b.rows.pop(); }
+  if(ok){ S.batches.push(b); }
   return ok;
 }
 function openTxModal(view, meta){
