@@ -468,7 +468,7 @@ async function loadData(db, label){
     var batchSnap = await db.collection('batches').get();
     S.batches = batchSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
   }catch(e){ console.error('batches', e); toast('⚠ تعذر تحميل الحركات'); }
-  S.ops={siteEntries:[],purchaseRequests:[],emailItems:[]};try{var os=await db.doc('meta/operations').get();if(os.exists){var od=os.data();S.ops={siteEntries:od.siteEntries||[],purchaseRequests:od.purchaseRequests||[],emailItems:od.emailItems||[]};}}catch(e){console.error('operations',e);}
+  S.ops={siteEntries:[],purchaseRequests:[],emailItems:[]};try{var opsSnaps=await Promise.all([db.collection('siteEntries').get(),db.collection('purchaseRequests').get(),db.collection('emailItems').get()]);S.ops.siteEntries=opsSnaps[0].docs.map(function(d){var v=d.data();v.id=d.id;return v;});S.ops.purchaseRequests=opsSnaps[1].docs.map(function(d){var v=d.data();v.id=d.id;return v;});S.ops.emailItems=opsSnaps[2].docs.map(function(d){var v=d.data();v.id=d.id;return v;});if(!S.ops.siteEntries.length&&!S.ops.purchaseRequests.length&&!S.ops.emailItems.length){var os=await db.doc('meta/operations').get();if(os.exists){var od=os.data();S.ops={siteEntries:od.siteEntries||[],purchaseRequests:od.purchaseRequests||[],emailItems:od.emailItems||[]};}}}catch(e){console.error('operations',e);toast('تعذر تحميل سجلات التشغيل');}
   renderAll();
 }
 
@@ -557,7 +557,7 @@ async function saveBatch(b){
   try{ await db.collection('batches').doc(b.id).set(b); return true; }
   catch(e){ toast('⚠ تعذر حفظ الحركة — حاول تاني'); return false; }
 }
-async function saveOperations(){var db=await waitForDb();if(!db){toast('⚠ لا يوجد اتصال بقاعدة البيانات');return false;}try{await db.doc('meta/operations').set({siteEntries:S.ops.siteEntries,purchaseRequests:S.ops.purchaseRequests,emailItems:S.ops.emailItems,updated_at:new Date().toISOString()});return true;}catch(e){toast('⚠ تعذر حفظ بيانات التشغيل');return false;}}
+async function saveOperations(){var db=await waitForDb();if(!db){toast('⚠ لا يوجد اتصال بقاعدة البيانات');return false;}try{var jobs=[];S.ops.siteEntries.forEach(function(x){jobs.push(db.collection('siteEntries').doc(x.id).set(x));});S.ops.purchaseRequests.forEach(function(x){jobs.push(db.collection('purchaseRequests').doc(x.id).set(x));});S.ops.emailItems.forEach(function(x){jobs.push(db.collection('emailItems').doc(x.id).set(x));});await Promise.all(jobs);return true;}catch(e){toast('⚠ تعذر حفظ بيانات التشغيل');return false;}}
 
 /* ---------------- nav ---------------- */
 var VIEWS = ['dashboard','projects','projectDetail','custody','weekly','operations','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
