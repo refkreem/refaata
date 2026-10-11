@@ -35,6 +35,12 @@
   color-scheme: dark;
 }
 *{box-sizing:border-box}
+.qform{max-width:520px;margin:0 auto}
+.qform .field input,.qform .field select{font-size:16px;padding:12px}
+.qform .bigbtn{width:100%;justify-content:center;padding:14px;font-size:16px}
+.qtypes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.qtypes button{padding:12px 8px;border:1px solid var(--border);background:var(--surface);border-radius:9px;font-weight:700;cursor:pointer}
+.qtypes button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-body);direction:rtl;font-size:14px;line-height:1.55}
 h1,h2,h3,h4,.disp{font-family:var(--font-display)}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
@@ -201,6 +207,8 @@ table.data td.wrap{white-space:normal;min-width:160px}
 
   <div class="shell">
     <nav class="nav" id="navEl">
+      <button data-view="quick"><span class="ic">＋</span> إدخال سريع</button>
+      <div class="sep" id="quickSep"></div>
       <button data-view="dashboard" class="active"><span class="ic">◆</span> لوحة التحكم</button>
       <button data-view="projects"><span class="ic">▣</span> المشاريع</button>
       <div class="sep"></div>
@@ -327,6 +335,13 @@ table.data td.wrap{white-space:normal;min-width:160px}
         </div></div>
       </section>
 
+      <!-- ========== QUICK ENTRY (مهندس الموقع / مندوب المشتريات) ========== -->
+      <section class="view" id="view-quick">
+        <div class="view-head"><div><h1>إدخال سريع</h1><p>سجّل مشترياتك أو مصروفك أو عهدتك مباشرة — تصل للمحاسب للمراجعة والتأكيد</p></div></div>
+        <div class="qform" id="quickForm"></div>
+        <div class="qform" style="margin-top:22px"><h3>طلباتي الأخيرة</h3><div class="tablewrap"><table class="data" id="quickMine"></table></div></div>
+      </section>
+
       <!-- ========== INBOX (مصروفات مجهزة من البريد للمراجعة) ========== -->
       <section class="view" id="view-inbox">
         <div class="view-head"><div><h1>صندوق المراجعة</h1><p>حركات جهّزها Claude من البريد — راجع كل حركة وعدّل المشروع والبند ثم أكّد أو ارفض. لا تدخل الحسابات إلا بعد تأكيدك.</p></div>
@@ -384,6 +399,16 @@ table.data td.wrap{white-space:normal;min-width:160px}
       <section class="view" id="view-settings">
         <div class="view-head"><div><h1>الإعدادات</h1><p>بنود الأعمال وأنواع التكلفة المستخدمة في كل الشاشات والتقارير</p></div></div>
         <div class="card" style="margin-bottom:16px"><div class="pad">
+          <h3>المستخدمون والصلاحيات</h3>
+          <p class="helptext" style="margin-bottom:10px">مهندس الموقع ومندوب المشتريات يرون شاشة الإدخال السريع فقط، ولا يرون الحسابات. المدير والمحاسب يرون كل شيء ويراجعون الحركات. إذا لم تضف أحدًا هنا فالجميع مديرون.</p>
+          <div id="rolesList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="newRoleEmail" type="email" dir="ltr" placeholder="البريد الإلكتروني" style="flex:1;min-width:200px;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
+            <select id="newRoleSel" style="background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:8px 10px"><option value="admin">مدير</option><option value="accountant">محاسب</option><option value="engineer">مهندس موقع</option><option value="purchaser">مندوب مشتريات</option></select>
+            <button class="btn primary" id="addRoleBtn">إضافة</button>
+          </div>
+        </div></div>
+        <div class="card" style="margin-bottom:16px"><div class="pad">
           <h3>بنود الأعمال (دهانات، كهرباء، بياض…)</h3>
           <p class="helptext" style="margin-bottom:10px">تظهر في كل شاشات المصروفات بجانب بنود مقايسة المشروع المختار.</p>
           <div id="workItemsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
@@ -419,6 +444,8 @@ var S = {
   costItems: ['عهدة نثرية','مقاولين باطن','عمالة يومية','رواتب','مشتريات','نقل','إكراميات','ضرائب وتأمينات','أخرى'],
   workItems: ['دهانات','كهرباء','بياض ومحارة','سباكة','نجارة','أرضيات وبلاط','أسقف معلقة','هدم وتكسير','تشطيبات عامة'],  // بنود الأعمال العامة
   pending: [],        // حركات مجهزة بانتظار المراجعة
+  roles: {},          // {email: 'admin'|'accountant'|'engineer'|'purchaser'}
+  userEmail: '',
   batches: [],        // [{id,label,rows:[...]}]
   currentProjectId: null,
   importState: null
@@ -482,14 +509,15 @@ var FIREBASE_CONFIG = {
   measurementId: "G-2BXMFZ6HZ7"
 };
 
-async function loadData(db, label){
-  S.db = db;
+async function loadData(db, label, email){
+  S.db = db; S.userEmail = (email||'').toLowerCase();
   var dot = document.getElementById('connDot'), txt = document.getElementById('connText');
   dot.classList.add('on'); txt.textContent = label;
   try{
     var cfgSnap = await db.doc('meta/config').get();
     if(cfgSnap.exists && cfgSnap.data().cost_items){ S.costItems = cfgSnap.data().cost_items; }
     if(cfgSnap.exists && cfgSnap.data().work_items){ S.workItems = cfgSnap.data().work_items; }
+    if(cfgSnap.exists && cfgSnap.data().roles){ S.roles = cfgSnap.data().roles; }
   }catch(e){ console.error('config', e); }
   try{
     var projSnap = await db.collection('projects').get();
@@ -503,7 +531,7 @@ async function loadData(db, label){
     var pend = await db.collection('pending').get();
     S.pending = pend.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
   }catch(e){ console.error('pending', e); S.pending = []; }
-  renderAll();
+  applyRole(); renderAll();
 }
 
 function loginMessage(code){
@@ -546,7 +574,7 @@ async function boot(){
         if(user){
           bg.classList.remove('show'); lo.style.display='';
           document.getElementById('loginPass').value='';
-          loadData(firebase.firestore(), 'متصل — '+(user.email||''));
+          loadData(firebase.firestore(), 'متصل — '+(user.email||''), user.email);
         } else {
           S.db = null; S.projects = []; S.batches = [];
           dot.classList.remove('on'); txt.textContent='غير مسجّل';
@@ -558,7 +586,8 @@ async function boot(){
     }catch(e){ console.error('firebase init', e); }
   }
   // 3) fallback: this-device storage
-  await loadData(makeLocalDb(), 'تخزين محلي على هذا الجهاز');
+  var testEmail=''; try{ testEmail = localStorage.getItem('moqawel_test_email')||''; }catch(e){}
+  await loadData(makeLocalDb(), 'تخزين محلي على هذا الجهاز', testEmail);
 }
 
 function waitForDb(timeoutMs){
@@ -576,7 +605,7 @@ function waitForDb(timeoutMs){
 async function saveConfig(){
   var db = await waitForDb();
   if(!db){ toast('⚠ لا يوجد اتصال بقاعدة البيانات — لم يتم الحفظ، حاول تاني'); return false; }
-  try{ await db.doc('meta/config').set({cost_items:S.costItems, work_items:S.workItems, updated_at:new Date().toISOString()}); return true; }
+  try{ await db.doc('meta/config').set({cost_items:S.costItems, work_items:S.workItems, roles:S.roles, updated_at:new Date().toISOString()}); return true; }
   catch(e){ toast('⚠ تعذر حفظ الإعدادات'); return false; }
 }
 async function saveProject(p){
@@ -593,8 +622,9 @@ async function saveBatch(b){
 }
 
 /* ---------------- nav ---------------- */
-var VIEWS = ['dashboard','projects','projectDetail','inbox','custody','weekly','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
+var VIEWS = ['dashboard','projects','projectDetail','inbox','quick','custody','weekly','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
 function go(view){
+  if(isFieldRole() && view!=='quick') view='quick';
   VIEWS.forEach(function(v){ document.getElementById('view-'+v).classList.toggle('active', v===view); });
   document.querySelectorAll('.nav button[data-view]').forEach(function(b){ b.classList.toggle('active', b.dataset.view===view); });
   document.getElementById('navEl').classList.remove('open');
@@ -602,6 +632,7 @@ function go(view){
   if(view==='projects') renderProjectsList();
   if(view==='weekly') renderWeekly();
   if(view==='inbox') renderInbox();
+  if(view==='quick') renderQuick();
   if(view==='reports') renderReports();
   if(view==='settings') renderSettings();
   if(['custody','subcontractors','labor','salaries','purchases','revenues'].indexOf(view)!==-1) renderGenericView(view);
@@ -1097,6 +1128,64 @@ function openModal(title, bodyHtml, onSave, deleteOpt){
   if(deleteOpt){ bg.querySelector('#modalDelete').addEventListener('click', function(){ deleteOpt.fn(); close(); }); }
 }
 
+/* ================= ROLES & QUICK ENTRY ================= */
+function getRole(){
+  if(!Object.keys(S.roles||{}).length) return 'admin';        // لم تُضبط صلاحيات بعد: الكل مدير
+  return S.roles[S.userEmail] || 'engineer';                  // غير المسجل = أقل صلاحية
+}
+function isFieldRole(){ var r=getRole(); return r==='engineer' || r==='purchaser'; }
+function applyRole(){
+  var field = isFieldRole();
+  document.querySelectorAll('.nav button[data-view], .nav .sep').forEach(function(el){
+    if(el.dataset && el.dataset.view==='quick'){ el.style.display=''; return; }
+    el.style.display = field ? 'none' : '';
+  });
+  if(field) go('quick');
+}
+function renderQuick(){
+  var types = [['مشتريات','🛒 شراء مواد'],['نثريات','💵 مصروف من العهدة'],['مقاول باطن','🔧 دفعة مقاول'],['عمالة','👷 سلفة / يومية'],['عهدة-استلام','📥 استلام عهدة']];
+  var st = {type: types[0][0]};
+  var f = document.getElementById('quickForm');
+  f.innerHTML = '<div class="qtypes" id="qTypes">'+types.map(function(t,i){return '<button type="button" data-t="'+t[0]+'" class="'+(i===0?'on':'')+'">'+t[1]+'</button>';}).join('')+'</div>'+
+    '<div class="field"><label>المشروع</label><select id="q_project"><option value="">— اختر المشروع —</option>'+S.projects.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>';}).join('')+'</select></div>'+
+    '<div class="field" id="q_wi_wrap"><label>بند الأعمال</label><select id="q_item"></select></div>'+
+    '<div class="field"><label id="q_party_label">المورد / البيان</label><input id="q_party" placeholder="مثال: فاتورة رقم 25 — مكتبة النور"></div>'+
+    '<div class="field"><label>المبلغ (ج.م)</label><input id="q_amount" type="number" inputmode="decimal"></div>'+
+    '<div class="field"><label>التاريخ</label><input id="q_date" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div>'+
+    '<div class="field"><label>ملاحظة (اختياري)</label><input id="q_desc"></div>'+
+    '<button class="btn primary bigbtn" id="q_send">إرسال للمراجعة</button>';
+  var proj = document.getElementById('q_project'), item = document.getElementById('q_item');
+  function fillItems(){ item.innerHTML = '<option value="">— اختر البند —</option>'+workItemOptions(proj.value).map(function(o){return '<option value="'+esc(o.value)+'">'+esc(o.label)+'</option>';}).join(''); }
+  function syncType(){
+    var isIn = st.type==='عهدة-استلام';
+    document.getElementById('q_wi_wrap').style.display = isIn ? 'none' : '';
+    document.getElementById('q_party_label').textContent = isIn ? 'من استلمت العهدة / البيان' : (st.type==='مقاول باطن' ? 'اسم المقاول' : (st.type==='عمالة' ? 'اسم العامل' : 'المورد / البيان'));
+  }
+  fillItems(); proj.addEventListener('change', fillItems);
+  document.querySelectorAll('#qTypes button').forEach(function(b){ b.addEventListener('click', function(){
+    document.querySelectorAll('#qTypes button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); st.type=b.dataset.t; syncType();
+  }); });
+  document.getElementById('q_send').addEventListener('click', async function(){
+    var amount = Number(document.getElementById('q_amount').value);
+    var isIn = st.type==='عهدة-استلام';
+    if(!amount){ toast('اكتب المبلغ'); return; }
+    if(!isIn && !proj.value){ toast('اختر المشروع'); return; }
+    if(!isIn && !item.value){ toast('اختر بند الأعمال'); return; }
+    var wi = resolveWorkItem(proj.value, isIn?'':item.value);
+    var btn = this; btn.disabled = true;
+    var db = await waitForDb(); if(!db){ toast('⚠ لا يوجد اتصال — لم يُرسل'); btn.disabled=false; return; }
+    var doc = {id:'pend-'+uid(), created_at:new Date().toISOString(), date:document.getElementById('q_date').value, project_id: proj.value||null,
+      type:st.type, item_id:wi.item_id, work_item:wi.work_item, party:document.getElementById('q_party').value.trim(), desc:document.getElementById('q_desc').value.trim(),
+      amount:amount, source:'إدخال مباشر — '+(S.userEmail||'مستخدم محلي'), by:S.userEmail||''};
+    try{ await db.collection('pending').doc(doc.id).set(doc); S.pending.push(doc); toast('✔ أُرسلت للمراجعة'); renderQuick(); updateInboxBadge(); }
+    catch(e){ toast('⚠ تعذر الإرسال — حاول تاني'); btn.disabled=false; }
+  });
+  syncType();
+  var mine = S.pending.filter(function(r){ return (r.by||'')===(S.userEmail||''); }).sort(function(a,b){return (b.created_at||'').localeCompare(a.created_at||'');}).slice(0,15);
+  document.getElementById('quickMine').innerHTML = '<thead><tr><th>التاريخ</th><th>النوع</th><th>المشروع</th><th class="num">المبلغ</th><th>الحالة</th></tr></thead><tbody>'+
+    (mine.length? mine.map(function(r){ return '<tr><td>'+fmtDate(r.date)+'</td><td>'+typePill(r.type)+'</td><td class="wrap">'+esc(projName(r.project_id))+'</td><td class="num">'+fmtMoney(r.amount)+'</td><td><span class="pill status-جاري">بانتظار المراجعة</span></td></tr>'; }).join('') : '<tr><td colspan="5"><div class="empty">لا توجد طلبات معلّقة</div></td></tr>')+'</tbody>';
+}
+
 /* ================= INBOX (review queue) ================= */
 function updateInboxBadge(){ var b=document.getElementById('inboxBadge'); if(!b) return; var n=S.pending.length; b.style.display = n? '' : 'none'; b.textContent = n; }
 function matchProjectId(name){
@@ -1232,7 +1321,13 @@ function renderReports(){
 }
 
 /* ================= SETTINGS ================= */
+var ROLE_LABEL = {admin:'مدير',accountant:'محاسب',engineer:'مهندس موقع',purchaser:'مندوب مشتريات'};
 function renderSettings(){
+  var rl = document.getElementById('rolesList');
+  rl.innerHTML = Object.keys(S.roles).map(function(em){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface-2);border-radius:7px"><span dir="ltr" style="flex:1;text-align:right">'+esc(em)+'</span><span class="pill status-منتهى">'+ROLE_LABEL[S.roles[em]]+'</span><button class="btn sm ghost danger rmrole" data-e="'+esc(em)+'">حذف</button></div>';
+  }).join('') || '<div class="helptext">لا يوجد مستخدمون مضافون — الجميع حاليًا مديرون</div>';
+  rl.querySelectorAll('.rmrole').forEach(function(btn){ btn.addEventListener('click', function(){ delete S.roles[btn.dataset.e]; saveConfig(); renderSettings(); }); });
   var wl = document.getElementById('workItemsList');
   wl.innerHTML = S.workItems.map(function(c,i){
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface-2);border-radius:7px"><span style="flex:1">'+esc(c)+'</span><button class="btn sm ghost danger rmwi" data-i="'+i+'">حذف</button></div>';
@@ -1244,6 +1339,13 @@ function renderSettings(){
   }).join('');
   el.querySelectorAll('.rmci').forEach(function(btn){ btn.addEventListener('click', function(){ S.costItems.splice(Number(btn.dataset.i),1); saveConfig(); renderSettings(); }); });
 }
+document.getElementById('addRoleBtn').addEventListener('click', function(){
+  var em = document.getElementById('newRoleEmail').value.trim().toLowerCase(), role = document.getElementById('newRoleSel').value;
+  if(!em || em.indexOf('@')===-1){ toast('اكتب بريدًا صحيحًا'); return; }
+  var wasEmpty = !Object.keys(S.roles).length;
+  if(wasEmpty && role!=='admin' && S.userEmail && !S.roles[S.userEmail]){ S.roles[S.userEmail]='admin'; }   // لا تحجب نفسك
+  S.roles[em] = role; document.getElementById('newRoleEmail').value=''; saveConfig(); renderSettings();
+});
 document.getElementById('addWorkItemBtn').addEventListener('click', function(){
   var inp = document.getElementById('newWorkItemInput'); var v = inp.value.trim();
   if(!v || S.workItems.indexOf(v)!==-1) return; S.workItems.push(v); inp.value=''; saveConfig(); renderSettings();
