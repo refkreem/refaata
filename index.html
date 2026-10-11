@@ -263,7 +263,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
             <h3 style="margin:0">كراسة الشروط — المقايسة مقابل الفعلي</h3>
             <button class="btn sm" id="addBoqRowBtn">+ إضافة بند بالمقايسة</button>
           </div>
-          <p class="helptext" style="margin-bottom:10px">قيمة الكراسة تُدخل يدويًا عند التعاقد. التكلفة الفعلية تُحسب تلقائيًا من كل الحركات المسجلة على هذا المشروع تحت نفس البند.</p>
+          <p class="helptext" style="margin-bottom:10px">يمكن إنشاء بنود رئيسية وفرعية وتحديد التخصص والمورد والمتطلبات الفنية. تكلفة البند تُحسب من الحركات المرتبطة به مباشرة؛ الحركات القديمة غير المرتبطة لا تُوزع بالتخمين.</p>
           <div class="tablewrap"><table class="data" id="pdBoqTable"></table></div>
         </div></div>
         <div class="card"><div class="pad">
@@ -745,11 +745,13 @@ function renderProjectDetail(id){
   ].join('');
 
   var boqRows = (p.boq||[]).map(function(b){
-    var actual = allTx().filter(function(r){return r.project_id===p.id && r.cost_item===b.cost_item && r.type!=='ايراد' && r.type!=='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+    var actual = allTx().filter(function(r){return r.project_id===p.id && r.boq_id===b.id && r.type!=='ايراد' && r.type!=='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
     var boqVal = (Number(b.qty)||0)*(Number(b.unit_price)||0);
     var diff = boqVal - actual;
     return '<tr>'+
-      '<td class="wrap">'+esc(b.item)+'</td>'+
+      '<td class="wrap">'+(b.parent_id?'<span class="helptext">↳ '+esc(((p.boq||[]).find(function(x){return x.id===b.parent_id;})||{}).item||'بند أب')+'</span><br>':'')+'<b>'+esc(b.item)+'</b></td>'+
+      '<td>'+esc(b.discipline||'—')+'</td>'+
+      '<td class="wrap">'+esc(b.vendor||'—')+'</td>'+
       '<td>'+esc(b.cost_item)+'</td>'+
       '<td>'+esc(b.unit||'')+'</td>'+
       '<td class="num">'+(b.qty||0)+'</td>'+
@@ -761,7 +763,7 @@ function renderProjectDetail(id){
     '</tr>';
   }).join('');
   var boqTable = document.getElementById('pdBoqTable');
-  boqTable.innerHTML = '<thead><tr><th>البند بالمقايسة</th><th>بند التكاليف</th><th>الوحدة</th><th class="num">الكمية</th><th class="num">سعر الوحدة</th><th class="num">قيمة الكراسة</th><th class="num">التكلفة الفعلية</th><th class="num">الفرق</th><th></th></tr></thead><tbody>'+
+  boqTable.innerHTML = '<thead><tr><th>البند بالمقايسة</th><th>التخصص</th><th>المقاول/المورد</th><th>بند التكاليف</th><th>الوحدة</th><th class="num">الكمية</th><th class="num">سعر الوحدة</th><th class="num">قيمة الكراسة</th><th class="num">تكلفة مرتبطة مباشرة</th><th class="num">الفرق</th><th></th></tr></thead><tbody>'+
     (boqRows || '<tr><td colspan="9"><div class="empty">لا توجد بنود مقايسة بعد</div></td></tr>') + '</tbody>';
   boqTable.querySelectorAll('.rmboq').forEach(function(btn){ btn.addEventListener('click', function(){
     p.boq = p.boq.filter(function(b){return b.id!==btn.dataset.i;}); saveProject(p); renderProjectDetail(p.id);
@@ -776,8 +778,11 @@ function renderProjectDetail(id){
 document.getElementById('pdEditBtn').addEventListener('click', function(){ openProjectModal(S.currentProjectId); });
 document.getElementById('addBoqRowBtn').addEventListener('click', function(){
   var p = S.projects.find(function(p){return p.id===S.currentProjectId;}); if(!p) return;
-  var html = '<div class="field"><label>اسم البند بالمقايسة</label><input id="b_item" placeholder="مثال: أعمال دهانات"></div>'+
-    '<div class="field"><label>بند التكاليف المرتبط</label><select id="b_costitem">'+S.costItems.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>'+
+  var html = '<div class="field"><label>اسم البند الرئيسي أو الفرعي</label><input id="b_item" placeholder="مثال: تكييف / صاج / فلاتر / غازات طبية"></div>'+
+    '<div class="field"><label>البند الأب (اختياري)</label><select id="b_parent"><option value="">بند رئيسي</option>'+(p.boq||[]).map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.item)+'</option>';}).join('')+'</select></div>'+
+    '<div class="grid2"><div class="field"><label>التخصص / النظام</label><select id="b_discipline">'+['معماري','تكييف وتهوية','فلاتر وتنقية','صاج ودكت','غازات طبية','كهرباء','تيار خفيف','سباكة','مكافحة حريق','نفايات ومسارات','تصميم واعتمادات','اختبارات وتشغيل','أخرى'].map(function(x){return '<option>'+x+'</option>';}).join('')+'</select></div><div class="field"><label>مقاول الباطن / المورد</label><input id="b_vendor" placeholder="اسم الشركة"></div></div>'+
+    '<div class="field"><label>المتطلبات الفنية / مرجع الاعتماد</label><textarea id="b_tech" placeholder="الضغط حسب التصميم، مراحل الفلاتر، مستوى الضوضاء، نوع الغاز، مرجع المخطط"></textarea></div>'+
+    '<div class="field"><label>بند التكاليف العام</label><select id="b_costitem">'+S.costItems.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>'+
     '<div class="grid3">'+
       '<div class="field"><label>الوحدة</label><input id="b_unit" placeholder="م2 / قطعة..."></div>'+
       '<div class="field"><label>الكمية</label><input id="b_qty" type="number"></div>'+
@@ -786,7 +791,7 @@ document.getElementById('addBoqRowBtn').addEventListener('click', function(){
   openModal('إضافة بند بالمقايسة', html, async function(){
     var item = document.getElementById('b_item').value.trim();
     if(!item){ toast('اسم البند مطلوب'); return false; }
-    var newRow = {id:uid(), item:item, cost_item:document.getElementById('b_costitem').value, unit:document.getElementById('b_unit').value.trim(), qty:Number(document.getElementById('b_qty').value)||0, unit_price:Number(document.getElementById('b_price').value)||0};
+    var newRow = {id:uid(), item:item, parent_id:document.getElementById('b_parent').value||null, discipline:document.getElementById('b_discipline').value, vendor:document.getElementById('b_vendor').value.trim(), technical_notes:document.getElementById('b_tech').value.trim(), cost_item:document.getElementById('b_costitem').value, unit:document.getElementById('b_unit').value.trim(), qty:Number(document.getElementById('b_qty').value)||0, unit_price:Number(document.getElementById('b_price').value)||0};
     var prevBoq = (p.boq||[]).slice();
     p.boq = prevBoq.concat([newRow]);
     var ok = await saveProject(p);
@@ -871,8 +876,11 @@ function openTxModal(view, meta){
     html += '<div class="field"><label>بند التكاليف</label><select id="t_costitem">'+S.costItems.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>';
   }
   html += '<div class="field"><label>'+meta.partyLabel+'</label><input id="t_party"></div>';
+  html += '<div class="field"><label>بند المقايسة المحدد</label><select id="t_boq"><option value="">— غير مرتبط ببند محدد —</option></select><div class="helptext">اختيار البند يتيح تحليل التكلفة على مستوى البند الفرعي.</div></div>';
   html += '<div class="field"><label>بيان إضافي (اختياري)</label><input id="t_desc"></div>';
-  html += '<div class="field"><label>المبلغ</label><input id="t_amount" type="number"></div>';
+  html += '<div class="field"><label>المبلغ</label><input id="t_amount" type="number" min="0.01" step="0.01"></div>';
+  function refreshTxBoq(){var pid=document.getElementById("t_project").value,sel=document.getElementById("t_boq"),pr=S.projects.find(function(x){return x.id===pid;});sel.innerHTML="<option value=\"\">— غير مرتبط ببند محدد —</option>"+((pr&&pr.boq)||[]).map(function(b){return "<option value=\""+esc(b.id)+"\">"+esc(b.item)+"</option>";}).join("");}
+  document.getElementById("t_project").addEventListener("change",refreshTxBoq);refreshTxBoq();
   openModal('حركة جديدة', html, async function(){
     var amount = Number(document.getElementById('t_amount').value);
     if(!amount){ toast('المبلغ مطلوب'); return false; }
@@ -883,6 +891,7 @@ function openTxModal(view, meta){
       project_id: document.getElementById('t_project').value || null,
       type: type,
       cost_item: type==='عهدة-استلام' ? '' : costItem,
+      boq_id: document.getElementById('t_boq').value || null,
       party: document.getElementById('t_party').value.trim(),
       desc: document.getElementById('t_desc').value.trim(),
       amount: amount
