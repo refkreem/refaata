@@ -586,7 +586,8 @@ function renderDashboard(){
   var monthCost = thisMonth.filter(function(r){return costTypes.indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
   var monthRev = thisMonth.filter(function(r){return r.type==='ايراد';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
   var custodyIn = tx.filter(function(r){return r.type==='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var custodyOut = tx.filter(function(r){return r.type==='نثريات';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  var custodyOut = tx.filter(function(r){return r.type==='نثريات' && r.custodian;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  var custodyReturned = tx.filter(function(r){return r.type==='عهدة-رد';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
   var activeProjects = S.projects.filter(function(p){return p.status==='جاري';}).length;
 
   var k = document.getElementById('dashKpis');
@@ -594,7 +595,7 @@ function renderDashboard(){
     kpi('مشاريع نشطة', activeProjects, ''),
     kpi('مصروفات الشهر', fmtMoney(monthCost), ''),
     kpi('إيرادات الشهر', fmtMoney(monthRev), 'good'),
-    kpi('رصيد العهدة الحالي', fmtMoney(custodyIn-custodyOut), (custodyIn-custodyOut)>=0?'good':'bad')
+    kpi('رصيد العهدة الحالي', fmtMoney(custodyIn-custodyOut-custodyReturned), (custodyIn-custodyOut-custodyReturned)>=0?'good':'bad')
   ].join('');
 
   var recent = tx.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); }).slice(0,8);
@@ -809,7 +810,7 @@ document.getElementById('addBoqRowBtn').addEventListener('click', function(){
 
 /* ================= GENERIC TRANSACTION VIEWS ================= */
 var VIEW_META = {
-  custody: {types:['عهدة-استلام','نثريات'], partyLabel:'البيان', needsCostItem:true, defaultType:'نثريات'},
+  custody: {types:['عهدة-استلام','نثريات','عهدة-رد'], partyLabel:'البيان', needsCostItem:true, defaultType:'نثريات'},
   subcontractors: {types:['مقاول باطن'], partyLabel:'اسم المقاول', needsCostItem:false, defaultType:'مقاول باطن', fixedCostItem:'مقاولين باطن'},
   labor: {types:['عمالة'], partyLabel:'اسم العامل / الموقع', needsCostItem:false, defaultType:'عمالة', fixedCostItem:'عمالة يومية'},
   salaries: {types:['رواتب'], partyLabel:'الشهر / البيان', needsCostItem:false, defaultType:'رواتب', fixedCostItem:'رواتب'},
@@ -826,19 +827,21 @@ function renderGenericView(view){
   var kpiHtml = [kpi('عدد الحركات', rows.length, ''), kpi('الإجمالي', fmtMoney(total), '')];
   if(view==='custody'){
     var inA = rows.filter(function(r){return r.type==='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-    var outA = rows.filter(function(r){return r.type==='نثريات';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-    kpiHtml = [kpi('إجمالي العهدة المستلمة','good'===''?'':fmtMoney(inA),'good'), kpi('إجمالي المصروف',fmtMoney(outA),'bad'), kpi('الرصيد الحالي', fmtMoney(inA-outA), (inA-outA)>=0?'good':'bad')];
+    var outA = rows.filter(function(r){return r.type==='نثريات' && r.custodian;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+    var returnedA = rows.filter(function(r){return r.type==='عهدة-رد';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+    var unlinkedOut = rows.filter(function(r){return r.type==='نثريات' && !r.custodian;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+    kpiHtml = [kpi('إجمالي العهدة المستلمة',fmtMoney(inA),'good'), kpi('مصروفات على عهدة مسماة',fmtMoney(outA),'bad'), kpi('ردّ عهدة',fmtMoney(returnedA),''), kpi('مصروفات بلا صاحب عهدة',fmtMoney(unlinkedOut),'bad'), kpi('الرصيد المتبقي', fmtMoney(inA-outA-returnedA), (inA-outA-returnedA)>=0?'good':'bad')];
   }
   var genKpis = sec.querySelector('.gen-kpis'); if(genKpis) genKpis.innerHTML = kpiHtml.join('');
 
   rows.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var table = sec.querySelector('.gen-table');
-  var header = '<thead><tr><th>التاريخ</th><th>المشروع</th>'+(view==='custody'?'<th>النوع</th>':'')+(meta.needsCostItem?'<th>البند</th>':'')+'<th>'+meta.partyLabel+'</th><th class="num">المبلغ</th><th></th></tr></thead>';
+  var header = '<thead><tr><th>التاريخ</th><th>المشروع</th>'+(view==='custody'?'<th>النوع</th><th>صاحب العهدة</th>':'')+(meta.needsCostItem?'<th>البند</th>':'')+'<th>'+meta.partyLabel+'</th><th class="num">المبلغ</th><th></th></tr></thead>';
   var body = rows.length ? rows.map(function(r){
     return '<tr>'+
       '<td>'+fmtDate(r.date)+'</td>'+
       '<td class="wrap">'+esc(projName(r.project_id))+'</td>'+
-      (view==='custody'? '<td>'+typePill(r.type)+'</td>' : '')+
+      (view==='custody'? '<td>'+typePill(r.type)+'</td><td>'+esc(r.custodian||'—')+'</td>' : '')+
       (meta.needsCostItem? '<td>'+esc(r.cost_item||'—')+'</td>' : '')+
       '<td class="wrap">'+esc(r.party||'')+(r.desc?' <span class="helptext">— '+esc(r.desc)+'</span>':'')+'</td>'+
       '<td class="num">'+fmtMoney(r.amount)+'</td>'+
@@ -876,7 +879,8 @@ function openTxModal(view, meta){
   '</div>';
   if(view==='custody'){
     html += '<div class="field"><label>نوع الحركة</label><select id="t_type">'+
-      '<option value="عهدة-استلام">استلام عهدة</option><option value="نثريات">صرف نثريات / مصروفات</option></select></div>';
+      '<option value="عهدة-استلام">استلام عهدة</option><option value="نثريات">صرف نثريات / مصروفات</option><option value="عهدة-رد">رد باقي العهدة</option></select></div>'+
+      '<div class="field"><label>صاحب العهدة (مطلوب للاستلام أو الرد)</label><input id="t_custodian" placeholder="اسم المهندس أو المستلم"></div>';
   }
   if(meta.needsCostItem){
     html += '<div class="field"><label>بند التكاليف</label><select id="t_costitem">'+S.costItems.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>';
@@ -891,12 +895,15 @@ function openTxModal(view, meta){
     var amount = Number(document.getElementById('t_amount').value);
     if(!amount){ toast('المبلغ مطلوب'); return false; }
     var type = view==='custody' ? document.getElementById('t_type').value : defType;
+    var custodian = view==='custody' ? document.getElementById('t_custodian').value.trim() : '';
+    if(view==='custody' && (type==='عهدة-استلام'||type==='عهدة-رد') && !custodian){toast('اسم صاحب العهدة مطلوب لهذه الحركة');return false;}
     var costItem = meta.needsCostItem ? document.getElementById('t_costitem').value : (meta.fixedCostItem||'');
     var ok = await addTxRow({
       date: document.getElementById('t_date').value,
       project_id: document.getElementById('t_project').value || null,
       type: type,
-      cost_item: type==='عهدة-استلام' ? '' : costItem,
+      cost_item: (type==='عهدة-استلام'||type==='عهدة-رد') ? '' : costItem,
+      custodian: custodian,
       boq_id: document.getElementById('t_boq').value || null,
       party: document.getElementById('t_party').value.trim(),
       desc: document.getElementById('t_desc').value.trim(),
