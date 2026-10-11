@@ -781,10 +781,10 @@ document.getElementById('addBoqRowBtn').addEventListener('click', function(){
 /* ================= GENERIC TRANSACTION VIEWS ================= */
 var VIEW_META = {
   custody: {types:['عهدة-استلام','نثريات'], partyLabel:'البيان', needsCostItem:true, defaultType:'نثريات'},
-  subcontractors: {types:['مقاول باطن'], partyLabel:'اسم المقاول', needsCostItem:false, defaultType:'مقاول باطن', fixedCostItem:'مقاولين باطن'},
-  labor: {types:['عمالة'], partyLabel:'اسم العامل / الموقع', needsCostItem:false, defaultType:'عمالة', fixedCostItem:'عمالة يومية'},
-  salaries: {types:['رواتب'], partyLabel:'الشهر / البيان', needsCostItem:false, defaultType:'رواتب', fixedCostItem:'رواتب'},
-  purchases: {types:['مشتريات'], partyLabel:'الصنف / المورد', needsCostItem:false, defaultType:'مشتريات', fixedCostItem:'مشتريات'},
+  subcontractors: {types:['مقاول باطن'], partyLabel:'اسم المقاول', needsCostItem:true, defaultType:'مقاول باطن', fixedCostItem:'مقاولين باطن'},
+  labor: {types:['عمالة'], partyLabel:'اسم العامل / الموقع', needsCostItem:true, defaultType:'عمالة', fixedCostItem:'عمالة يومية'},
+  salaries: {types:['رواتب'], partyLabel:'الشهر / البيان', needsCostItem:true, defaultType:'رواتب', fixedCostItem:'رواتب'},
+  purchases: {types:['مشتريات'], partyLabel:'الصنف / المورد', needsCostItem:true, defaultType:'مشتريات', fixedCostItem:'مشتريات'},
   revenues: {types:['ايراد'], partyLabel:'مصدر الإيراد (مستخلص رقم...)', needsCostItem:false, defaultType:'ايراد'}
 };
 function renderGenericView(view){
@@ -850,8 +850,9 @@ function openTxModal(view, meta){
       '<option value="عهدة-استلام">استلام عهدة</option><option value="نثريات">صرف نثريات / مصروفات</option></select></div>';
   }
   if(meta.needsCostItem){
-    html += '<div class="field"><label>بند التكاليف</label><select id="t_costitem">'+S.costItems.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>';
+    html += '<div class="field" id="t_ci_wrap"><label>بند التكاليف (البند الذي يُحمَّل عليه المبلغ)</label><select id="t_costitem"><option value="">— اختر البند —</option>'+S.costItems.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'<option value="__new__">＋ إضافة بند جديد…</option></select></div>';
   }
+
   html += '<div class="field"><label>'+meta.partyLabel+'</label><input id="t_party"></div>';
   html += '<div class="field"><label>بيان إضافي (اختياري)</label><input id="t_desc"></div>';
   html += '<div class="field"><label>المبلغ</label><input id="t_amount" type="number"></div>';
@@ -860,6 +861,7 @@ function openTxModal(view, meta){
     if(!amount){ toast('المبلغ مطلوب'); return false; }
     var type = view==='custody' ? document.getElementById('t_type').value : defType;
     var costItem = meta.needsCostItem ? document.getElementById('t_costitem').value : (meta.fixedCostItem||'');
+    if(meta.needsCostItem && type!=='عهدة-استلام' && !costItem){ toast('اختر بند التكاليف'); return false; }
     var ok = await addTxRow({
       date: document.getElementById('t_date').value,
       project_id: document.getElementById('t_project').value || null,
@@ -874,6 +876,21 @@ function openTxModal(view, meta){
     try{ renderGenericView(view); renderDashboard(); }catch(e){}
     return true;
   });
+  var ciSel = document.getElementById('t_costitem');
+  if(ciSel){
+    ciSel.addEventListener('change', function(){
+      if(ciSel.value!=='__new__') return;
+      var name = (prompt('اسم البند الجديد') || '').trim();
+      if(name && S.costItems.indexOf(name)===-1){ S.costItems.push(name); saveConfig(); }
+      var opts = '<option value="">— اختر البند —</option>'+S.costItems.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'<option value="__new__">＋ إضافة بند جديد…</option>';
+      ciSel.innerHTML = opts; ciSel.value = name || '';
+    });
+  }
+  var typeSel = document.getElementById('t_type'), ciWrap = document.getElementById('t_ci_wrap');
+  if(typeSel && ciWrap){
+    var sync = function(){ ciWrap.style.display = typeSel.value==='عهدة-استلام' ? 'none' : ''; };
+    typeSel.addEventListener('change', sync); sync();
+  }
 }
 
 /* ================= MODAL HELPER ================= */
