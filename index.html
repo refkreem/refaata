@@ -716,10 +716,9 @@ function openProjectModal(id){
     toast('تم حفظ المشروع');
     try{ renderProjectsList(); renderDashboard(); if(S.currentProjectId===p.id) renderProjectDetail(p.id); }catch(e){}
     return true;
-  }, isNew ? null : {label:'حذف المشروع', fn:function(){
-      S.projects = S.projects.filter(function(x){return x.id!==p.id;});
-      if(S.db) S.db.collection('projects').doc(p.id).delete().catch(function(){});
-      renderProjectsList(); go('projects');
+  }, isNew ? null : {label:'أرشفة المشروع', fn:function(){
+      p.status = 'منتهى';
+      saveProject(p).then(function(ok){if(ok){renderProjectsList();renderDashboard();if(S.currentProjectId===p.id)renderProjectDetail(p.id);toast('تمت أرشفة المشروع مع الاحتفاظ بالحسابات والحركات');}});
   }});
 }
 
@@ -1134,7 +1133,7 @@ function buildPreview(){
     return out;
   }).filter(function(r){ return r.amount>0; });
   function normDup(v){return String(v==null?'':v).trim().replace(/\s+/g,' ').toLowerCase();}
-  function dupSig(r,isExisting){return [r.date||'',isExisting?projName(r.project_id):(r.project||''),r.type||'',r.cost_item||'',r.party||'',Number(r.amount)||0,r.desc||''].map(normDup).join('|');}
+  function dupSig(r,isExisting){return [r.date||'',isExisting?(r.project_id?projName(r.project_id):''):(r.project||''),r.type||'',r.cost_item||'',r.party||'',Number(r.amount)||0,r.desc||''].map(normDup).join('|');}
   var existingSigs=new Set(allTx().map(function(r){return dupSig(r,true);})),seenSigs=new Set(),duplicateCount=0;
   built.forEach(function(r){var sig=dupSig(r,false);r._duplicate=existingSigs.has(sig)||seenSigs.has(sig);if(r._duplicate)duplicateCount++;else seenSigs.add(sig);});
   st.built = built; st.duplicateCount=duplicateCount;
