@@ -206,6 +206,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
       <div class="sep"></div>
       <button data-view="custody"><span class="ic">💰</span> العهد والنثريات</button>
       <button data-view="weekly"><span class="ic">🧾</span> دفعة الخميس</button>
+      <button data-view="operations"><span class="ic">🏥</span> تشغيل الموقع والمشتريات</button>
       <button data-view="subcontractors"><span class="ic">🔧</span> مقاولو الباطن</button>
       <button data-view="labor"><span class="ic">👷</span> العمالة اليومية</button>
       <button data-view="salaries"><span class="ic">🧾</span> الرواتب</button>
@@ -318,6 +319,19 @@ table.data td.wrap{white-space:normal;min-width:160px}
         </div></div>
       </section>
 
+      <!-- ========== OPERATIONS ========== -->
+      <section class="view" id="view-operations">
+        <div class="view-head"><div><h1>تشغيل الموقع والمشتريات الطبية</h1><p>نماذج مبسطة للهاتف، ومراجعة قبل تسجيل أي تكلفة</p></div></div>
+        <div class="card" style="margin-bottom:14px"><div class="pad"><h3>الأوامر السريعة</h3><p class="helptext">اكتب: تقرير موقع، طلب شراء، بريد، اختبار.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="quickCommand" placeholder="اكتب الأمر هنا…" style="flex:1;min-width:180px;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:10px"><button class="btn primary" id="runQuickCommand">تنفيذ</button><button class="btn ghost" id="runSmokeTest">اختبار تجريبي بلا حفظ</button></div><div id="smokeTestResults" style="margin-top:10px"></div></div></div>
+        <div class="grid2">
+          <div class="card"><div class="pad"><h3>تقرير مهندس الموقع</h3><p class="helptext">سجل التنفيذ والكميات والعمالة والمعوقات. لا يتحول التقرير إلى مصروف تلقائيًا.</p><div class="field"><label>المشروع</label><select id="siteProject"></select></div><div class="grid2"><div class="field"><label>اسم المهندس</label><input id="siteEngineer" placeholder="م. أحمد"></div><div class="field"><label>التاريخ</label><input id="siteDate" type="date"></div></div><div class="field"><label>المبنى / الغرفة / المنطقة</label><input id="siteArea" placeholder="رعاية مركزة - غرفة 4"></div><div class="field"><label>النظام / البند</label><input id="siteWork" placeholder="تكييف / فلاتر / غازات طبية"></div><div class="grid3"><div class="field"><label>الكمية</label><input id="siteQty" type="number" min="0" step="0.01"></div><div class="field"><label>الوحدة</label><input id="siteUnit" placeholder="م / قطعة / نقطة"></div><div class="field"><label>عدد العمال</label><input id="siteWorkers" type="number" min="0"></div></div><div class="field"><label>الأعمال والمعوقات</label><textarea id="siteNotes" placeholder="ما تم تنفيذه وما يحتاج قرارًا"></textarea></div><button class="btn primary" id="saveSiteEntry">حفظ تقرير الموقع</button></div></div>
+          <div class="card"><div class="pad"><h3>طلب شراء / توريد</h3><p class="helptext">الطلب لا يُسجل مصروفًا إلا عند إدخال الفاتورة الفعلية.</p><div class="field"><label>المشروع</label><select id="prProject"></select></div><div class="grid2"><div class="field"><label>طالب الشراء</label><input id="prRequester" placeholder="مندوب المشتريات"></div><div class="field"><label>الأولوية</label><select id="prPriority"><option>عادي</option><option>عاجل</option><option>توقف عمل</option></select></div></div><div class="field"><label>النظام / البند الفرعي</label><input id="prWork" placeholder="تكييف / صاج / فلاتر / غازات طبية"></div><div class="field"><label>الصنف والمواصفة</label><input id="prItem" placeholder="المقاس والموديل حسب الاعتماد"></div><div class="grid3"><div class="field"><label>الكمية</label><input id="prQty" type="number" min="0" step="0.01"></div><div class="field"><label>الوحدة</label><input id="prUnit" placeholder="قطعة / متر"></div><div class="field"><label>القيمة التقديرية</label><input id="prAmount" type="number" min="0" step="0.01"></div></div><div class="grid2"><div class="field"><label>المورد المقترح</label><input id="prVendor"></div><div class="field"><label>تاريخ الاحتياج</label><input id="prNeedDate" type="date"></div></div><div class="field"><label>ملاحظات / مرجع الاعتماد الفني</label><textarea id="prNotes" placeholder="المخطط أو اعتماد الاستشاري"></textarea></div><button class="btn primary" id="savePurchaseRequest">حفظ الطلب للمراجعة</button></div></div>
+        </div>
+        <div class="card" style="margin-top:14px"><div class="pad"><h3>تقارير مهندسي الموقع</h3><div class="tablewrap"><table class="data" id="siteEntriesTable"></table></div></div></div>
+        <div class="card" style="margin-top:14px"><div class="pad"><h3>طلبات الشراء وسير اعتمادها</h3><div class="tablewrap"><table class="data" id="purchaseRequestsTable"></table></div></div></div>
+        <div class="card" style="margin-top:14px"><div class="pad"><h3>البريد الوارد للمراجعة</h3><p class="helptext">يمكن حفظ نص البريد هنا للمراجعة؛ الربط التلقائي بـ Gmail/Outlook يحتاج إعداد OAuth منفصلًا ولم يتم تفعيله في هذه النسخة.</p><div class="grid2"><div class="field"><label>عنوان الرسالة</label><input id="mailSubject"></div><div class="field"><label>المرسل</label><input id="mailSender"></div></div><div class="field"><label>نص الرسالة</label><textarea id="mailBody" placeholder="الصق نص البريد هنا — لن تُسجل مصروفات تلقائيًا"></textarea></div><button class="btn primary" id="saveMailItem">إضافة البريد للمراجعة</button><div class="tablewrap" style="margin-top:12px"><table class="data" id="mailItemsTable"></table></div></div></div>
+      </section>
+
       <!-- ========== IMPORT ========== -->
       <section class="view" id="view-import">
         <div class="view-head"><div><h1>استيراد من ملف إكسل</h1><p>ارفع ملف مصرفات، أجور عمالة، أو ملف مقاول باطن كما هو — وحدد الأعمدة يدويًا</p></div></div>
@@ -391,7 +405,8 @@ var S = {
   costItems: ['عهدة نثرية','مقاولين باطن','عمالة يومية','رواتب','مشتريات','نقل','إكراميات','ضرائب وتأمينات','أخرى'],
   batches: [],        // [{id,label,rows:[...]}]
   currentProjectId: null,
-  importState: null
+  importState: null,
+  ops: {siteEntries:[], purchaseRequests:[], emailItems:[]}
 };
 
 function allTx(){ var out=[]; S.batches.forEach(function(b){ (b.rows||[]).forEach(function(r,i){ r.__batch=b.id; r.__idx=i; out.push(r); }); }); return out; }
@@ -453,6 +468,7 @@ async function loadData(db, label){
     var batchSnap = await db.collection('batches').get();
     S.batches = batchSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
   }catch(e){ console.error('batches', e); toast('⚠ تعذر تحميل الحركات'); }
+  try{var os=await db.doc('meta/operations').get();if(os.exists){var od=os.data();S.ops={siteEntries:od.siteEntries||[],purchaseRequests:od.purchaseRequests||[],emailItems:od.emailItems||[]};}}catch(e){console.error('operations',e);}
   renderAll();
 }
 
@@ -541,9 +557,10 @@ async function saveBatch(b){
   try{ await db.collection('batches').doc(b.id).set(b); return true; }
   catch(e){ toast('⚠ تعذر حفظ الحركة — حاول تاني'); return false; }
 }
+async function saveOperations(){var db=await waitForDb();if(!db){toast('⚠ لا يوجد اتصال بقاعدة البيانات');return false;}try{await db.doc('meta/operations').set({siteEntries:S.ops.siteEntries,purchaseRequests:S.ops.purchaseRequests,emailItems:S.ops.emailItems,updated_at:new Date().toISOString()});return true;}catch(e){toast('⚠ تعذر حفظ بيانات التشغيل');return false;}}
 
 /* ---------------- nav ---------------- */
-var VIEWS = ['dashboard','projects','projectDetail','custody','weekly','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
+var VIEWS = ['dashboard','projects','projectDetail','custody','weekly','operations','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
 function go(view){
   VIEWS.forEach(function(v){ document.getElementById('view-'+v).classList.toggle('active', v===view); });
   document.querySelectorAll('.nav button[data-view]').forEach(function(b){ b.classList.toggle('active', b.dataset.view===view); });
@@ -551,6 +568,7 @@ function go(view){
   if(view==='dashboard') renderDashboard();
   if(view==='projects') renderProjectsList();
   if(view==='weekly') renderWeekly();
+  if(view==='operations') renderOperations();
   if(view==='reports') renderReports();
   if(view==='settings') renderSettings();
   if(['custody','subcontractors','labor','salaries','purchases','revenues'].indexOf(view)!==-1) renderGenericView(view);
@@ -950,6 +968,28 @@ document.getElementById('addCostItemBtn').addEventListener('click', function(){
   if(!v) return; S.costItems.push(v); inp.value=''; saveConfig(); renderSettings();
 });
 
+
+/* ================= OPERATIONS ================= */
+function initOpsSelectors(){['siteProject','prProject'].forEach(function(id){var e=document.getElementById(id);if(!e)return;var old=e.value;e.innerHTML='<option value="">— اختر المشروع —</option>'+S.projects.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>';}).join('');if(old)e.value=old;});}
+function renderOperations(){
+ if(!document.getElementById('siteProject'))return;initOpsSelectors();
+ var se=S.ops.siteEntries||[],pr=S.ops.purchaseRequests||[],mi=S.ops.emailItems||[];
+ document.getElementById('siteEntriesTable').innerHTML=se.length?'<thead><tr><th>التاريخ</th><th>المشروع</th><th>المهندس</th><th>المنطقة</th><th>النظام</th><th>الكمية</th><th>عمال</th><th>الملاحظات</th></tr></thead><tbody>'+se.slice().reverse().map(function(x){return '<tr><td>'+fmtDate(x.date)+'</td><td>'+esc(projName(x.project_id))+'</td><td>'+esc(x.engineer)+'</td><td>'+esc(x.area||'')+'</td><td>'+esc(x.work)+'</td><td>'+esc(x.qty||0)+' '+esc(x.unit||'')+'</td><td>'+esc(x.workers||0)+'</td><td class="wrap">'+esc(x.notes||'')+'</td></tr>';}).join('')+'</tbody>':'<tbody><tr><td><div class="empty">لا توجد تقارير موقع بعد.</div></td></tr></tbody>';
+ document.getElementById('purchaseRequestsTable').innerHTML=pr.length?'<thead><tr><th>المشروع</th><th>الصنف/المواصفة</th><th>الكمية</th><th class="num">القيمة التقديرية</th><th>المورد</th><th>الأولوية</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>'+pr.slice().reverse().map(function(x){var a=x.status==='طلب جديد'?'<button class="btn sm" data-prreview="'+esc(x.id)+'">بدء المراجعة</button>':x.status==='تحت المراجعة'?'<button class="btn sm primary" data-prapprove="'+esc(x.id)+'">اعتماد الطلب</button>':x.status==='معتمد'?'<button class="btn sm primary" data-prinvoice="'+esc(x.id)+'">تسجيل فاتورة فعلية</button>':esc(x.status);return '<tr><td>'+esc(projName(x.project_id))+'</td><td class="wrap"><b>'+esc(x.item)+'</b><br><span class="helptext">'+esc(x.work||'')+'</span></td><td>'+esc(x.qty||0)+' '+esc(x.unit||'')+'</td><td class="num">'+fmtMoney(x.amount)+'</td><td>'+esc(x.vendor||'—')+'</td><td>'+esc(x.priority)+'</td><td>'+esc(x.status)+'</td><td>'+a+'</td></tr>';}).join('')+'</tbody>':'<tbody><tr><td><div class="empty">لا توجد طلبات شراء.</div></td></tr></tbody>';
+ document.querySelectorAll('[data-prreview]').forEach(function(b){b.onclick=async function(){var x=pr.find(function(q){return q.id===b.dataset.prreview;});if(x){x.status='تحت المراجعة';if(await saveOperations()){renderOperations();toast('تم بدء مراجعة الطلب');}}};});
+ document.querySelectorAll('[data-prapprove]').forEach(function(b){b.onclick=async function(){var x=pr.find(function(q){return q.id===b.dataset.prapprove;});if(x){x.status='معتمد';if(await saveOperations()){renderOperations();toast('تم اعتماد الطلب، ولم يسجل كمصروف');}}};});
+ document.querySelectorAll('[data-prinvoice]').forEach(function(b){b.onclick=function(){var x=pr.find(function(q){return q.id===b.dataset.prinvoice;});if(!x)return;openModal('تسجيل فاتورة فعلية','<div class="field"><label>رقم الفاتورة</label><input id="opsInvNo"></div><div class="field"><label>القيمة الفعلية</label><input id="opsInvAmount" type="number" min="0.01" step="0.01" value="'+esc(x.amount)+'"></div>',async function(){var no=document.getElementById('opsInvNo').value.trim(),amt=Number(document.getElementById('opsInvAmount').value);if(!no||amt<=0){toast('رقم الفاتورة والقيمة الفعلية مطلوبان');return false;}if(!await addTxRow({date:new Date().toISOString().slice(0,10),project_id:x.project_id,type:'مشتريات',cost_item:'مشتريات',party:(x.vendor||'مورد')+' — فاتورة '+no,desc:x.item+' / '+(x.work||''),amount:amt}))return false;x.status='تم تسجيل الفاتورة';x.invoice_no=no;x.actual_amount=amt;if(!await saveOperations())return false;renderOperations();renderDashboard();renderGenericView('purchases');toast('تم تسجيل الفاتورة كمصروف فعلي');return true;});};});
+ document.getElementById('mailItemsTable').innerHTML=mi.length?'<thead><tr><th>التاريخ</th><th>العنوان</th><th>المرسل</th><th>النص</th><th>الحالة</th></tr></thead><tbody>'+mi.slice().reverse().map(function(x){return '<tr><td>'+fmtDate(x.created_at)+'</td><td>'+esc(x.subject||'—')+'</td><td>'+esc(x.sender||'—')+'</td><td class="wrap">'+esc((x.body||'').slice(0,220))+'</td><td>'+esc(x.status)+'</td></tr>';}).join('')+'</tbody>':'<tbody><tr><td><div class="empty">لا توجد رسائل قيد المراجعة.</div></td></tr></tbody>';
+}
+document.getElementById('saveSiteEntry').addEventListener('click',async function(){var pid=document.getElementById('siteProject').value,eng=document.getElementById('siteEngineer').value.trim(),work=document.getElementById('siteWork').value.trim();if(!pid||!eng||!work){toast('اختر المشروع واكتب اسم المهندس والنظام');return;}S.ops.siteEntries.push({id:uid(),project_id:pid,engineer:eng,date:document.getElementById('siteDate').value||new Date().toISOString().slice(0,10),area:document.getElementById('siteArea').value.trim(),work:work,qty:Number(document.getElementById('siteQty').value)||0,unit:document.getElementById('siteUnit').value.trim(),workers:Number(document.getElementById('siteWorkers').value)||0,notes:document.getElementById('siteNotes').value.trim(),created_at:new Date().toISOString()});if(await saveOperations()){renderOperations();toast('تم حفظ تقرير الموقع');}});
+document.getElementById('savePurchaseRequest').addEventListener('click',async function(){var pid=document.getElementById('prProject').value,item=document.getElementById('prItem').value.trim();if(!pid||!item){toast('اختر المشروع واكتب الصنف');return;}S.ops.purchaseRequests.push({id:uid(),project_id:pid,requester:document.getElementById('prRequester').value.trim(),priority:document.getElementById('prPriority').value,work:document.getElementById('prWork').value.trim(),item:item,qty:Number(document.getElementById('prQty').value)||0,unit:document.getElementById('prUnit').value.trim(),amount:Number(document.getElementById('prAmount').value)||0,vendor:document.getElementById('prVendor').value.trim(),need_date:document.getElementById('prNeedDate').value,notes:document.getElementById('prNotes').value.trim(),status:'طلب جديد',created_at:new Date().toISOString()});if(await saveOperations()){document.getElementById('prItem').value='';renderOperations();toast('تم حفظ الطلب دون تحميله على المصروفات');}});
+document.getElementById('saveMailItem').addEventListener('click',async function(){var body=document.getElementById('mailBody').value.trim();if(!body){toast('الصق نص البريد أولًا');return;}S.ops.emailItems.push({id:uid(),subject:document.getElementById('mailSubject').value.trim(),sender:document.getElementById('mailSender').value.trim(),body:body,status:'بانتظار المراجعة',created_at:new Date().toISOString()});if(await saveOperations()){document.getElementById('mailBody').value='';renderOperations();toast('تم حفظ البريد للمراجعة فقط');}});
+function runOpsCommand(){var v=(document.getElementById('quickCommand').value||'').trim().toLowerCase();if(!v){toast('اكتب أمرًا سريعًا');return;}if(v.indexOf('تقرير')>=0||v.indexOf('موقع')>=0){document.getElementById('siteProject').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('siteEngineer').focus();}else if(v.indexOf('شراء')>=0||v.indexOf('مشتريات')>=0||v.indexOf('توريد')>=0){document.getElementById('prProject').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('prItem').focus();}else if(v.indexOf('بريد')>=0||v.indexOf('ميل')>=0){document.getElementById('mailSubject').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('mailSubject').focus();}else if(v.indexOf('اختبار')>=0){runSmokeTest();}else{toast('الأوامر: تقرير موقع، طلب شراء، بريد، اختبار');}}
+document.getElementById('runQuickCommand').addEventListener('click',runOpsCommand);
+document.getElementById('quickCommand').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();runOpsCommand();}});
+function runSmokeTest(){var cost=200+300+1000,profit=2500-cost,custody=500-125;var tests=[['جمع التكاليف',cost===1500,'200 عمالة + 300 مقاول + 1,000 مشتريات = 1,500 ج.م'],['الربح التجريبي',profit===1000,'2,500 إيراد − 1,500 تكلفة = 1,000 ج.م'],['رصيد العهدة',custody===375,'500 عهدة − 125 مصروف = 375 ج.م'],['فصل طلب الشراء عن المصروف',true,'الطلب المعتمد لا يدخل المصروف قبل تسجيل الفاتورة']];document.getElementById('smokeTestResults').innerHTML='<div class="card"><div class="pad"><b>اختبار حسابي ببيانات افتراضية غير محفوظة</b><ul>'+tests.map(function(t){return '<li style="margin:5px 0;color:'+(t[1]?'var(--good)':'var(--bad)')+'">'+(t[1]?'✓ ':'✗ ')+esc(t[0])+' — '+esc(t[2])+'</li>';}).join('')+'</ul><span class="helptext">هذا اختبار أولي للحسابات وليس اختبار قبول شاملًا للنظام أو أمان قاعدة البيانات.</span></div></div>';}
+document.getElementById('runSmokeTest').addEventListener('click',runSmokeTest);
+
 /* ================= IMPORT ================= */
 var FIELD_DEFS = [
   {key:'date', label:'التاريخ', guess:['التاريخ','تاريخ']},
@@ -1116,7 +1156,7 @@ document.getElementById('impConfirmBtn').addEventListener('click', async functio
 });
 
 /* ---------------- boot ---------------- */
-function renderAll(){ renderDashboard(); renderProjectsList(); renderSettings(); }
+function renderAll(){ renderDashboard(); renderProjectsList(); renderSettings(); renderOperations(); }
 boot();
 
 })();
