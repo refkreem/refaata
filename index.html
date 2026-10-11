@@ -735,13 +735,15 @@ function renderProjectDetail(id){
   var cost = projectActualCost(p.id), rev = projectRevenue(p.id);
   var dur = daysBetween(p.start_date, p.end_date);
   var elapsed = p.start_date ? daysBetween(p.start_date, new Date().toISOString().slice(0,10)) : null;
+  var unlinkedCost = allTx().filter(function(r){return r.project_id===p.id && !r.boq_id && ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'].indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
   document.getElementById('pdKpis').innerHTML = [
     kpi('قيمة العقد', p.contract_value?fmtMoney(p.contract_value):'—',''),
     kpi('التكلفة حتى الآن', fmtMoney(cost), p.contract_value && cost>p.contract_value?'bad':''),
     kpi('الإيرادات المحصّلة', fmtMoney(rev), 'good'),
     kpi('صافي الربح', fmtMoney(rev-cost), (rev-cost)>=0?'good':'bad'),
     kpi('مدة التنفيذ', dur!=null? dur+' يوم' : '—', ''),
-    kpi('الأيام المنقضية', elapsed!=null? elapsed+' يوم' : '—', '')
+    kpi('الأيام المنقضية', elapsed!=null? elapsed+' يوم' : '—', ''),
+    kpi('تكاليف غير مرتبطة ببند', fmtMoney(unlinkedCost), unlinkedCost?'bad':'good')
   ].join('');
 
   var boqRows = (p.boq||[]).map(function(b){
@@ -1124,17 +1126,23 @@ function buildPreview(){
     if(!out.type) out.type='نثريات';
     return out;
   }).filter(function(r){ return r.amount>0; });
-  st.built = built;
-  document.getElementById('impReviewSummary').innerHTML = '<b>'+built.length+'</b> صف سيتم استيرادهم من أصل '+st.rows.length+' صف في الملف — إجمالي المبالغ: <b>'+fmtMoney(built.reduce(function(s,r){return s+r.amount;},0))+'</b>';
+  function normDup(v){return String(v==null?'':v).trim().replace(/\\s+/g,' ').toLowerCase();}
+  function dupSig(r,isExisting){return [r.date||'',isExisting?projName(r.project_id):(r.project||''),r.type||'',r.cost_item||'',r.party||'',Number(r.amount)||0,r.desc||''].map(normDup).join('|');}
+  var existingSigs=new Set(allTx().map(function(r){return dupSig(r,true);})),seenSigs=new Set(),duplicateCount=0;
+  built.forEach(function(r){var sig=dupSig(r,false);r._duplicate=existingSigs.has(sig)||seenSigs.has(sig);if(r._duplicate)duplicateCount++;else seenSigs.add(sig);});
+  st.built = built; st.duplicateCount=duplicateCount;
+  document.getElementById('impReviewSummary').innerHTML = '<b>'+built.length+'</b> صف صالح من أصل '+st.rows.length+' صف — إجمالي المبالغ: <b>'+fmtMoney(built.reduce(function(s,r){return s+r.amount;},0))+'</b><br><span style="color:var(--'+(duplicateCount?'bad':'good')+')">حركات متشابهة محتملة: '+duplicateCount+' — سيتم استبعادها من الاستيراد لتقليل التكرار. راجع عمود الحالة قبل التأكيد.</span>';
   var table = document.getElementById('impPreviewTable');
-  table.innerHTML = '<thead><tr><th>التاريخ</th><th>المشروع</th><th>النوع</th><th>البند</th><th>الطرف</th><th>البيان</th><th class="num">المبلغ</th></tr></thead><tbody>'+
-    built.slice(0,200).map(function(r){ return '<tr><td>'+esc(r.date)+'</td><td>'+esc(r.project)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.cost_item)+'</td><td>'+esc(r.party)+'</td><td>'+esc(r.desc)+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>'; }).join('')+
+  table.innerHTML = '<thead><tr><th>الحالة</th><th>التاريخ</th><th>المشروع</th><th>النوع</th><th>البند</th><th>الطرف</th><th>البيان</th><th class="num">المبلغ</th></tr></thead><tbody>'+
+    built.slice(0,200).map(function(r){ return '<tr><td style="color:var(--'+(r._duplicate?'bad':'good')+')">'+(r._duplicate?'مكرر محتمل — مستبعد':'جديد')+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.project)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.cost_item)+'</td><td>'+esc(r.party)+'</td><td>'+esc(r.desc)+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>'; }).join('')+
     '</tbody>';
 }
 document.getElementById('impRestartBtn').addEventListener('click', resetImport);
 document.getElementById('impConfirmBtn').addEventListener('click', async function(){
   var st = S.importState;
   if(!st.built || !st.built.length){ toast('لا توجد صفوف صالحة للاستيراد'); return; }
+  var importRows=st.built.filter(function(r){return !r._duplicate;});
+  if(!importRows.length){toast('كل الصفوف مكررة محتملة؛ لم يتم استيراد أي شيء');return;}
   // resolve project names to ids (create project stub if not found)
   var projCache = {};
   function resolveProject(name){
@@ -1149,8 +1157,8 @@ document.getElementById('impConfirmBtn').addEventListener('click', async functio
     projCache[name] = found.id;
     return found.id;
   }
-  var rows = st.built.map(function(r){
-    return {date:r.date, project_id: resolveProject(r.project), type:r.type, cost_item:r.cost_item||'', party:r.party||'', desc:r.desc||'', amount:r.amount};
+  var rows = importRows.map(function(r){
+    return {date:r.date, project_id: resolveProject(r.project), type:r.type, cost_item:r.cost_item||'', party:r.party||'', desc:r.desc||'', amount:r.amount, boq_id:null};
   });
   // chunk into batches of 400 rows to respect per-document size limits
   var CHUNK=400;
