@@ -1126,7 +1126,7 @@ function buildPreview(){
     if(!out.type) out.type='نثريات';
     return out;
   }).filter(function(r){ return r.amount>0; });
-  function normDup(v){return String(v==null?'':v).trim().replace(/\\s+/g,' ').toLowerCase();}
+  function normDup(v){return String(v==null?'':v).trim().replace(/\s+/g,' ').toLowerCase();}
   function dupSig(r,isExisting){return [r.date||'',isExisting?projName(r.project_id):(r.project||''),r.type||'',r.cost_item||'',r.party||'',Number(r.amount)||0,r.desc||''].map(normDup).join('|');}
   var existingSigs=new Set(allTx().map(function(r){return dupSig(r,true);})),seenSigs=new Set(),duplicateCount=0;
   built.forEach(function(r){var sig=dupSig(r,false);r._duplicate=existingSigs.has(sig)||seenSigs.has(sig);if(r._duplicate)duplicateCount++;else seenSigs.add(sig);});
@@ -1144,7 +1144,7 @@ document.getElementById('impConfirmBtn').addEventListener('click', async functio
   var importRows=st.built.filter(function(r){return !r._duplicate;});
   if(!importRows.length){toast('كل الصفوف مكررة محتملة؛ لم يتم استيراد أي شيء');return;}
   // resolve project names to ids (create project stub if not found)
-  var projCache = {};
+  var projCache = {}, newlyCreatedProjects=[];
   function resolveProject(name){
     name = (name||'').trim();
     if(!name) return null;
@@ -1152,7 +1152,7 @@ document.getElementById('impConfirmBtn').addEventListener('click', async functio
     var found = S.projects.find(function(p){ return p.name.trim()===name; });
     if(!found){
       found = {id:uid(), name:name, location:'', owner:'', contract_value:0, start_date:'', end_date:'', status:'جاري', notes:'(أُنشئ تلقائيًا أثناء الاستيراد)', boq:[]};
-      S.projects.push(found); saveProject(found);
+      S.projects.push(found); newlyCreatedProjects.push(found);
     }
     projCache[name] = found.id;
     return found.id;
@@ -1160,6 +1160,7 @@ document.getElementById('impConfirmBtn').addEventListener('click', async functio
   var rows = importRows.map(function(r){
     return {date:r.date, project_id: resolveProject(r.project), type:r.type, cost_item:r.cost_item||'', party:r.party||'', desc:r.desc||'', amount:r.amount, boq_id:null};
   });
+  for(var pi=0;pi<newlyCreatedProjects.length;pi++){if(!await saveProject(newlyCreatedProjects[pi])){toast('توقف الاستيراد لأن حفظ بيانات مشروع جديد فشل؛ لم تُستورد الحركات');return;}}
   // chunk into batches of 400 rows to respect per-document size limits
   var CHUNK=400;
   var label = (st.file||'ملف') + ' / ' + (st.sheetName||'');
