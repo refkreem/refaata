@@ -863,11 +863,12 @@ document.getElementById('boqFileInput').addEventListener('change',function(e){
       if(!serial&&desc&&!hasNumbers&&!unit&&(/^(أولاً|اولا|ثانياً|ثانيا|ثالثاً|ثالثا|رابعاً|رابعا|خامساً|خامسا|الأعمال|الاعمال|أعمال|اعمال|تركيبات|توريدات|قسم)/i.test(desc))){
         pushPending();section=desc;continue;
       }
-      if(!desc&&hasNumbers&&pending){
+      if(!serial&&hasNumbers&&pending){
         pending.unit=unit||pending.unit;
         if(q!==null)pending.qty=q;
         if(pr!==null)pending.unit_price=pr;
         if(tot!==null)pending.total_value=tot;
+        if(desc&&!/^(مما جميعه|مماجميعه|الإجمالي|الاجمالي)/i.test(desc))pending.technical_notes=[pending.technical_notes,desc].filter(Boolean).join(' — ');
         pending.mergedContinuation=true;
         continue;
       }
