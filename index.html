@@ -594,7 +594,7 @@ function renderDashboard(){
   var monthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   var thisMonth = tx.filter(function(r){ return (r.date||'').slice(0,7)===monthKey; });
   var costTypes = ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'];
-  var monthCost = thisMonth.filter(function(r){return costTypes.indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  var monthCost = thisMonth.filter(function(r){return isBoqCost(r);}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
   var monthRev = thisMonth.filter(function(r){return r.type==='ايراد';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
   var custodyIn = tx.filter(function(r){return r.type==='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
   var custodyOut = tx.filter(function(r){return r.type==='نثريات' && r.custodian;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
@@ -629,11 +629,11 @@ function renderWeekly(){
   if(!toEl.value)toEl.value=iso(now);
   var from=fromEl.value,to=toEl.value;
   var all=allTx(),tx=all.filter(function(r){var d=String(r.date||'').slice(0,10);return (!from||d>=from)&&(!to||d<=to);});
-  var labor=tx.filter(function(r){return r.type==='عمالة';}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
-  var sub=tx.filter(function(r){return r.type==='مقاول باطن';}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
-  var expenses=tx.filter(function(r){return ['نثريات','مشتريات','رواتب'].indexOf(r.type)!==-1;}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
+  var labor=tx.filter(function(r){return r.type==='عمالة'&&isBoqCost(r);}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
+  var sub=tx.filter(function(r){return r.type==='مقاول باطن'&&isBoqCost(r);}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
+  var expenses=tx.filter(function(r){return isBoqCost(r)&&['نثريات','مشتريات','رواتب'].indexOf(r.type)!==-1;}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
   var custody=tx.filter(function(r){return r.type==='عهدة-استلام';}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
-  var unassigned=tx.filter(function(r){return !r.project_id&&r.type!=='عهدة-استلام';});
+  var unassigned=tx.filter(function(r){return !r.project_id&&r.type!=='عهدة-استلام'&&!isSpecialDeduction(r);});
   document.getElementById('weeklyKpis').innerHTML=[
     kpi('إجمالي العمالة في الفترة',fmtMoney(labor),''),kpi('إجمالي مقاولي الباطن',fmtMoney(sub),''),kpi('مصروفات ومشتريات ورواتب',fmtMoney(expenses),''),kpi('العهد المستلمة',fmtMoney(custody),''),kpi('حركات بلا مشروع',unassigned.length,unassigned.length?'bad':'good')
   ].join('');
@@ -652,7 +652,7 @@ function renderWeekly(){
     rows.map(function(g){var p=S.projects.find(function(x){return x.id===g.project_id;}),boqNames=Object.keys(g.boq).map(function(id){return ((p&&p.boq)||[]).find(function(b){return b.id===id;})||{};}).map(function(b){return b.item;}).filter(Boolean).join('، ');return '<tr><td class="wrap">'+esc(projName(g.project_id))+'</td><td>'+esc(g.type)+'</td><td class="wrap">'+esc(g.party)+'</td><td class="wrap">'+esc(boqNames||'غير مرتبط')+'</td><td class="num">'+fmtMoney(g.gross)+'</td><td class="num">'+fmtMoney(g.prior)+'</td><td class="num">'+fmtMoney(g.deduct)+'</td><td class="num">'+fmtMoney(g.cheque)+'</td><td class="num">'+fmtMoney(g.cash)+'</td><td class="num">'+(g.hasSettlement?fmtMoney(g.remaining):'—')+'</td></tr>';}).join('')+'</tbody>':
     '<tbody><tr><td><div class="empty">لا توجد حركات في الفترة المختارة</div></td></tr></tbody>';
   var by={};
-  tx.filter(function(r){return r.project_id;}).forEach(function(r){var p=r.project_id,type=r.type||'غير محدد';if(!by[p])by[p]={};by[p][type]=(by[p][type]||0)+(Number(r.amount)||0);});
+  tx.filter(function(r){return r.project_id&&isBoqCost(r);}).forEach(function(r){var p=r.project_id,type=r.type||'غير محدد';if(!by[p])by[p]={};by[p][type]=(by[p][type]||0)+(Number(r.amount)||0);});
   var pids=Object.keys(by);
   document.getElementById('weeklyProjectsTable').innerHTML=pids.length?
     '<thead><tr><th>المشروع</th><th class="num">عمالة</th><th class="num">مقاولون</th><th class="num">نثريات/مشتريات/رواتب</th><th class="num">إجمالي التكلفة المصنفة</th></tr></thead><tbody>'+
@@ -755,7 +755,7 @@ function renderProjectDetail(id){
   var cost = projectActualCost(p.id), rev = projectRevenue(p.id);
   var dur = daysBetween(p.start_date, p.end_date);
   var elapsed = p.start_date ? daysBetween(p.start_date, new Date().toISOString().slice(0,10)) : null;
-  var unlinkedCost = allTx().filter(function(r){return r.project_id===p.id && !r.boq_id && ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'].indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  var unlinkedCost = allTx().filter(function(r){return r.project_id===p.id && !r.boq_id && isBoqCost(r);}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
   document.getElementById('pdKpis').innerHTML = [
     kpi('قيمة العقد', p.contract_value?fmtMoney(p.contract_value):'—',''),
     kpi('التكلفة حتى الآن', fmtMoney(cost), p.contract_value && cost>p.contract_value?'bad':''),
@@ -1035,7 +1035,7 @@ var FIELD_DEFS = [
   {key:'date', label:'التاريخ', guess:['التاريخ','تاريخ']},
   {key:'project', label:'المشروع', guess:['المشروع','الموقع','الموقع/المشروع']},
   {key:'type', label:'نوع الحركة', guess:[]},
-  {key:'cost_item', label:'بند التكاليف', guess:['بند','بند الاعمال']},
+  {key:'cost_item', label:'تصنيف التكلفة', guess:['بند التكاليف','تصنيف التكلفة','نوع المصروف','cost item']},
   {key:'party', label:'اسم الطرف (مقاول/عامل/بيان)', guess:['بيان','اسم','المقاول','اسم العامل']},
   {key:'desc', label:'بيان إضافي', guess:['ملاحظات','بيان الاعمال']},
   {key:'amount', label:'المبلغ / إجمالي الاستحقاق', guess:['المنصرف','اجمالي','اجمالى','مستحق','اجمالي الحساب','العهدة','المبلغ','القيمة']},
@@ -1116,7 +1116,7 @@ function buildMapGrid(){
       fixedInput.style.display = sel.value==='__fixed__' ? '' : 'none';
       if(sel.dataset.key==='type' && sel.value==='__fixed__'){
         fixedInput.outerHTML = '<select class="fixedval" data-key="type" style="background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;width:100%">'+
-          ['عهدة-استلام','نثريات','مقاول باطن','عمالة','رواتب','مشتريات','ايراد','تأمينات','ضرائب','إكراميات','عهدة-رد'].map(function(t){return '<option>'+t+'</option>';}).join('')+'</select>';
+          ['نثريات','مقاول باطن','عمالة','مشتريات','رواتب','ايراد','تأمينات','ضرائب','إكراميات','عهدة-استلام','عهدة-رد'].map(function(t){return '<option>'+t+'</option>';}).join('')+'</select>';
       }
     });
     sel.dispatchEvent(new Event('change'));
