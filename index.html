@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.boq-standard-table{width:100%;min-width:1000px;table-layout:auto;border-collapse:collapse;direction:rtl}.boq-standard-table th,.boq-standard-table td{padding:10px 12px;vertical-align:top;white-space:nowrap}.boq-standard-table th:nth-child(2),.boq-standard-table td:nth-child(2){white-space:normal;min-width:420px;max-width:720px;line-height:1.65}.boq-row-actions{margin-top:8px;display:flex;gap:6px;opacity:.9}.boq-standard-table .num{text-align:center;white-space:nowrap}</style></head><body>
 <title>مقاول Pro | نظام إدارة وحسابات شركات المقاولات</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -771,23 +771,18 @@ function renderProjectDetail(id){
     var boqVal = (Number(b.qty)||0)*(Number(b.unit_price)||0);
     var diff = boqVal - actual;
     return '<tr>'+
-      '<td class="wrap">'+(b.parent_id?'<span class="helptext">↳ '+esc(((p.boq||[]).find(function(x){return x.id===b.parent_id;})||{}).item||'بند أب')+'</span><br>':'')+'<b>'+esc(b.item)+'</b></td>'+
-      '<td>'+esc(b.discipline||'—')+'</td>'+
-      '<td class="wrap">'+esc(b.vendor||'—')+'</td>'+
-      '<td class="wrap">'+esc([b.area,b.pressure,b.filter_stage,b.noise_target?('ضوضاء '+b.noise_target+' dB'):null,b.medical_gases,b.access_waste,b.technical_notes].filter(Boolean).join(' | ')||'—')+'</td>'+
-      '<td>'+esc(b.cost_item)+'</td>'+
+      '<td class="num">'+esc(b.source_no||b.item_no||'—')+'</td>'+
+      '<td class="wrap" style="min-width:420px;white-space:normal"><b>'+esc(b.item)+'</b>'+(b.parent_id?'<div class="helptext">بند فرعي تحت: '+esc(((p.boq||[]).find(function(x){return x.id===b.parent_id;})||{}).item||'—')+'</div>':'')+'<div class="boq-row-actions"><button class="btn sm editboq" data-i="'+b.id+'">تعديل</button> <button class="btn sm ghost danger rmboq" data-i="'+b.id+'">حذف</button></div></td>'+
       '<td>'+esc(b.unit||'')+'</td>'+
-      '<td class="num">'+(b.qty||0)+'</td>'+
+      '<td class="num">'+(b.qty==null?'':b.qty)+'</td>'+
       '<td class="num">'+fmtMoney(b.unit_price)+'</td>'+
-      '<td class="num"><b>'+fmtMoney(boqVal)+'</b></td>'+
-      '<td class="num">'+fmtMoney(actual)+'</td>'+
-      '<td class="num '+(diff>=0?'diff-pos':'diff-neg')+'">'+ (diff>=0?'متبقي ':'تجاوز ') + fmtMoney(Math.abs(diff)) +'</td>'+
-      '<td><button class="btn sm editboq" data-i="'+b.id+'">تعديل</button> <button class="btn sm ghost danger rmboq" data-i="'+b.id+'">حذف</button></td>'+
+      '<td class="num"><b>'+fmtMoney(b.qty==null||b.unit_price==null?0:boqVal)+'</b></td>'+
     '</tr>';
   }).join('');
   var boqTable = document.getElementById('pdBoqTable');
-  boqTable.innerHTML = '<thead><tr><th>البند بالمقايسة</th><th>التخصص</th><th>المقاول/المورد</th><th>المتطلبات الطبية/الفنية</th><th>بند التكاليف</th><th>الوحدة</th><th class="num">الكمية</th><th class="num">سعر الوحدة</th><th class="num">قيمة الكراسة</th><th class="num">تكلفة مرتبطة مباشرة</th><th class="num">الفرق</th><th></th></tr></thead><tbody>'+
-    (boqRows || '<tr><td colspan="12"><div class="empty">لا توجد بنود مقايسة بعد</div></td></tr>') + '</tbody>';
+  boqTable.classList.add('boq-standard-table');
+  boqTable.innerHTML = '<thead><tr><th style="width:70px">م</th><th style="min-width:420px">بيان الأعمال</th><th style="width:100px">الوحدة</th><th class="num" style="width:110px">الكمية</th><th class="num" style="width:140px">الفئة</th><th class="num" style="width:160px">الإجمالي</th></tr></thead><tbody>'+
+    (boqRows || '<tr><td colspan="6"><div class="empty">لا توجد بنود مقايسة بعد</div></td></tr>') + '</tbody>';
   boqTable.querySelectorAll('.editboq').forEach(function(btn){btn.addEventListener('click',function(){var item=(p.boq||[]).find(function(x){return x.id===btn.dataset.i;});if(item)openBoqEditor(p,item);});});
   boqTable.querySelectorAll('.rmboq').forEach(function(btn){btn.addEventListener('click',async function(){
     var target=btn.dataset.i;
@@ -897,10 +892,10 @@ document.getElementById('boqFileInput').addEventListener('change',function(e){
           var parts=serial.split('.');
           while(parts.length>1&&!parentId){parts.pop();parentId=groupsByNo[parts.join('.') ]||null;}
         }
-        raw.push({id:uid(),item:desc,source_no:serial,section:section,discipline:cols.discipline>=0?String(cell(row,'discipline')||'').trim():'',unit:unit,qty:quantity,unit_price:price,total_value:tot,cost_item:cols.cost>=0?String(cell(row,'cost')||'').trim():'',technical_notes:cols.notes>=0?String(cell(row,'notes')||'').trim():'',parent_id:parentId});
+        raw.push({id:uid(),item:desc,source_no:serial,item_no:serial,section:section,discipline:cols.discipline>=0?String(cell(row,'discipline')||'').trim():'',unit:unit,qty:quantity,unit_price:price,total_value:tot,cost_item:cols.cost>=0?String(cell(row,'cost')||'').trim():'',technical_notes:cols.notes>=0?String(cell(row,'notes')||'').trim():'',parent_id:parentId});
       }else{
         pushPending(false);
-        pending={id:uid(),item:desc,source_no:serial,section:section,discipline:cols.discipline>=0?String(cell(row,'discipline')||'').trim():'',unit:unit,qty:0,unit_price:0,total_value:null,cost_item:cols.cost>=0?String(cell(row,'cost')||'').trim():'',technical_notes:cols.notes>=0?String(cell(row,'notes')||'').trim():'',parent_id:null};
+        pending={id:uid(),item:desc,source_no:serial,item_no:serial,section:section,discipline:cols.discipline>=0?String(cell(row,'discipline')||'').trim():'',unit:unit,qty:0,unit_price:0,total_value:null,cost_item:cols.cost>=0?String(cell(row,'cost')||'').trim():'',technical_notes:cols.notes>=0?String(cell(row,'notes')||'').trim():'',parent_id:null};
       }
     }
     if(pending)pushPending(false);
