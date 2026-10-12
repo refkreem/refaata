@@ -862,20 +862,19 @@ function renderGenericView(view){
 
   rows.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var table = sec.querySelector('.gen-table');
-  var header = '<thead><tr><th>التاريخ</th><th>المشروع</th>'+(view==='custody'?'<th>النوع</th><th>صاحب العهدة</th>':'')+(meta.needsCostItem?'<th>البند</th>':'')+'<th>'+meta.partyLabel+'</th><th class="num">المبلغ</th><th></th></tr></thead>';
+  var header = '<thead><tr><th>التاريخ</th><th>المشروع</th>'+(view==='custody'?'<th>النوع</th><th>صاحب العهدة</th>':'')+'<th>بند المقايسة</th><th>'+meta.partyLabel+'</th><th class="num">إجمالي الحركة</th><th class="num">استقطاعات</th><th class="num">الصافي</th><th>إجراءات</th></tr></thead>';
   var body = rows.length ? rows.map(function(r){
-    return '<tr>'+
-      '<td>'+fmtDate(r.date)+'</td>'+
-      '<td class="wrap">'+esc(projName(r.project_id))+'</td>'+
-      (view==='custody'? '<td>'+typePill(r.type)+'</td><td>'+esc(r.custodian||'—')+'</td>' : '')+
-      (meta.needsCostItem? '<td>'+esc(r.cost_item||'—')+'</td>' : '')+
-      '<td class="wrap">'+esc(r.party||'')+(r.desc?' <span class="helptext">— '+esc(r.desc)+'</span>':'')+'</td>'+
-      '<td class="num">'+fmtMoney(r.amount)+'</td>'+
-      '<td><button class="btn sm ghost danger rmtx" data-batch="'+r.__batch+'" data-row="'+r.__idx+'">حذف</button></td>'+
-    '</tr>';
-  }).join('') : '<tr><td colspan="6"><div class="empty">لا توجد حركات بعد<br><span class="helptext">أضف حركة يدويًا أو استورد ملف إكسل</span></div></td></tr>';
+    var deductions=(Number(r.insurance_amount)||0)+(Number(r.tax_amount)||0)+(Number(r.direct_deductions)||0)+(Number(r.advances)||0)+(Number(r.prior_paid)||0),net=(Number(r.amount)||0)-deductions;
+    var boq=(S.projects.find(function(p){return p.id===r.project_id;})||{}).boq||[],b=boq.find(function(x){return x.id===r.boq_id;});
+    return '<tr><td>'+fmtDate(r.date)+'</td><td class="wrap">'+esc(projName(r.project_id))+'</td>'+
+      (view==='custody'?'<td>'+typePill(r.type)+'</td><td>'+esc(r.custodian||'—')+'</td>':'')+
+      '<td class="wrap">'+esc(b?b.item:(r.boq_item||'غير مرتبط'))+'</td><td class="wrap">'+esc(r.party||'')+(r.desc?' <span class="helptext">— '+esc(r.desc)+'</span>':'')+'</td>'+
+      '<td class="num">'+fmtMoney(r.amount)+'</td><td class="num">'+fmtMoney(deductions)+'</td><td class="num">'+fmtMoney(net)+'</td>'+
+      '<td><button class="btn sm editTx" data-batch="'+r.__batch+'" data-row="'+r.__idx+'">تعديل</button> <button class="btn sm ghost danger rmtx" data-batch="'+r.__batch+'" data-row="'+r.__idx+'">حذف</button></td></tr>';
+  }).join('') : '<tr><td colspan="9"><div class="empty">لا توجد حركات بعد<br><span class="helptext">أضف حركة يدويًا أو استورد ملف إكسل</span></div></td></tr>';
   table.innerHTML = header + '<tbody>'+body+'</tbody>';
-  table.querySelectorAll('.rmtx').forEach(function(btn){ btn.addEventListener('click', async function(){ await removeTx(btn.dataset.batch, Number(btn.dataset.row)); renderGenericView(view); renderDashboard(); }); });
+  table.querySelectorAll('.rmtx').forEach(function(btn){btn.addEventListener('click',async function(){if(await removeTx(btn.dataset.batch,Number(btn.dataset.row))){renderGenericView(view);renderDashboard();renderReports();}});});
+  table.querySelectorAll('.editTx').forEach(function(btn){btn.addEventListener('click',function(){openTxModal(view,meta,{batchId:btn.dataset.batch,idx:Number(btn.dataset.row)});});});
 }
 document.querySelectorAll('.new-tx-btn').forEach(function(btn){ btn.addEventListener('click', function(){
   var view = btn.closest('.view').id.replace('view-','');
@@ -897,58 +896,44 @@ async function addTxRow(row){
   if(ok){ S.batches.push(b); }
   return ok;
 }
-function openTxModal(view, meta){
-  var defType = meta.defaultType;
-  var html = '<div class="grid2">'+
-    '<div class="field"><label>التاريخ</label><input id="t_date" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div>'+
-    '<div class="field"><label>المشروع</label><select id="t_project"><option value="">— بدون مشروع محدد —</option>'+S.projects.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>';}).join('')+'</select></div>'+
-  '</div>';
-  if(view==='custody'){
-    html += '<div class="field"><label>نوع الحركة</label><select id="t_type">'+
-      '<option value="عهدة-استلام">استلام عهدة</option><option value="نثريات">صرف نثريات / مصروفات</option><option value="عهدة-رد">رد باقي العهدة</option></select></div>'+
-      '<div class="field"><label>صاحب العهدة (مطلوب للاستلام أو الرد)</label><input id="t_custodian" placeholder="اسم المهندس أو المستلم"></div>';
-  }
-  if(meta.needsCostItem){
-    html += '<div class="field"><label>بند التكاليف</label><select id="t_costitem">'+S.costItems.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>';
-  }
-  html += '<div class="field"><label>'+meta.partyLabel+'</label><input id="t_party"></div>';
-  html += '<div class="field"><label>بند المقايسة المحدد</label><select id="t_boq"><option value="">— غير مرتبط ببند محدد —</option></select><div class="helptext">اختيار البند يتيح تحليل التكلفة على مستوى البند الفرعي.</div></div>';
-  html += '<div class="field"><label>بيان إضافي (اختياري)</label><input id="t_desc"></div>';
-  html += '<div class="field"><label>المبلغ</label><input id="t_amount" type="number" min="0.01" step="0.01"></div>';
-  function refreshTxBoq(){var pid=document.getElementById("t_project").value,sel=document.getElementById("t_boq"),pr=S.projects.find(function(x){return x.id===pid;});sel.innerHTML="<option value=\"\">— غير مرتبط ببند محدد —</option>"+((pr&&pr.boq)||[]).map(function(b){return "<option value=\""+esc(b.id)+"\">"+esc(b.item)+"</option>";}).join("");}
-  document.getElementById("t_project").addEventListener("change",refreshTxBoq);refreshTxBoq();
-  openModal('حركة جديدة', html, async function(){
-    var amount = Number(document.getElementById('t_amount').value);
-    if(!amount){ toast('المبلغ مطلوب'); return false; }
-    var type = view==='custody' ? document.getElementById('t_type').value : defType;
-    var custodian = view==='custody' ? document.getElementById('t_custodian').value.trim() : '';
-    if(view==='custody' && (type==='عهدة-استلام'||type==='عهدة-رد') && !custodian){toast('اسم صاحب العهدة مطلوب لهذه الحركة');return false;}
-    var costItem = meta.needsCostItem ? document.getElementById('t_costitem').value : (meta.fixedCostItem||'');
-    var ok = await addTxRow({
-      date: document.getElementById('t_date').value,
-      project_id: document.getElementById('t_project').value || null,
-      type: type,
-      cost_item: (type==='عهدة-استلام'||type==='عهدة-رد') ? '' : costItem,
-      custodian: custodian,
-      boq_id: document.getElementById('t_boq').value || null,
-      party: document.getElementById('t_party').value.trim(),
-      desc: document.getElementById('t_desc').value.trim(),
-      amount: amount
-    });
-    if(!ok) return false;
-    toast('تم الحفظ');
-    try{ renderGenericView(view); renderDashboard(); }catch(e){}
-    return true;
-  });
+function openTxModal(view, meta, editRef){
+  var isEdit=!!editRef,batch=isEdit?S.batches.find(function(x){return x.id===editRef.batchId;}):null,old=isEdit&&batch?batch.rows[editRef.idx]:null;
+  if(isEdit&&!old){toast('الحركة المطلوب تعديلها غير موجودة');return;}
+  var defType=old?old.type:meta.defaultType,today=new Date().toISOString().slice(0,10);
+  function v(k,fallback){return old&&old[k]!=null?old[k]:(fallback==null?'':fallback);}
+  var html='<div class="grid2"><div class="field"><label>التاريخ</label><input id="t_date" type="date" value="'+esc(v('date',today))+'"></div><div class="field"><label>المشروع</label><select id="t_project"><option value="">— اختر مشروعًا —</option>'+S.projects.map(function(p){return '<option value="'+esc(p.id)+'" '+(p.id===v('project_id')?'selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select></div></div>';
+  if(view==='custody')html+='<div class="field"><label>نوع الحركة</label><select id="t_type">'+['عهدة-استلام','نثريات','عهدة-رد','تأمينات','ضرائب','إكراميات'].map(function(x){return '<option value="'+x+'" '+(x===defType?'selected':'')+'>'+({'عهدة-استلام':'استلام عهدة','نثريات':'صرف نثريات / مصروفات','عهدة-رد':'رد باقي العهدة','تأمينات':'تأمينات / تأمين محجوز','ضرائب':'ضرائب','إكراميات':'إكراميات'}[x])+'</option>';}).join('')+'</select></div><div class="field"><label>صاحب العهدة</label><input id="t_custodian" value="'+esc(v('custodian'))+'" placeholder="اسم المهندس أو المستلم"></div>';
+  var currentCost=v('cost_item',meta.fixedCostItem||S.costItems[0]),costOptions=S.costItems.map(function(c){return '<option '+(currentCost===c?'selected':'')+'>'+esc(c)+'</option>';}).join('');
+  html+='<div class="grid2"><div class="field"><label>تصنيف التكلفة</label><select id="t_costitem">'+costOptions+'</select></div><div class="field"><label>'+meta.partyLabel+'</label><input id="t_party" value="'+esc(v('party'))+'" placeholder="اسم المقاول أو العامل أو المورد"></div></div>';
+  html+='<div class="field"><label>بند المقايسة</label><select id="t_boq"><option value="">— اختر بند المقايسة —</option></select><div id="t_boq_info" class="helptext">التكاليف الفعلية يجب ربطها ببند مقايسة، باستثناء التأمينات والضرائب والإكراميات وحركات العهد.</div></div>';
+  html+='<div class="field"><label>بيان إضافي / رقم فاتورة / رقم مستخلص</label><input id="t_desc" value="'+esc(v('desc'))+'"></div><div class="field"><label>إجمالي الاستحقاق أو التكلفة (ج.م)</label><input id="t_amount" type="number" min="0.01" step="0.01" value="'+esc(v('amount'))+'"></div>';
+  if(['subcontractors','labor','salaries','purchases','custody'].indexOf(view)!==-1)html+='<h4>تسوية المستخلص والاستقطاعات (لا تضاف مرة أخرى إلى تكلفة البند)</h4><div class="grid3"><div class="field"><label>سبق صرفه</label><input id="t_prior" type="number" min="0" step=".01" value="'+esc(v('prior_paid',0))+'"></div><div class="field"><label>سلف / خصومات أخرى</label><input id="t_advances" type="number" min="0" step=".01" value="'+esc(v('advances',0))+'"></div><div class="field"><label>التأمينات / التأمين المحجوز</label><input id="t_insurance" type="number" min="0" step=".01" value="'+esc(v('insurance_amount',0))+'"></div><div class="field"><label>الضرائب</label><input id="t_tax" type="number" min="0" step=".01" value="'+esc(v('tax_amount',0))+'"></div><div class="field"><label>استقطاعات مباشرة أخرى من المستخلص</label><input id="t_direct" type="number" min="0" step=".01" value="'+esc(v('direct_deductions',0))+'"></div><div class="field"><label>شيك الآن</label><input id="t_cheque" type="number" min="0" step=".01" value="'+esc(v('cheque_now',0))+'"></div><div class="field"><label>نقدًا الآن</label><input id="t_cash" type="number" min="0" step=".01" value="'+esc(v('cash_now',0))+'"></div><div class="field"><label>الرصيد بعد التسوية</label><input id="t_remaining" readonly value="'+esc(v('remaining',0))+'"></div></div>';
+  function getVal(id){var el=document.getElementById(id);return el?Number(el.value)||0:0;}
+  function calcRemain(){var rem=getVal('t_amount')-getVal('t_prior')-getVal('t_advances')-getVal('t_insurance')-getVal('t_tax')-getVal('t_direct')-getVal('t_cheque')-getVal('t_cash');var el=document.getElementById('t_remaining');if(el)el.value=rem.toFixed(2);}
+  function refreshBoq(){var pid=document.getElementById('t_project').value,sel=document.getElementById('t_boq'),p=S.projects.find(function(x){return x.id===pid;}),previous=old?old.boq_id:'';sel.innerHTML='<option value="">— اختر بند المقايسة —</option>'+((p&&p.boq)||[]).map(function(b){return '<option value="'+esc(b.id)+'" '+(b.id===previous?'selected':'')+'>'+esc((b.parent_id?'↳ ':'')+b.item+' — '+fmtMoney((Number(b.qty)||0)*(Number(b.unit_price)||0)))+'</option>';}).join('');if(previous)sel.value=previous;var b=p&&((p.boq)||[]).find(function(x){return x.id===sel.value;});document.getElementById('t_boq_info').textContent=b?'قيمة المقايسة: '+fmtMoney((Number(b.qty)||0)*(Number(b.unit_price)||0))+' | التكلفة تُجمع من الحركات المرتبطة.':'يجب ربط كل تكلفة فعلية ببند مقايسة، باستثناء التأمينات والضرائب والإكراميات والعهد.';}
+  openModal(isEdit?'تعديل حركة مالية':'حركة مالية جديدة',html,async function(){
+    var amount=Number(document.getElementById('t_amount').value),type=view==='custody'?document.getElementById('t_type').value:defType,costItem=document.getElementById('t_costitem').value,projectId=document.getElementById('t_project').value||null,boqId=document.getElementById('t_boq').value||null;
+    var exempt=['عهدة-استلام','عهدة-رد','ايراد','تأمينات','ضرائب','إكراميات'].indexOf(type)!==-1||/تأمين|تامين|ضريب|إكرام|اكرام/.test(costItem);
+    if(!amount||amount<=0){toast('المبلغ يجب أن يكون أكبر من صفر');return false;}
+    if(view==='custody'&&(type==='عهدة-استلام'||type==='عهدة-رد')&&!document.getElementById('t_custodian').value.trim()){toast('اسم صاحب العهدة مطلوب');return false;}
+    if(!exempt&&['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'].indexOf(type)!==-1&&(!projectId||!boqId)){toast('يلزم اختيار المشروع وبند المقايسة لكل تكلفة فعلية. التأمينات والضرائب والإكراميات والعهد مستثناة.');return false;}
+    var proj=S.projects.find(function(x){return x.id===projectId;}),boq=proj&&((proj.boq)||[]).find(function(x){return x.id===boqId;});
+    var updated=Object.assign({},old||{}, {date:document.getElementById('t_date').value,project_id:projectId,type:type,cost_item:exempt&&['تأمينات','ضرائب','إكراميات','عهدة-استلام','عهدة-رد'].indexOf(type)!==-1?type:costItem,custodian:view==='custody'?document.getElementById('t_custodian').value.trim():(old&&old.custodian||''),boq_id:exempt?null:boqId,boq_item:boq?boq.item:'',boq_unit_price:boq?Number(boq.unit_price)||0:0,boq_value:boq?(Number(boq.qty)||0)*(Number(boq.unit_price)||0):0,party:document.getElementById('t_party').value.trim(),desc:document.getElementById('t_desc').value.trim(),amount:amount,prior_paid:getVal('t_prior'),advances:getVal('t_advances'),insurance_amount:getVal('t_insurance'),tax_amount:getVal('t_tax'),direct_deductions:getVal('t_direct'),cheque_now:getVal('t_cheque'),cash_now:getVal('t_cash'),remaining:Number(document.getElementById('t_remaining')?document.getElementById('t_remaining').value:amount)||0});
+    if(isEdit){var b=S.batches.find(function(x){return x.id===editRef.batchId;}),before=Object.assign({},b.rows[editRef.idx]);delete updated.__batch;delete updated.__idx;b.rows[editRef.idx]=updated;var ok=await saveBatch(b);if(!ok){b.rows[editRef.idx]=before;return false;}}
+    else if(!await addTxRow(updated))return false;
+    toast(isEdit?'تم تصحيح الحركة وحفظها':'تم حفظ الحركة');try{renderGenericView(view);renderDashboard();renderReports();if(S.currentProjectId)renderProjectDetail(S.currentProjectId);}catch(e){}return true;
+  },null,function(){document.getElementById('t_project').addEventListener('change',refreshBoq);refreshBoq();['t_amount','t_prior','t_advances','t_insurance','t_tax','t_direct','t_cheque','t_cash'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',calcRemain);});calcRemain();});
 }
 
+
 /* ================= MODAL HELPER ================= */
-function openModal(title, bodyHtml, onSave, deleteOpt){
+function openModal(title, bodyHtml, onSave, deleteOpt, onOpen){
   var bg = document.createElement('div'); bg.className='modal-bg';
   bg.innerHTML = '<div class="modal"><div class="mhead"><h3>'+esc(title)+'</h3><button class="xbtn">✕</button></div>'+
     '<div class="mbody">'+bodyHtml+'</div>'+
     '<div class="mfoot">'+(deleteOpt?'<button class="btn danger ghost" id="modalDelete">'+esc(deleteOpt.label)+'</button>':'')+'<span style="flex:1"></span><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn primary" id="modalSave">حفظ</button></div></div>';
   document.body.appendChild(bg);
+  if(typeof onOpen==='function')onOpen(bg);
   function close(){ bg.remove(); }
   bg.querySelector('.xbtn').addEventListener('click', close);
   bg.querySelector('#modalCancel').addEventListener('click', close);
