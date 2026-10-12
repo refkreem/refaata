@@ -837,7 +837,7 @@ document.getElementById('boqFileInput').addEventListener('change',function(e){va
 
 /* ================= GENERIC TRANSACTION VIEWS ================= */
 var VIEW_META = {
-  custody: {types:['عهدة-استلام','نثريات','عهدة-رد','تأمينات','ضرائب','إكراميات'], partyLabel:'البيان', needsCostItem:true, defaultType:'نثريات'},
+  custody: {types:['عهدة-استلام','نثريات','عهدة-رد','تأمينات','ضرائب','إكراميات','سلفة','شيك'], partyLabel:'البيان', needsCostItem:true, defaultType:'نثريات'},
   subcontractors: {types:['مقاول باطن'], partyLabel:'اسم المقاول', needsCostItem:false, defaultType:'مقاول باطن', fixedCostItem:'مقاولين باطن'},
   labor: {types:['عمالة'], partyLabel:'اسم العامل / الموقع', needsCostItem:false, defaultType:'عمالة', fixedCostItem:'عمالة يومية'},
   salaries: {types:['رواتب'], partyLabel:'الشهر / البيان', needsCostItem:false, defaultType:'رواتب', fixedCostItem:'رواتب'},
@@ -903,7 +903,7 @@ function openTxModal(view, meta, editRef){
   var defType=old?old.type:meta.defaultType,today=new Date().toISOString().slice(0,10);
   function v(k,fallback){return old&&old[k]!=null?old[k]:(fallback==null?'':fallback);}
   var html='<div class="grid2"><div class="field"><label>التاريخ</label><input id="t_date" type="date" value="'+esc(v('date',today))+'"></div><div class="field"><label>المشروع</label><select id="t_project"><option value="">— اختر مشروعًا —</option>'+S.projects.map(function(p){return '<option value="'+esc(p.id)+'" '+(p.id===v('project_id')?'selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select></div></div>';
-  if(view==='custody')html+='<div class="field"><label>نوع الحركة</label><select id="t_type">'+['عهدة-استلام','نثريات','عهدة-رد','تأمينات','ضرائب','إكراميات'].map(function(x){return '<option value="'+x+'" '+(x===defType?'selected':'')+'>'+({'عهدة-استلام':'استلام عهدة','نثريات':'صرف نثريات / مصروفات','عهدة-رد':'رد باقي العهدة','تأمينات':'تأمينات / تأمين محجوز','ضرائب':'ضرائب','إكراميات':'إكراميات'}[x])+'</option>';}).join('')+'</select></div><div class="field"><label>صاحب العهدة</label><input id="t_custodian" value="'+esc(v('custodian'))+'" placeholder="اسم المهندس أو المستلم"></div>';
+  if(view==='custody')html+='<div class="field"><label>نوع الحركة</label><select id="t_type">'+['عهدة-استلام','نثريات','عهدة-رد','تأمينات','ضرائب','إكراميات','سلفة','شيك'].map(function(x){return '<option value="'+x+'" '+(x===defType?'selected':'')+'>'+({'عهدة-استلام':'استلام عهدة','نثريات':'صرف نثريات / مصروفات','عهدة-رد':'رد باقي العهدة','تأمينات':'تأمينات / تأمين محجوز','ضرائب':'ضرائب','إكراميات':'إكراميات','سلفة':'سلفة / عهدة مستديمة','شيك':'حركة شيك'}[x])+'</option>';}).join('')+'</select></div><div class="field"><label>صاحب العهدة</label><input id="t_custodian" value="'+esc(v('custodian'))+'" placeholder="اسم المهندس أو المستلم"></div>';
   var currentCost=v('cost_item',meta.fixedCostItem||S.costItems[0]),costOptions=S.costItems.map(function(c){return '<option '+(currentCost===c?'selected':'')+'>'+esc(c)+'</option>';}).join('');
   html+='<div class="grid2"><div class="field"><label>تصنيف التكلفة</label><select id="t_costitem">'+costOptions+'</select></div><div class="field"><label>'+meta.partyLabel+'</label><input id="t_party" value="'+esc(v('party'))+'" placeholder="اسم المقاول أو العامل أو المورد"></div></div>';
   html+='<div class="field"><label>بند المقايسة</label><select id="t_boq"><option value="">— اختر بند المقايسة —</option></select><div id="t_boq_info" class="helptext">التكاليف الفعلية يجب ربطها ببند مقايسة، باستثناء التأمينات والضرائب والإكراميات وحركات العهد.</div></div>';
