@@ -308,14 +308,23 @@ table.data td.wrap{white-space:normal;min-width:160px}
 
       <!-- ========== THURSDAY PAYMENT ========== -->
       <section class="view" id="view-weekly">
-        <div class="view-head"><div><h1>دفعة الخميس</h1><p>ملخص العمالة والمقاولين والمصروفات والعهد، مع كشف ما يحتاج مراجعة قبل الصرف</p></div></div>
+        <div class="view-head"><div><h1>دفعة الخميس</h1><p>كشف الفترة المختارة: مستحقات العمالة ومقاولي الباطن، ما سبق صرفه، الخصومات، الشيك والنقدية والرصيد.</p></div></div>
+        <div class="card" style="margin-bottom:14px"><div class="pad"><div class="grid3">
+          <div class="field"><label>من تاريخ</label><input id="weeklyFrom" type="date"></div>
+          <div class="field"><label>إلى تاريخ</label><input id="weeklyTo" type="date"></div>
+          <div class="field" style="justify-content:end"><label>&nbsp;</label><button class="btn primary" id="weeklyRefresh">عرض الكشف</button></div>
+        </div><p class="helptext">تبدأ الشاشة بآخر 7 أيام ويمكن تغيير الفترة. لا تُعد الدفعات النقدية أو الشيكات تكلفة ثانية؛ تكلفة العامل أو المقاول تُحتسب من إجمالي الاستحقاق فقط.</p></div></div>
         <div class="kpis" id="weeklyKpis"></div>
+        <div class="card" style="margin-bottom:16px"><div class="pad">
+          <h3>كشف الاستحقاقات حسب العامل / المقاول / المورد</h3>
+          <div class="tablewrap"><table class="data" id="weeklyPartyTable"></table></div>
+        </div></div>
         <div class="card" style="margin-bottom:16px"><div class="pad">
           <h3>التكاليف حسب المشروع</h3>
           <div class="tablewrap"><table class="data" id="weeklyProjectsTable"></table></div>
         </div></div>
         <div class="card"><div class="pad">
-          <h3>حركات بلا مشروع — يجب تحديد المشروع قبل الاعتماد</h3>
+          <h3>حركات بلا مشروع — راجعها قبل الاعتماد</h3>
           <div class="tablewrap"><table class="data" id="weeklyUnassignedTable"></table></div>
         </div></div>
       </section>
@@ -612,38 +621,48 @@ function renderDashboard(){
     emptyState('لا توجد بيانات تكاليف بعد','');
 }
 function renderWeekly(){
-  var tx = allTx();
-  var labor = tx.filter(function(r){return r.type==='عمالة';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var sub = tx.filter(function(r){return r.type==='مقاول باطن';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var expenses = tx.filter(function(r){return ['نثريات','مشتريات','رواتب'].indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var custody = tx.filter(function(r){return r.type==='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var unassigned = tx.filter(function(r){return !r.project_id && r.type!=='عهدة-استلام';});
-  document.getElementById('weeklyKpis').innerHTML = [
-    kpi('إجمالي العمالة',fmtMoney(labor),''),
-    kpi('دفعات مقاولي الباطن',fmtMoney(sub),''),
-    kpi('مصروفات/مشتريات/رواتب',fmtMoney(expenses),''),
-    kpi('العهد المستلمة',fmtMoney(custody),'good'),
-    kpi('حركات بلا مشروع',unassigned.length,unassigned.length?'bad':'good')
+  var fromEl=document.getElementById('weeklyFrom'),toEl=document.getElementById('weeklyTo');
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  var now=new Date();
+  if(!fromEl.value){var start=new Date(now);start.setDate(start.getDate()-6);fromEl.value=iso(start);}
+  if(!toEl.value)toEl.value=iso(now);
+  var from=fromEl.value,to=toEl.value;
+  var all=allTx(),tx=all.filter(function(r){var d=String(r.date||'').slice(0,10);return (!from||d>=from)&&(!to||d<=to);});
+  var labor=tx.filter(function(r){return r.type==='عمالة';}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
+  var sub=tx.filter(function(r){return r.type==='مقاول باطن';}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
+  var expenses=tx.filter(function(r){return ['نثريات','مشتريات','رواتب'].indexOf(r.type)!==-1;}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
+  var custody=tx.filter(function(r){return r.type==='عهدة-استلام';}).reduce(function(n,r){return n+(Number(r.amount)||0);},0);
+  var unassigned=tx.filter(function(r){return !r.project_id&&r.type!=='عهدة-استلام';});
+  document.getElementById('weeklyKpis').innerHTML=[
+    kpi('إجمالي العمالة في الفترة',fmtMoney(labor),''),kpi('إجمالي مقاولي الباطن',fmtMoney(sub),''),kpi('مصروفات ومشتريات ورواتب',fmtMoney(expenses),''),kpi('العهد المستلمة',fmtMoney(custody),''),kpi('حركات بلا مشروع',unassigned.length,unassigned.length?'bad':'good')
   ].join('');
-  var by={};
-  tx.filter(function(r){return r.project_id;}).forEach(function(r){
-    var p=r.project_id, type=r.type||'غير محدد';
-    if(!by[p]) by[p]={};
-    by[p][type]=(by[p][type]||0)+(Number(r.amount)||0);
+  // Group by project, party and transaction type; retain settlement fields separately from the cost.
+  var groups={};
+  tx.forEach(function(r){
+    var key=[r.project_id||'',r.type||'غير محدد',r.party||r.custodian||r.desc||'بدون اسم'].join('\u001f');
+    if(!groups[key])groups[key]={project_id:r.project_id||'',type:r.type||'غير محدد',party:r.party||r.custodian||'—',desc:r.desc||'',gross:0,prior:0,deduct:0,cheque:0,cash:0,remaining:0,hasSettlement:false,boq:{}};
+    var g=groups[key];g.gross+=(Number(r.gross_due)||Number(r.amount)||0);g.prior+=Number(r.prior_paid)||0;g.deduct+=Number(r.deductions)||0;g.cheque+=Number(r.cheque_now)||0;g.cash+=Number(r.cash_now)||0;
+    if(r.submission_id||r.gross_due!=null||r.remaining!=null){g.hasSettlement=true;g.remaining+=Number(r.remaining)||0;}
+    if(r.boq_id)g.boq[r.boq_id]=true;
   });
+  var rows=Object.keys(groups).map(function(k){return groups[k];}).sort(function(a,b){return (projName(a.project_id)+' '+a.type+' '+a.party).localeCompare(projName(b.project_id)+' '+b.type+' '+b.party,'ar');});
+  document.getElementById('weeklyPartyTable').innerHTML=rows.length?
+    '<thead><tr><th>المشروع</th><th>النوع</th><th>العامل / المقاول / المورد</th><th>بند المقايسة</th><th class="num">إجمالي الحركة / الاستحقاق</th><th class="num">سبق صرفه</th><th class="num">خصومات / سلف</th><th class="num">شيك الآن</th><th class="num">نقدًا الآن</th><th class="num">الرصيد</th></tr></thead><tbody>'+
+    rows.map(function(g){var p=S.projects.find(function(x){return x.id===g.project_id;}),boqNames=Object.keys(g.boq).map(function(id){return ((p&&p.boq)||[]).find(function(b){return b.id===id;})||{};}).map(function(b){return b.item;}).filter(Boolean).join('، ');return '<tr><td class="wrap">'+esc(projName(g.project_id))+'</td><td>'+esc(g.type)+'</td><td class="wrap">'+esc(g.party)+'</td><td class="wrap">'+esc(boqNames||'غير مرتبط')+'</td><td class="num">'+fmtMoney(g.gross)+'</td><td class="num">'+fmtMoney(g.prior)+'</td><td class="num">'+fmtMoney(g.deduct)+'</td><td class="num">'+fmtMoney(g.cheque)+'</td><td class="num">'+fmtMoney(g.cash)+'</td><td class="num">'+(g.hasSettlement?fmtMoney(g.remaining):'—')+'</td></tr>';}).join('')+'</tbody>':
+    '<tbody><tr><td><div class="empty">لا توجد حركات في الفترة المختارة</div></td></tr></tbody>';
+  var by={};
+  tx.filter(function(r){return r.project_id;}).forEach(function(r){var p=r.project_id,type=r.type||'غير محدد';if(!by[p])by[p]={};by[p][type]=(by[p][type]||0)+(Number(r.amount)||0);});
   var pids=Object.keys(by);
-  document.getElementById('weeklyProjectsTable').innerHTML = pids.length ?
-    '<thead><tr><th>المشروع</th><th class="num">عمالة</th><th class="num">مقاولون</th><th class="num">نثريات/مشتريات/رواتب</th><th class="num">الإجمالي</th></tr></thead><tbody>'+
-    pids.map(function(pid){
-      var a=by[pid], l=a['عمالة']||0, s=a['مقاول باطن']||0, e=(a['نثريات']||0)+(a['مشتريات']||0)+(a['رواتب']||0);
-      return '<tr><td class="wrap"><b>'+esc(projName(pid))+'</b></td><td class="num">'+fmtMoney(l)+'</td><td class="num">'+fmtMoney(s)+'</td><td class="num">'+fmtMoney(e)+'</td><td class="num"><b>'+fmtMoney(l+s+e)+'</b></td></tr>';
-    }).join('')+'</tbody>' :
-    '<tbody><tr><td><div class="empty">لا توجد حركات مرتبطة بمشاريع بعد</div></td></tr></tbody>';
-  document.getElementById('weeklyUnassignedTable').innerHTML = unassigned.length ?
+  document.getElementById('weeklyProjectsTable').innerHTML=pids.length?
+    '<thead><tr><th>المشروع</th><th class="num">عمالة</th><th class="num">مقاولون</th><th class="num">نثريات/مشتريات/رواتب</th><th class="num">إجمالي التكلفة المصنفة</th></tr></thead><tbody>'+
+    pids.map(function(pid){var a=by[pid],l=a['عمالة']||0,ss=a['مقاول باطن']||0,e=(a['نثريات']||0)+(a['مشتريات']||0)+(a['رواتب']||0);return '<tr><td class="wrap"><b>'+esc(projName(pid))+'</b></td><td class="num">'+fmtMoney(l)+'</td><td class="num">'+fmtMoney(ss)+'</td><td class="num">'+fmtMoney(e)+'</td><td class="num"><b>'+fmtMoney(l+ss+e)+'</b></td></tr>';}).join('')+'</tbody>':
+    '<tbody><tr><td><div class="empty">لا توجد حركات مرتبطة بمشاريع في الفترة المختارة</div></td></tr></tbody>';
+  document.getElementById('weeklyUnassignedTable').innerHTML=unassigned.length?
     '<thead><tr><th>التاريخ</th><th>النوع</th><th>الطرف</th><th>البيان</th><th class="num">المبلغ</th></tr></thead><tbody>'+
-    unassigned.map(function(r){return '<tr><td>'+fmtDate(r.date)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.party||'')+'</td><td class="wrap">'+esc(r.desc||'')+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>';}).join('')+'</tbody>' :
-    '<tbody><tr><td><div class="empty">ممتاز — كل الحركات الحالية مرتبطة بمشروع</div></td></tr></tbody>';
+    unassigned.map(function(r){return '<tr><td>'+fmtDate(r.date)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.party||'')+'</td><td class="wrap">'+esc(r.desc||'')+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>';}).join('')+'</tbody>':
+    '<tbody><tr><td><div class="empty">لا توجد حركات بلا مشروع في الفترة المختارة</div></td></tr></tbody>';
 }
+document.getElementById('weeklyRefresh').addEventListener('click',renderWeekly);
 
 function kpi(label,val,cls){ return '<div class="kpi"><div class="label">'+label+'</div><div class="value '+(cls||'')+'">'+val+'</div></div>'; }
 function emptyState(title,sub){ return '<div class="empty"><div class="big">—</div><div style="font-weight:700">'+title+'</div><div class="helptext">'+ (sub||'') +'</div></div>'; }
@@ -748,7 +767,7 @@ function renderProjectDetail(id){
   ].join('');
 
   var boqRows = (p.boq||[]).map(function(b){
-    var actual = allTx().filter(function(r){return r.project_id===p.id && r.boq_id===b.id && r.type!=='ايراد' && r.type!=='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+    var actualTypes=['نثريات','مقاول باطن','عمالة','رواتب','مشتريات']; var actual = allTx().filter(function(r){return r.project_id===p.id && r.boq_id===b.id && actualTypes.indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
     var boqVal = (Number(b.qty)||0)*(Number(b.unit_price)||0);
     var diff = boqVal - actual;
     return '<tr>'+
@@ -763,7 +782,7 @@ function renderProjectDetail(id){
       '<td class="num"><b>'+fmtMoney(boqVal)+'</b></td>'+
       '<td class="num">'+fmtMoney(actual)+'</td>'+
       '<td class="num '+(diff>=0?'diff-pos':'diff-neg')+'">'+ (diff>=0?'متبقي ':'تجاوز ') + fmtMoney(Math.abs(diff)) +'</td>'+
-      '<td><button class="btn sm ghost danger rmboq" data-i="'+b.id+'">حذف</button></td>'+
+      '<td><button class="btn sm editboq" data-i="'+b.id+'">تعديل</button> <button class="btn sm ghost danger rmboq" data-i="'+b.id+'">حذف</button></td>'+
     '</tr>';
   }).join('');
   var boqTable = document.getElementById('pdBoqTable');
