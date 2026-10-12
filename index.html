@@ -262,7 +262,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
         <div class="card" style="margin-bottom:16px"><div class="pad">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
             <h3 style="margin:0">كراسة الشروط — المقايسة مقابل الفعلي</h3>
-            <button class="btn sm" id="addBoqRowBtn">+ إضافة بند بالمقايسة</button>
+            <button class="btn sm" id="addBoqRowBtn">+ إضافة بند</button> <button class="btn sm" id="importBoqBtn">استيراد مقايسة Excel</button> <button class="btn sm ghost" id="downloadBoqTemplateBtn">نموذج المقايسة</button><input id="boqFileInput" type="file" accept=".xlsx,.xls,.csv" style="display:none">
           </div>
           <p class="helptext" style="margin-bottom:10px">يمكن إنشاء بنود رئيسية وفرعية وتحديد التخصص والمورد والمتطلبات الفنية. تكلفة البند تُحسب من الحركات المرتبطة به مباشرة؛ الحركات القديمة غير المرتبطة لا تُوزع بالتخمين.</p>
           <div class="tablewrap"><table class="data" id="pdBoqTable"></table></div>
@@ -378,11 +378,12 @@ table.data td.wrap{white-space:normal;min-width:160px}
       <section class="view" id="view-reports">
         <div class="view-head"><div><h1>التقارير</h1><p>التكاليف حسب البند لكل مشروع، وربحية كل مشروع</p></div></div>
         <div class="tabs" id="reportTabs">
-          <button class="active" data-rep="byitem">التكاليف حسب البند</button>
-          <button data-rep="profit">ربحية المشاريع</button>
+          <button class="active" data-rep="byitem">التكاليف حسب نوع المصروف</button>
+          <button data-rep="profit">ملخص المشاريع</button>
+          <button data-rep="boq">مقارنة المقايسة بالفعلي</button>
         </div>
         <div id="repByItem"><div class="tablewrap"><table class="data" id="repByItemTable"></table></div></div>
-        <div id="repProfit" style="display:none"><div class="tablewrap"><table class="data" id="repProfitTable"></table></div></div>
+        <div id="repProfit" style="display:none"><div class="tablewrap"><table class="data" id="repProfitTable"></table></div></div><div id="repBoq" style="display:none"><div class="field" style="max-width:520px"><label>اختر المشروع</label><select id="repProjectSelect"><option value="">— كل المشاريع —</option></select></div><div class="tablewrap"><table class="data" id="repBoqTable"></table></div><div class="tablewrap" style="margin-top:16px"><table class="data" id="repSpecialTable"></table></div></div>
       </section>
 
       <!-- ========== SETTINGS ========== -->
@@ -670,10 +671,9 @@ function typePill(t){ var slug = (t||'').replace(/\s+/g,'-'); return '<span clas
 
 /* ================= PROJECTS ================= */
 function daysBetween(a,b){ if(!a||!b) return null; var d1=new Date(a), d2=new Date(b); return Math.round((d2-d1)/86400000); }
-function projectActualCost(pid){
-  var costTypes = ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'];
-  return allTx().filter(function(r){return r.project_id===pid && costTypes.indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-}
+function isSpecialDeduction(r){var c=String(r.cost_item||'')+' '+String(r.type||'');return /تأمين|تامين|ضريب|إكرام|اكرام/.test(c)||['تأمينات','ضرائب','إكراميات'].indexOf(r.type)!==-1;}
+function isBoqCost(r){return ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'].indexOf(r.type)!==-1&&!isSpecialDeduction(r);}
+function projectActualCost(pid){return allTx().filter(function(r){return r.project_id===pid&&isBoqCost(r);}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);}
 function projectRevenue(pid){
   return allTx().filter(function(r){return r.project_id===pid && r.type==='ايراد';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
 }
@@ -830,6 +830,9 @@ function openBoqEditor(p, existing){
   });
 }
 document.getElementById('addBoqRowBtn').addEventListener('click',function(){var p=S.projects.find(function(x){return x.id===S.currentProjectId;});if(p)openBoqEditor(p,null);});
+document.getElementById('importBoqBtn').addEventListener('click',function(){if(!S.currentProjectId)return toast('افتح المشروع أولًا');document.getElementById('boqFileInput').click();});
+document.getElementById('downloadBoqTemplateBtn').addEventListener('click',function(){var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([['اسم البند','البند الأب','التخصص','الوحدة','الكمية','سعر الوحدة','بند التكاليف','ملاحظات فنية'],['نظام تكييف','','تكييف وتهوية','مجموعة',1,0,'تكييف وتهوية',''],['دكت صاج','نظام تكييف','صاج ودكت','م2',1,0,'صاج ودكت','']]);XLSX.utils.book_append_sheet(wb,ws,'المقايسة');XLSX.writeFile(wb,'نموذج_مقايسة_مقاول_Pro.xlsx');});
+document.getElementById('boqFileInput').addEventListener('change',function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var p=S.projects.find(function(x){return x.id===S.currentProjectId;});if(!p)return;var reader=new FileReader();reader.onload=async function(ev){try{var wb=XLSX.read(ev.target.result,{type:'array',cellDates:true}),sheet=wb.Sheets[wb.SheetNames[0]],grid=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});var aliases={item:['اسم البند','البند','وصف البند','بيان الأعمال','الصنف','item','description','work item'],parent:['البند الأب','البند الرئيسي','تابع للبند','parent'],discipline:['التخصص','النظام','نوع الأعمال','discipline'],unit:['الوحدة','وحدة القياس','unit'],qty:['الكمية','كمية','qty','quantity'],price:['سعر الوحدة','سعر','فئة الوحدة','unit price','price'],cost:['بند التكاليف','التصنيف','cost item'],notes:['ملاحظات فنية','ملاحظات','notes']};function nh(x){return String(x||'').trim().toLowerCase().replace(/[\sـ_-]/g,'');}var hi=-1,cols={};for(var ri=0;ri<Math.min(grid.length,30);ri++){var vals=grid[ri].map(nh),found={};Object.keys(aliases).forEach(function(k){found[k]=vals.findIndex(function(v){return aliases[k].some(function(a){return v===nh(a)||v.indexOf(nh(a))!==-1;});});});if(found.item>=0&&(found.qty>=0||found.price>=0)){hi=ri;cols=found;break;}}if(hi<0){toast('لم أتعرف على أعمدة المقايسة. استخدم نموذج المقايسة الموحد ثم أعد المحاولة.');return;}var raw=[];for(var ri=hi+1;ri<grid.length;ri++){var row=grid[ri],item=String(row[cols.item]||'').trim();if(!item||/الإجمالي|الاجمالى|total/i.test(item))continue;raw.push({id:uid(),item:item,parentName:cols.parent>=0?String(row[cols.parent]||'').trim():'',discipline:cols.discipline>=0?String(row[cols.discipline]||'').trim():'أخرى',unit:cols.unit>=0?String(row[cols.unit]||'').trim():'',qty:cols.qty>=0?(Number(String(row[cols.qty]).replace(/,/g,''))||0):0,unit_price:cols.price>=0?(Number(String(row[cols.price]).replace(/,/g,''))||0):0,cost_item:cols.cost>=0?String(row[cols.cost]||'').trim():'أخرى',technical_notes:cols.notes>=0?String(row[cols.notes]||'').trim():'',parent_id:null});}if(!raw.length){toast('لم توجد بنود قابلة للاستيراد');return;}var replace=confirm('تم العثور على '+raw.length+' بندًا من الورقة الأولى ('+wb.SheetNames[0]+'). موافق = استبدال المقايسة الحالية؛ إلغاء = إضافة البنود إلى الموجودة.');var old=(p.boq||[]).slice(),base=replace?[]:old,byName={};base.forEach(function(b){byName[nh(b.item)]=b.id;});raw.forEach(function(b){if(b.parentName)b.parent_id=byName[nh(b.parentName)]||null;delete b.parentName;});p.boq=base.concat(raw);var ok=await saveProject(p);if(!ok){p.boq=old;return;}renderProjectDetail(p.id);toast('تم استيراد '+raw.length+' بندًا. راجع البنود الفرعية والكميات والأسعار.');}catch(err){toast('تعذر قراءة المقايسة: '+err.message);}finally{e.target.value='';}};reader.readAsArrayBuffer(file);});
 
 /* ================= GENERIC TRANSACTION VIEWS ================= */
 var VIEW_META = {
@@ -970,6 +973,7 @@ document.querySelectorAll('#reportTabs button').forEach(function(b){ b.addEventL
   document.querySelectorAll('#reportTabs button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active');
   document.getElementById('repByItem').style.display = b.dataset.rep==='byitem'?'block':'none';
   document.getElementById('repProfit').style.display = b.dataset.rep==='profit'?'block':'none';
+  document.getElementById('repBoq').style.display = b.dataset.rep==='boq'?'block':'none';
 }); });
 function renderReports(){
   var costTypes = ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'];
@@ -998,6 +1002,10 @@ function renderReports(){
   }).join('');
   document.getElementById('repProfitTable').innerHTML = '<thead><tr><th>المشروع</th><th class="num">قيمة العقد</th><th class="num">التكلفة</th><th class="num">الإيراد</th><th class="num">صافي الربح</th></tr></thead><tbody>'+
     (profitRows || '<tr><td colspan="5"><div class="empty">لا توجد مشاريع بعد</div></td></tr>') + '</tbody>';
+  var ps=document.getElementById('repProjectSelect'),chosen=ps.value;
+  ps.innerHTML='<option value="">— كل المشاريع —</option>'+S.projects.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>';}).join('');if(chosen&&S.projects.some(function(p){return p.id===chosen;}))ps.value=chosen;
+  function renderBoqReport(){var selected=ps.value,projects=S.projects.filter(function(p){return !selected||p.id===selected;}),rows=[];projects.forEach(function(p){(p.boq||[]).forEach(function(b){var linked=allTx().filter(function(r){return r.project_id===p.id&&r.boq_id===b.id&&isBoqCost(r);}),actual=linked.reduce(function(n,r){return n+(Number(r.amount)||0);},0),contract=(Number(b.qty)||0)*(Number(b.unit_price)||0);rows.push({p:p,b:b,actual:actual,contract:contract,diff:contract-actual,linked:linked});});});document.getElementById('repBoqTable').innerHTML='<thead><tr><th>المشروع</th><th>بند المقايسة</th><th>الوحدة</th><th class="num">الكمية</th><th class="num">سعر الوحدة</th><th class="num">قيمة المقايسة</th><th class="num">إجمالي تكلفة البند</th><th class="num">الفرق</th><th class="num">عدد الحركات المرتبطة</th></tr></thead><tbody>'+(rows.length?rows.map(function(x){return '<tr><td class="wrap">'+esc(x.p.name)+'</td><td class="wrap">'+(x.b.parent_id?'<span class="helptext">فرعي</span> ':'')+'<b>'+esc(x.b.item)+'</b></td><td>'+esc(x.b.unit||'—')+'</td><td class="num">'+(x.b.qty||0)+'</td><td class="num">'+fmtMoney(x.b.unit_price)+'</td><td class="num">'+fmtMoney(x.contract)+'</td><td class="num">'+fmtMoney(x.actual)+'</td><td class="num '+(x.diff>=0?'diff-pos':'diff-neg')+'">'+fmtMoney(x.diff)+'</td><td class="num">'+x.linked.length+'</td></tr>';}).join(''):'<tr><td colspan="9"><div class="empty">لا توجد مقايسات للمشاريع المختارة. افتح المشروع ثم استورد المقايسة.</div></td></tr>')+'</tbody>';var txAll=allTx().filter(function(r){return !selected||r.project_id===selected;}),special=txAll.filter(isSpecialDeduction),unlinked=txAll.filter(function(r){return isBoqCost(r)&&!r.boq_id;}),specialTotal=special.reduce(function(n,r){return n+(Number(r.amount)||0);},0);document.getElementById('repSpecialTable').innerHTML='<thead><tr><th colspan="4">ملخص الاستقطاعات والحركات غير المرتبطة</th></tr><tr><th>البند</th><th>المشروع</th><th>البيان</th><th class="num">المبلغ</th></tr></thead><tbody>'+special.map(function(r){return '<tr><td>'+esc(r.cost_item||r.type)+'</td><td>'+esc(projName(r.project_id))+'</td><td>'+esc(r.party||r.desc||'—')+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>';}).join('')+'<tr><td colspan="3"><b>إجمالي التأمينات والضرائب والإكراميات المصنفة</b></td><td class="num"><b>'+fmtMoney(specialTotal)+'</b></td></tr>'+unlinked.map(function(r){return '<tr><td>تكلفة بلا بند مقايسة</td><td>'+esc(projName(r.project_id))+'</td><td>'+esc(r.party||r.desc||r.type)+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>';}).join('')+'</tbody>';}
+  ps.onchange=renderBoqReport;renderBoqReport();
 }
 
 /* ================= SETTINGS ================= */
