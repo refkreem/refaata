@@ -844,7 +844,9 @@ document.getElementById('boqFileInput').addEventListener('change',function(e){
     var grid=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:''});
     var aliases={item:['اسم البند','البند','وصف البند','بيان الأعمال','البيان','الوصف','اسم الصنف','الصنف','item','description','work item'],parent:['البند الأب','البند الرئيسي','تابع للبند','parent'],discipline:['التخصص','النظام','نوع الأعمال','discipline'],unit:['الوحدة','وحدة القياس','unit'],qty:['الكمية','كمية','qty','quantity'],price:['سعر الوحدة بالمقايسة','سعر الوحدة','سعر','فئة الوحدة','الفئة','unit price','price'],total:['القيمة الإجمالية','إجمالي البند','قيمة البند','الإجمالي','القيمة','total value','total'],cost:['بند التكاليف','التصنيف','cost item'],notes:['ملاحظات فنية','ملاحظات','notes']};
     function nh(x){return String(x==null?'':x).trim().toLowerCase().replace(/[\\sـ_-]/g,'');}
-    function num(x){if(typeof x==='number')return x;var s=String(x==null?'':x).replace(/[،,]/g,'').replace(/جنيه|ج\.م|ج م/g,'').trim();return s!==''&&isFinite(Number(s))?Number(s):null;}
+    function num(x){if(typeof x==='number')return x;var s=String(x==null?'':x).replace(/[،,]/g,'').replace(/جنيه|ج\\.م|ج م/g,'').trim();return s!==''&&isFinite(Number(s))?Number(s):null;}
+    function isSerial(x){return /^\\d+(?:\\.\\d+)*$/.test(String(x==null?'':x).trim());}
+    function isChildNo(child,parent){return String(child).trim().indexOf(String(parent).trim()+'.')===0;}
     var hi=-1,cols={};
     for(var ri=0;ri<Math.min(grid.length,40);ri++){
       var vals=grid[ri].map(nh),found={};
@@ -852,16 +854,22 @@ document.getElementById('boqFileInput').addEventListener('change',function(e){
       if(found.item>=0&&(found.qty>=0||found.price>=0||found.total>=0)){hi=ri;cols=found;break;}
     }
     if(hi<0){toast('لم أتعرف على صف العناوين. تأكد من وجود الأعمدة: م، بيان الأعمال، الوحدة، الكمية، الفئة، الإجمالي.');return;}
-    var raw=[],section='',pending=null;
+    var raw=[],section='',pending=null,groupsByNo={};
     function cell(row,k){return cols[k]>=0?row[cols[k]]:'';}
-    function pushPending(){if(pending){raw.push(pending);pending=null;}}
+    function pushPending(asGroup){
+      if(!pending)return;
+      pending.is_group=!!asGroup;
+      raw.push(pending);
+      if(asGroup&&pending.source_no)groupsByNo[String(pending.source_no).trim()]=pending.id;
+      pending=null;
+    }
     for(var ri=hi+1;ri<grid.length;ri++){
       var row=grid[ri],serial=String(row[0]==null?'':row[0]).trim(),desc=String(cell(row,'item')||'').trim();
       var unit=String(cell(row,'unit')||'').trim(),q=num(cell(row,'qty')),pr=num(cell(row,'price')),tot=num(cell(row,'total'));
       var hasNumbers=q!==null||pr!==null||tot!==null;
       if(!serial&&!desc&&!unit&&!hasNumbers)continue;
       if(!serial&&desc&&!hasNumbers&&!unit&&(/^(أولاً|اولا|ثانياً|ثانيا|ثالثاً|ثالثا|رابعاً|رابعا|خامساً|خامسا|الأعمال|الاعمال|أعمال|اعمال|تركيبات|توريدات|قسم)/i.test(desc))){
-        pushPending();section=desc;continue;
+        pushPending(false);section=desc;continue;
       }
       if(!serial&&hasNumbers&&pending){
         pending.unit=unit||pending.unit;
@@ -872,34 +880,43 @@ document.getElementById('boqFileInput').addEventListener('change',function(e){
         pending.mergedContinuation=true;
         continue;
       }
+      if(!desc&&hasNumbers&&pending){
+        pending.unit=unit||pending.unit;if(q!==null)pending.qty=q;if(pr!==null)pending.unit_price=pr;if(tot!==null)pending.total_value=tot;pending.mergedContinuation=true;continue;
+      }
       if(!desc)continue;
       if(/^(الإجمالي|الاجمالي|إجمالى|اجمالى|إجمالي العملية|اجمالي العملية|total)/i.test(desc))continue;
       if(hasNumbers){
-        pushPending();
+        if(pending){
+          var parentNo=String(pending.source_no||'').trim();
+          var thisIsChild=parentNo&&isSerial(serial)&&isChildNo(serial,parentNo);
+          pushPending(thisIsChild);
+        }
         var quantity=q===null?0:q,price=pr===null?(tot!==null&&quantity?tot/quantity:0):pr;
-        raw.push({id:uid(),item:desc,source_no:serial,section:section,discipline:cols.discipline>=0?String(cell(row,'discipline')||'').trim():'',unit:unit,qty:quantity,unit_price:price,total_value:tot,cost_item:cols.cost>=0?String(cell(row,'cost')||'').trim():'',technical_notes:cols.notes>=0?String(cell(row,'notes')||'').trim():'',parent_id:null});
+        var parentId=null;
+        if(isSerial(serial)){
+          var parts=serial.split('.');
+          while(parts.length>1&&!parentId){parts.pop();parentId=groupsByNo[parts.join('.') ]||null;}
+        }
+        raw.push({id:uid(),item:desc,source_no:serial,section:section,discipline:cols.discipline>=0?String(cell(row,'discipline')||'').trim():'',unit:unit,qty:quantity,unit_price:price,total_value:tot,cost_item:cols.cost>=0?String(cell(row,'cost')||'').trim():'',technical_notes:cols.notes>=0?String(cell(row,'notes')||'').trim():'',parent_id:parentId});
       }else{
-        pushPending();
+        pushPending(false);
         pending={id:uid(),item:desc,source_no:serial,section:section,discipline:cols.discipline>=0?String(cell(row,'discipline')||'').trim():'',unit:unit,qty:0,unit_price:0,total_value:null,cost_item:cols.cost>=0?String(cell(row,'cost')||'').trim():'',technical_notes:cols.notes>=0?String(cell(row,'notes')||'').trim():'',parent_id:null};
       }
     }
-    pushPending();
+    if(pending)pushPending(false);
     if(!raw.length){toast('لم توجد بنود قابلة للاستيراد');return;}
     var replace=confirm('تم العثور على '+raw.length+' صفًا صالحًا من ورقة ('+sheetName+'). موافق = استبدال المقايسة الحالية؛ إلغاء = إضافة البنود إلى الموجودة.');
-    var old=(p.boq||[]).slice(),base=replace?[]:old,byName={};
+    var old=(p.boq||[]).slice(),base=replace?[]:old,byName={},sectionRows={};
     base.concat(raw).forEach(function(b){byName[nh(b.item)]=b.id;});
-    var sectionRows={};
     raw.forEach(function(b){
       if(b.section&&!sectionRows[nh(b.section)]){
         var existing=base.find(function(x){return nh(x.item)===nh(b.section);});
         if(existing)sectionRows[nh(b.section)]=existing.id;
-        else {var parent={id:uid(),item:b.section,unit:'',qty:0,unit_price:0,cost_item:'',technical_notes:'',parent_id:null,is_group:true};base.push(parent);sectionRows[nh(b.section)]=parent.id;byName[nh(parent.item)]=parent.id;}
+        else {var parent={id:uid(),item:b.section,unit:'',qty:0,unit_price:0,cost_item:'',technical_notes:'',parent_id:null,is_group:true};base.push(parent);sectionRows[nh(parent.item)]=parent.id;byName[nh(parent.item)]=parent.id;}
       }
-      if(b.section)b.parent_id=sectionRows[nh(b.section)]||null;
-      delete b.section;
-      delete b.source_no;
-      delete b.total_value;
-      delete b.mergedContinuation;
+      if(b.section&&!b.parent_id)b.parent_id=sectionRows[nh(b.section)]||null;
+      if(b.parentName)b.parent_id=byName[nh(b.parentName)]||b.parent_id||null;
+      delete b.section;delete b.source_no;delete b.total_value;delete b.mergedContinuation;delete b.parentName;
       if(!b.discipline)b.discipline='أخرى';
       if(!b.cost_item)b.cost_item='أخرى';
     });
@@ -907,7 +924,7 @@ document.getElementById('boqFileInput').addEventListener('change',function(e){
     if(!confirm('معاينة أول '+Math.min(5,raw.length)+' بنود:\\n'+preview+'\\n\\nهل تؤكد الاستيراد؟'))return;
     p.boq=base.concat(raw);
     var ok=await saveProject(p);if(!ok){p.boq=old;return;}
-    renderProjectDetail(p.id);toast('تم استيراد '+raw.length+' بندًا. راجع البنود ذات الكمية صفر قبل اعتماد الحسابات.');
+    renderProjectDetail(p.id);toast('تم استيراد '+raw.length+' صفًا. راجع البنود الرئيسية والفرعية والكميات والأسعار قبل الاعتماد.');
   }catch(err){toast('تعذر قراءة المقايسة: '+err.message);}finally{e.target.value='';}};
   reader.readAsArrayBuffer(file);
 });
