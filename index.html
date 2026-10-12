@@ -641,15 +641,15 @@ function renderWeekly(){
   var groups={};
   tx.forEach(function(r){
     var key=[r.project_id||'',r.type||'غير محدد',r.party||r.custodian||r.desc||'بدون اسم'].join('\u001f');
-    if(!groups[key])groups[key]={project_id:r.project_id||'',type:r.type||'غير محدد',party:r.party||r.custodian||'—',desc:r.desc||'',gross:0,prior:0,deduct:0,cheque:0,cash:0,remaining:0,hasSettlement:false,boq:{}};
-    var g=groups[key];g.gross+=(Number(r.gross_due)||Number(r.amount)||0);g.prior+=Number(r.prior_paid)||0;g.deduct+=Number(r.deductions)||0;g.cheque+=Number(r.cheque_now)||0;g.cash+=Number(r.cash_now)||0;
+    if(!groups[key])groups[key]={project_id:r.project_id||'',type:r.type||'غير محدد',party:r.party||r.custodian||'—',desc:r.desc||'',gross:0,prior:0,deduct:0,insurance:0,tax:0,direct:0,cheque:0,cash:0,remaining:0,hasSettlement:false,boq:{}};
+    var g=groups[key];g.gross+=(Number(r.gross_due)||Number(r.amount)||0);g.prior+=Number(r.prior_paid)||0;g.deduct+=Number(r.deductions)||Number(r.advances)||0;g.insurance+=Number(r.insurance_amount)||0;g.tax+=Number(r.tax_amount)||0;g.direct+=Number(r.direct_deductions)||0;g.cheque+=Number(r.cheque_now)||0;g.cash+=Number(r.cash_now)||0;
     if(r.submission_id||r.gross_due!=null||r.remaining!=null){g.hasSettlement=true;g.remaining+=Number(r.remaining)||0;}
     if(r.boq_id)g.boq[r.boq_id]=true;
   });
   var rows=Object.keys(groups).map(function(k){return groups[k];}).sort(function(a,b){return (projName(a.project_id)+' '+a.type+' '+a.party).localeCompare(projName(b.project_id)+' '+b.type+' '+b.party,'ar');});
   document.getElementById('weeklyPartyTable').innerHTML=rows.length?
-    '<thead><tr><th>المشروع</th><th>النوع</th><th>العامل / المقاول / المورد</th><th>بند المقايسة</th><th class="num">إجمالي الحركة / الاستحقاق</th><th class="num">سبق صرفه</th><th class="num">خصومات / سلف</th><th class="num">شيك الآن</th><th class="num">نقدًا الآن</th><th class="num">الرصيد</th></tr></thead><tbody>'+
-    rows.map(function(g){var p=S.projects.find(function(x){return x.id===g.project_id;}),boqNames=Object.keys(g.boq).map(function(id){return ((p&&p.boq)||[]).find(function(b){return b.id===id;})||{};}).map(function(b){return b.item;}).filter(Boolean).join('، ');return '<tr><td class="wrap">'+esc(projName(g.project_id))+'</td><td>'+esc(g.type)+'</td><td class="wrap">'+esc(g.party)+'</td><td class="wrap">'+esc(boqNames||'غير مرتبط')+'</td><td class="num">'+fmtMoney(g.gross)+'</td><td class="num">'+fmtMoney(g.prior)+'</td><td class="num">'+fmtMoney(g.deduct)+'</td><td class="num">'+fmtMoney(g.cheque)+'</td><td class="num">'+fmtMoney(g.cash)+'</td><td class="num">'+(g.hasSettlement?fmtMoney(g.remaining):'—')+'</td></tr>';}).join('')+'</tbody>':
+    '<thead><tr><th>المشروع</th><th>النوع</th><th>العامل / المقاول / المورد</th><th>بند المقايسة</th><th class="num">إجمالي الحركة / الاستحقاق</th><th class="num">سبق صرفه</th><th class="num">سلف/خصومات</th><th class="num">تأمينات</th><th class="num">ضرائب</th><th class="num">استقطاعات مباشرة</th><th class="num">شيك الآن</th><th class="num">نقدًا الآن</th><th class="num">الرصيد</th></tr></thead><tbody>'+
+    rows.map(function(g){var p=S.projects.find(function(x){return x.id===g.project_id;}),boqNames=Object.keys(g.boq).map(function(id){return ((p&&p.boq)||[]).find(function(b){return b.id===id;})||{};}).map(function(b){return b.item;}).filter(Boolean).join('، ');return '<tr><td class="wrap">'+esc(projName(g.project_id))+'</td><td>'+esc(g.type)+'</td><td class="wrap">'+esc(g.party)+'</td><td class="wrap">'+esc(boqNames||'غير مرتبط')+'</td><td class="num">'+fmtMoney(g.gross)+'</td><td class="num">'+fmtMoney(g.prior)+'</td><td class="num">'+fmtMoney(g.deduct)+'</td><td class="num">'+fmtMoney(g.insurance)+'</td><td class="num">'+fmtMoney(g.tax)+'</td><td class="num">'+fmtMoney(g.direct)+'</td><td class="num">'+fmtMoney(g.cheque)+'</td><td class="num">'+fmtMoney(g.cash)+'</td><td class="num">'+(g.hasSettlement?fmtMoney(g.remaining):'—')+'</td></tr>';}).join('')+'</tbody>':
     '<tbody><tr><td><div class="empty">لا توجد حركات في الفترة المختارة</div></td></tr></tbody>';
   var by={};
   tx.filter(function(r){return r.project_id&&isBoqCost(r);}).forEach(function(r){var p=r.project_id,type=r.type||'غير محدد';if(!by[p])by[p]={};by[p][type]=(by[p][type]||0)+(Number(r.amount)||0);});
@@ -767,7 +767,7 @@ function renderProjectDetail(id){
   ].join('');
 
   var boqRows = (p.boq||[]).map(function(b){
-    var actualTypes=['نثريات','مقاول باطن','عمالة','رواتب','مشتريات']; var actual = allTx().filter(function(r){return r.project_id===p.id && r.boq_id===b.id && actualTypes.indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+    var actual = allTx().filter(function(r){return r.project_id===p.id && r.boq_id===b.id && isBoqCost(r);}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
     var boqVal = (Number(b.qty)||0)*(Number(b.unit_price)||0);
     var diff = boqVal - actual;
     return '<tr>'+
