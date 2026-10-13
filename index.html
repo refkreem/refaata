@@ -842,13 +842,22 @@ document.getElementById('boqFileInput').addEventListener('change',function(e){
     function num(x){if(typeof x==='number')return x;var s=String(x==null?'':x).replace(/[،,]/g,'').replace(/جنيه|ج\\.م|ج م/g,'').trim();return s!==''&&isFinite(Number(s))?Number(s):null;}
     function isSerial(x){return /^\\d+(?:\\.\\d+)*$/.test(String(x==null?'':x).trim());}
     function isChildNo(child,parent){return String(child).trim().indexOf(String(parent).trim()+'.')===0;}
-    var hi=-1,cols={};
-    for(var ri=0;ri<Math.min(grid.length,40);ri++){
-      var vals=grid[ri].map(nh),found={};
-      Object.keys(aliases).forEach(function(k){found[k]=vals.findIndex(function(v){return aliases[k].some(function(a){return v===nh(a)||v.indexOf(nh(a))!==-1;});});});
-      if(found.item>=0&&(found.qty>=0||found.price>=0||found.total>=0)){hi=ri;cols=found;break;}
+    var hi=-1,cols={},bestScore=0;
+    for(var ri=0;ri<Math.min(grid.length,80);ri++){
+      var vals=grid[ri].map(nh),found={},score=0;
+      Object.keys(aliases).forEach(function(k){
+        var normalizedAliases=aliases[k].map(nh);
+        var idx=vals.findIndex(function(v){return v!==''&&normalizedAliases.indexOf(v)!==-1;});
+        if(idx<0)idx=vals.findIndex(function(v){return v!==''&&normalizedAliases.some(function(a){return a.length>=3&&v.indexOf(a)!==-1;});});
+        found[k]=idx;
+        if(idx>=0)score+=({item:4,qty:2,price:2,total:2,unit:1,discipline:0,parent:0,cost:0,notes:0})[k]||0;
+      });
+      if(found.item>=0&&found.qty>=0&&(found.price>=0||found.total>=0)&&score>bestScore){hi=ri;cols=found;bestScore=score;}
+      if(score>=11&&found.item>=0&&found.qty>=0)break;
     }
     if(hi<0){toast('لم أتعرف على صف العناوين. تأكد من وجود الأعمدة: م، بيان الأعمال، الوحدة، الكمية، الفئة، الإجمالي.');return;}
+    if(cols.item===cols.qty||cols.item===cols.price||cols.item===cols.total||cols.qty===cols.price||cols.qty===cols.total){toast('تعارض في تحديد أعمدة المقايسة. أوقفنا الاستيراد حتى لا تنتقل الأرقام إلى خانة بيان الأعمال.');return;}
+    if(!confirm('تم التعرف على صف العناوين رقم '+(hi+1)+'.\\nبيان الأعمال: العمود '+(cols.item+1)+' | الوحدة: '+(cols.unit>=0?cols.unit+1:'غير محدد')+' | الكمية: العمود '+(cols.qty+1)+' | الفئة: '+(cols.price>=0?cols.price+1:'غير محددة')+' | الإجمالي: '+(cols.total>=0?cols.total+1:'غير محدد')+'\\nهل هذه المطابقة صحيحة وتريد متابعة المعاينة؟'))return;
     var raw=[],section='',pending=null,groupsByNo={};
     function cell(row,k){return cols[k]>=0?row[cols[k]]:'';}
     function pushPending(asGroup){
