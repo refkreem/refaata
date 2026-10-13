@@ -871,9 +871,7 @@ document.getElementById('pdDeleteBtn').addEventListener('click',function(){delet
 async function clearCollection(db,name){
   var snap=await db.collection(name).get(), docs=snap.docs||[];
   for(var i=0;i<docs.length;i+=400){
-    var batch=db.batch();
-    docs.slice(i,i+400).forEach(function(d){batch.delete(d.ref);});
-    await batch.commit();
+    await Promise.all(docs.slice(i,i+400).map(function(d){return db.collection(name).doc(d.id).delete();}));
   }
   return docs.length;
 }
