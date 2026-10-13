@@ -262,8 +262,9 @@ table.data td.wrap{white-space:normal;min-width:160px}
             <h1 id="pdName" style="margin-top:8px"></h1>
             <p id="pdSub"></p>
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn" id="pdEditBtn">تعديل بيانات المشروع</button>
+            <button class="btn ghost danger" id="pdDeleteBtn">حذف المشروع وحركاته</button>
           </div>
         </div>
         <div class="kpis" id="pdKpis"></div>
@@ -411,6 +412,13 @@ table.data td.wrap{white-space:normal;min-width:160px}
             <button class="btn primary" id="addCostItemBtn">إضافة</button>
           </div>
         </div></div>
+        <div class="card" style="margin-top:16px;border:1px solid #d97757">
+          <div class="pad">
+            <h3 style="color:#a43e25">تنظيف بيانات النظام — إجراء نهائي</h3>
+            <p class="helptext">يحذف مشاريع وحركات وحسابات الخزينة وطلبات التشغيل والبريد المحفوظ من قاعدة Firebase المشتركة، وبالتالي تختفي البيانات من جميع الأجهزة. يحتفظ بإعدادات بنود التكاليف وتسجيلات الدخول. لا تستخدمه إلا لبدء نسخة تجريبية نظيفة.</p>
+            <button class="btn danger" id="fullResetBtn">تنظيف النظام بالكامل</button>
+          </div>
+        </div>
       </section>
 
     </main>
@@ -828,6 +836,63 @@ function renderProjectDetail(id){
   txTable.querySelectorAll('.editProjectTx').forEach(function(btn){btn.addEventListener('click',function(){var row=allTx().find(function(x){return x.__batch===btn.dataset.batch&&x.__idx===Number(btn.dataset.row);});if(!row)return;var view=row.type==='مقاول باطن'?'subcontractors':row.type==='عمالة'?'labor':row.type==='رواتب'?'salaries':row.type==='مشتريات'?'purchases':row.type==='ايراد'?'revenues':'custody';openTxModal(view,VIEW_META[view],{batchId:btn.dataset.batch,idx:Number(btn.dataset.row)});});});
 }
 document.getElementById('pdEditBtn').addEventListener('click', function(){ openProjectModal(S.currentProjectId); });
+
+async function deleteProjectAndRelated(id){
+  var p=S.projects.find(function(x){return x.id===id;});if(!p)return false;
+  if(!confirm('تأكيد حذف المشروع «'+p.name+'» وكل الحركات المرتبطة به؟ لا يمكن التراجع عن الحذف.'))return false;
+  var db=await waitForDb();if(!db){toast('لا يوجد اتصال بقاعدة البيانات');return false;}
+  try{
+    var jobs=[];
+    S.batches.forEach(function(b){
+      var kept=(b.rows||[]).filter(function(r){return r.project_id!==id;});
+      if(kept.length!==(b.rows||[]).length){
+        if(kept.length){var copy=Object.assign({},b,{rows:kept});jobs.push(db.collection('batches').doc(b.id).set(copy));}
+        else jobs.push(db.collection('batches').doc(b.id).delete());
+      }
+    });
+    ['siteEntries','purchaseRequests','emailItems'].forEach(function(c){
+      jobs.push(db.collection(c).get().then(function(snap){snap.docs.forEach(function(d){if(d.data().project_id===id)jobs.push(db.collection(c).doc(d.id).delete());});}));
+    });
+    await Promise.all(jobs);
+    await db.collection('projects').doc(id).delete();
+    S.batches.forEach(function(b){b.rows=(b.rows||[]).filter(function(r){return r.project_id!==id;});});
+    S.batches=S.batches.filter(function(b){return (b.rows||[]).length;});
+    S.projects=S.projects.filter(function(x){return x.id!==id;});
+    S.ops.siteEntries=(S.ops.siteEntries||[]).filter(function(x){return x.project_id!==id;});
+    S.ops.purchaseRequests=(S.ops.purchaseRequests||[]).filter(function(x){return x.project_id!==id;});
+    S.ops.emailItems=(S.ops.emailItems||[]).filter(function(x){return x.project_id!==id;});
+    S.currentProjectId=null;go('projects');renderDashboard();renderReports();toast('تم حذف المشروع والحركات المرتبطة به');return true;
+  }catch(e){console.error('delete project',e);toast('تعذر حذف المشروع بالكامل؛ تحقق من صلاحيات Firebase');return false;}
+}
+document.getElementById('pdDeleteBtn').addEventListener('click',function(){deleteProjectAndRelated(S.currentProjectId);});
+
+async function clearCollection(db,name){
+  var snap=await db.collection(name).get(), docs=snap.docs||[];
+  for(var i=0;i<docs.length;i+=400){
+    var batch=db.batch();
+    docs.slice(i,i+400).forEach(function(d){batch.delete(d.ref);});
+    await batch.commit();
+  }
+  return docs.length;
+}
+async function fullResetSystem(){
+  var phrase=prompt('هذا الإجراء سيحذف البيانات المشتركة من جميع الأجهزة. اكتب بالضبط: امسح كل البيانات');
+  if(phrase!=='امسح كل البيانات'){toast('تم إلغاء التنظيف');return;}
+  var db=await waitForDb();if(!db){toast('لا يوجد اتصال بقاعدة البيانات');return;}
+  var btn=document.getElementById('fullResetBtn');if(btn)btn.disabled=true;
+  try{
+    var names=['projects','batches','cashAccounts','siteEntries','purchaseRequests','emailItems'];
+    var counts={};for(var i=0;i<names.length;i++)counts[names[i]]=await clearCollection(db,names[i]);
+    await db.doc('meta/operations').delete().catch(function(){});
+    S.projects=[];S.batches=[];S.cashAccounts=[];S.ops={siteEntries:[],purchaseRequests:[],emailItems:[]};S.currentProjectId=null;
+    try{localStorage.removeItem('moqawel_pro_db_v1');}catch(e){}
+    toast('اكتمل حذف البيانات المالية والتشغيلية. جارٍ تحديث الشاشة…');
+    await loadData(db,'تم تنظيف قاعدة البيانات');
+    go('projects');
+  }catch(e){console.error('full reset',e);toast('لم يكتمل التنظيف. راجع صلاحيات حذف المستندات في Firebase.');}
+  finally{if(btn)btn.disabled=false;}
+}
+document.getElementById('fullResetBtn').addEventListener('click',fullResetSystem);
 function openBoqEditor(p, existing){
   var b=existing?Object.assign({},existing):{id:uid(),item:'',parent_id:null,discipline:'معماري',vendor:'',area:'',pressure:'حسب التصميم المعتمد',filter_stage:'حسب التصميم المعتمد',noise_target:'',medical_gases:'',access_waste:'',technical_notes:'',cost_item:S.costItems[0]||'أخرى',unit:'',qty:0,unit_price:0};
   var isEdit=!!existing;
