@@ -325,11 +325,26 @@ table.data td.wrap{white-space:normal;min-width:160px}
 
       <!-- ========== THURSDAY PAYMENT ========== -->
       <section class="view" id="view-weekly">
-        <div class="view-head"><div><h1>دفعة الخميس</h1><p>ملخص العمالة والمقاولين والمصروفات والعهد، مع كشف ما يحتاج مراجعة قبل الصرف</p></div></div>
+        <div class="view-head"><div><h1>دفعة الخميس</h1><p>ملخص الأسبوع: التكاليف حسب المشروع وطريقة الدفع، مستحقات المقاولين، أرصدة العهد، وما يحتاج مراجعة قبل الصرف</p></div>
+          <div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="wkPrint">🖨 طباعة</button><button class="btn" id="wkExport">⬇ تصدير إكسل</button></div></div>
+        <div class="filterbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+          <button class="btn sm" id="wkPrev">→ أسبوع سابق</button>
+          <label class="helptext">من</label><input type="date" id="wkFrom" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+          <label class="helptext">إلى</label><input type="date" id="wkTo" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+          <button class="btn sm" id="wkNext">أسبوع تالٍ ←</button><button class="btn sm" id="wkNow">هذا الأسبوع</button>
+        </div>
         <div class="kpis" id="weeklyKpis"></div>
+        <div class="grid2" style="margin-bottom:16px">
+          <div class="card"><div class="pad"><h3>حسب طريقة الدفع</h3><div class="tablewrap"><table class="data" id="weeklyPayTable"></table></div></div></div>
+          <div class="card"><div class="pad"><h3>أرصدة أمناء العهدة (إلى اليوم)</h3><div class="tablewrap"><table class="data" id="weeklyCustTable"></table></div></div></div>
+        </div>
         <div class="card" style="margin-bottom:16px"><div class="pad">
-          <h3>التكاليف حسب المشروع</h3>
+          <h3>التكاليف حسب المشروع (خلال الفترة)</h3>
           <div class="tablewrap"><table class="data" id="weeklyProjectsTable"></table></div>
+        </div></div>
+        <div class="card" style="margin-bottom:16px"><div class="pad">
+          <h3>مستحقات مقاولي الباطن المطلوب صرفها (إلى اليوم)</h3>
+          <div class="tablewrap"><table class="data" id="weeklyDueTable"></table></div>
         </div></div>
         <div class="card"><div class="pad">
           <h3>حركات بلا مشروع — يجب تحديد المشروع قبل الاعتماد</h3>
@@ -360,6 +375,11 @@ table.data td.wrap{white-space:normal;min-width:160px}
           <div class="step" id="impStep2"><span class="n">2</span> تحديد الأعمدة</div>
           <div class="step" id="impStep3"><span class="n">3</span> مراجعة وتأكيد</div>
         </div>
+        <div class="card" id="impTplPanel" style="margin-bottom:16px"><div class="pad">
+          <h3>قوالب جاهزة لكل نوع — الأسهل والأسرع</h3>
+          <p class="helptext" style="margin-bottom:10px">نزّل قالب النوع المطلوب، املأه (صف لكل حركة) ثم ارفعه هنا في المربع بالأسفل — يُقرأ مباشرة بلا تحديد أعمدة، مع كشف الأخطاء قبل الحفظ.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="tplButtons"></div>
+        </div></div>
         <div class="card" id="impPanel1"><div class="pad">
           <div class="dropzone" id="dropZone">
             <div class="big">⇪</div>
@@ -378,6 +398,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
           <div id="impReviewSummary" style="margin-bottom:10px"></div>
           <div class="tablewrap" style="max-height:360px;overflow-y:auto"><table class="data" id="impPreviewTable"></table></div>
           <div style="margin-top:14px;display:flex;gap:8px">
+            <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="impSkipDup" checked> تجاهل الحركات المكررة</label>
             <button class="btn primary" id="impConfirmBtn">تأكيد الاستيراد</button>
             <button class="btn ghost" id="impRestartBtn">البدء من جديد</button>
           </div>
@@ -387,6 +408,11 @@ table.data td.wrap{white-space:normal;min-width:160px}
       <!-- ========== REPORTS ========== -->
       <section class="view" id="view-reports">
         <div class="view-head"><div><h1>التقارير</h1><p>التكاليف حسب البند لكل مشروع، وربحية كل مشروع</p></div></div>
+        <div class="filterbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+          <label class="helptext">من</label><input type="date" id="repFrom" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+          <label class="helptext">إلى</label><input type="date" id="repTo" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+          <button class="btn sm" id="repReset">كل الفترات</button><button class="btn sm" id="repExport">⬇ تصدير التقرير الحالي</button><button class="btn sm" id="repPrint">🖨 طباعة</button>
+        </div>
         <div class="tabs" id="reportTabs">
           <button class="active" data-rep="bywork">التكاليف حسب بند الأعمال</button>
           <button data-rep="byitem">حسب نوع التكلفة</button>
@@ -411,6 +437,12 @@ table.data td.wrap{white-space:normal;min-width:160px}
           </div>
         </div></div>
         <div class="card" style="margin-bottom:16px"><div class="pad">
+          <h3>أمناء العهدة</h3>
+          <p class="helptext" style="margin-bottom:10px">أسماء من يستلمون العهدة من الصراف ويصرفون منها — يُحسب رصيد كل واحد منهم تلقائيًا.</p>
+          <div id="custList2" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+          <div style="display:flex;gap:8px"><input id="newCustInput" placeholder="اسم أمين عهدة جديد" style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:8px 10px"><button class="btn primary" id="addCustBtn">إضافة</button></div>
+        </div></div>
+        <div class="card" style="margin-bottom:16px"><div class="pad">
           <h3>بنود الأعمال (دهانات، كهرباء، بياض…)</h3>
           <p class="helptext" style="margin-bottom:10px">تظهر في كل شاشات المصروفات بجانب بنود مقايسة المشروع المختار.</p>
           <div id="workItemsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
@@ -418,6 +450,12 @@ table.data td.wrap{white-space:normal;min-width:160px}
             <input id="newWorkItemInput" placeholder="اسم بند أعمال جديد" style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
             <button class="btn primary" id="addWorkItemBtn">إضافة</button>
           </div>
+        </div></div>
+        <div class="card" style="margin-bottom:16px"><div class="pad">
+          <h3>نسخة احتياطية واستعادة</h3>
+          <p class="helptext" style="margin-bottom:10px">حمّل نسخة كاملة من كل البيانات (مشاريع، بنود، حركات، إعدادات) واحفظها. الاستعادة تدمج الملف مع البيانات الحالية ولا تحذف شيئًا.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="backupBtn">⬇ تحميل نسخة احتياطية</button><button class="btn" id="restoreBtn">⇪ استعادة من ملف</button></div>
+          <input type="file" id="restoreFile" accept=".json,application/json" hidden>
         </div></div>
         <div class="card"><div class="pad">
           <h3>أنواع التكلفة</h3>
@@ -543,12 +581,16 @@ async function loadData(db, label, email){
     var projSnap = await db.collection('projects').get();
     S.projects = projSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; if(!v.boq) v.boq=[]; if(!v.items) v.items=[]; return v; });
   }catch(e){ console.error('projects', e); toast('⚠ تعذر تحميل المشاريع'); }
+  if(!isFieldRole()){
+    try{
+      var batchSnap = await db.collection('batches').get();
+      S.batches = batchSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
+    }catch(e){ console.error('batches', e); toast('⚠ تعذر تحميل الحركات'); }
+  } else { S.batches = []; }
   try{
-    var batchSnap = await db.collection('batches').get();
-    S.batches = batchSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
-  }catch(e){ console.error('batches', e); toast('⚠ تعذر تحميل الحركات'); }
-  try{
-    var pend = await db.collection('pending').get();
+    var pq = db.collection('pending');
+    if(isFieldRole() && pq.where) pq = pq.where('by','==',S.userEmail);   // المهندس يقرأ طلباته فقط (تتوافق مع قواعد الحماية)
+    var pend = await pq.get();
     S.pending = pend.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
   }catch(e){ console.error('pending', e); S.pending = []; }
   applyRole(); renderAll();
@@ -692,39 +734,71 @@ function renderDashboard(){
     itemsArr.map(function(r){return '<tr><td>'+esc(r.item)+'</td><td class="num">'+fmtMoney(r.total)+'</td></tr>';}).join('')+'</tbody></table>') :
     emptyState('لا توجد بيانات تكاليف بعد','');
 }
+var WK = {from:'', to:''}, REPDATA = {};
+function addDays(iso, n){ var d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return toISODate(d); }
+function todayISO(){ return toISODate(new Date()); }
+function inRange(r, from, to){ var d=r.date||''; return (!from || d>=from) && (!to || d<=to); }
+function exportData(key, name){
+  var d = REPDATA[key]; if(!d || !d.rows.length){ toast('لا توجد بيانات للتصدير'); return; }
+  var rows = d.rows.map(function(r){ var o={}; d.headers.forEach(function(h,i){ o[h]=r[i]; }); return o; });
+  downloadSheet(rows, name+'-'+todayISO());
+}
 function renderWeekly(){
-  var tx = allTx();
-  var labor = tx.filter(function(r){return r.type==='عمالة';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var sub = tx.filter(function(r){return r.type==='مقاول باطن';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var expenses = tx.filter(function(r){return ['نثريات','مشتريات','رواتب'].indexOf(r.type)!==-1;}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var custody = tx.filter(function(r){return r.type==='عهدة-استلام';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
-  var unassigned = tx.filter(function(r){return !r.project_id && r.type!=='عهدة-استلام';});
+  if(!WK.to){ WK.to = todayISO(); WK.from = addDays(WK.to,-6); }
+  document.getElementById('wkFrom').value = WK.from; document.getElementById('wkTo').value = WK.to;
+  var all = allTx(), tx = all.filter(function(r){ return inRange(r, WK.from, WK.to); });
+  var cost = tx.filter(isCost), byType = function(t){ return sumAmt(cost.filter(function(r){return r.type===t;})); };
+  var unassigned = tx.filter(function(r){return !r.project_id && r.type!=='عهدة-استلام' && r.type!=='مستحق مقاول';});
+  var custIn = sumAmt(tx.filter(function(r){return r.type==='عهدة-استلام';}));
   document.getElementById('weeklyKpis').innerHTML = [
-    kpi('إجمالي العمالة',fmtMoney(labor),''),
-    kpi('دفعات مقاولي الباطن',fmtMoney(sub),''),
-    kpi('مصروفات/مشتريات/رواتب',fmtMoney(expenses),''),
-    kpi('العهد المستلمة',fmtMoney(custody),'good'),
+    kpi('إجمالي تكاليف الفترة',fmtMoney(sumAmt(cost)),''),
+    kpi('عمالة',fmtMoney(byType('عمالة')),''),
+    kpi('دفعات مقاولي الباطن',fmtMoney(byType('مقاول باطن')),''),
+    kpi('مشتريات',fmtMoney(byType('مشتريات')),''),
+    kpi('نثريات ورواتب',fmtMoney(byType('نثريات')+byType('رواتب')),''),
+    kpi('العهد المستلمة',fmtMoney(custIn),'good'),
     kpi('حركات بلا مشروع',unassigned.length,unassigned.length?'bad':'good')
   ].join('');
+  // by payment method
+  var pm = {}; cost.forEach(function(r){ var m = r.pay_method || DEFAULT_PAY[r.type] || 'غير محدد'; pm[m]=(pm[m]||0)+(Number(r.amount)||0); });
+  var pmKeys = Object.keys(pm);
+  document.getElementById('weeklyPayTable').innerHTML = '<thead><tr><th>طريقة الدفع</th><th class="num">الإجمالي</th></tr></thead><tbody>'+
+    (pmKeys.length? pmKeys.map(function(k){return '<tr><td>'+esc(k)+'</td><td class="num">'+fmtMoney(pm[k])+'</td></tr>';}).join('')+'<tr><td><b>الإجمالي</b></td><td class="num"><b>'+fmtMoney(sumAmt(cost))+'</b></td></tr>' : '<tr><td colspan="2"><div class="empty">لا توجد مصروفات في هذه الفترة</div></td></tr>')+'</tbody>';
+  // custodians (all time)
+  var cs = custodyStats(all), cn = Object.keys(cs.by);
+  document.getElementById('weeklyCustTable').innerHTML = '<thead><tr><th>أمين العهدة</th><th class="num">المستلم</th><th class="num">المصروف</th><th class="num">الرصيد</th></tr></thead><tbody>'+
+    (cn.length? cn.map(function(n){var o=cs.by[n], bl=o.in-o.out; return '<tr><td><b>'+esc(n)+'</b></td><td class="num">'+fmtMoney(o.in)+'</td><td class="num">'+fmtMoney(o.out)+'</td><td class="num '+(bl>=0?'diff-pos':'diff-neg')+'">'+(bl<0?'مستحق له ':'')+fmtMoney(Math.abs(bl))+'</td></tr>';}).join('') : '<tr><td colspan="4"><div class="empty">لا توجد حركات عهدة</div></td></tr>')+'</tbody>';
+  // by project
   var by={};
-  tx.filter(function(r){return r.project_id;}).forEach(function(r){
-    var p=r.project_id, type=r.type||'غير محدد';
-    if(!by[p]) by[p]={};
-    by[p][type]=(by[p][type]||0)+(Number(r.amount)||0);
-  });
-  var pids=Object.keys(by);
+  cost.filter(function(r){return r.project_id;}).forEach(function(r){ var pid=r.project_id; by[pid]=by[pid]||{}; by[pid][r.type]=(by[pid][r.type]||0)+(Number(r.amount)||0); });
+  var pids=Object.keys(by), prow=[];
   document.getElementById('weeklyProjectsTable').innerHTML = pids.length ?
-    '<thead><tr><th>المشروع</th><th class="num">عمالة</th><th class="num">مقاولون</th><th class="num">نثريات/مشتريات/رواتب</th><th class="num">الإجمالي</th></tr></thead><tbody>'+
+    '<thead><tr><th>المشروع</th><th class="num">عمالة</th><th class="num">مقاولون</th><th class="num">مشتريات</th><th class="num">نثريات ورواتب</th><th class="num">الإجمالي</th></tr></thead><tbody>'+
     pids.map(function(pid){
-      var a=by[pid], l=a['عمالة']||0, s=a['مقاول باطن']||0, e=(a['نثريات']||0)+(a['مشتريات']||0)+(a['رواتب']||0);
-      return '<tr><td class="wrap"><b>'+esc(projName(pid))+'</b></td><td class="num">'+fmtMoney(l)+'</td><td class="num">'+fmtMoney(s)+'</td><td class="num">'+fmtMoney(e)+'</td><td class="num"><b>'+fmtMoney(l+s+e)+'</b></td></tr>';
+      var a=by[pid], l=a['عمالة']||0, s2=a['مقاول باطن']||0, m=a['مشتريات']||0, e=(a['نثريات']||0)+(a['رواتب']||0);
+      prow.push([projName(pid),l,s2,m,e,l+s2+m+e]);
+      return '<tr><td class="wrap"><b>'+esc(projName(pid))+'</b></td><td class="num">'+fmtMoney(l)+'</td><td class="num">'+fmtMoney(s2)+'</td><td class="num">'+fmtMoney(m)+'</td><td class="num">'+fmtMoney(e)+'</td><td class="num"><b>'+fmtMoney(l+s2+m+e)+'</b></td></tr>';
     }).join('')+'</tbody>' :
-    '<tbody><tr><td><div class="empty">لا توجد حركات مرتبطة بمشاريع بعد</div></td></tr></tbody>';
+    '<tbody><tr><td><div class="empty">لا توجد حركات مرتبطة بمشاريع في هذه الفترة</div></td></tr></tbody>';
+  REPDATA.weekly = {headers:['المشروع','عمالة','مقاولون','مشتريات','نثريات ورواتب','الإجمالي'], rows:prow};
+  // subcontractor dues (all time): accruals - payments
+  var sd = {}; all.forEach(function(r){ if(r.type==='مستحق مقاول'||r.type==='مقاول باطن'){ var k=(r.party||'غير محدد').trim(); sd[k]=sd[k]||{due:0,paid:0}; if(r.type==='مستحق مقاول') sd[k].due+=Number(r.amount)||0; else sd[k].paid+=Number(r.amount)||0; } });
+  var dk = Object.keys(sd).filter(function(k){return sd[k].due-sd[k].paid>0;}).sort(function(a,b){return (sd[b].due-sd[b].paid)-(sd[a].due-sd[a].paid);});
+  document.getElementById('weeklyDueTable').innerHTML = '<thead><tr><th>المقاول</th><th class="num">المستخلصات</th><th class="num">المدفوع</th><th class="num">المطلوب صرفه</th></tr></thead><tbody>'+
+    (dk.length? dk.map(function(k){return '<tr><td><b>'+esc(k)+'</b></td><td class="num">'+fmtMoney(sd[k].due)+'</td><td class="num">'+fmtMoney(sd[k].paid)+'</td><td class="num diff-neg">'+fmtMoney(sd[k].due-sd[k].paid)+'</td></tr>';}).join('')+'<tr><td><b>الإجمالي</b></td><td></td><td></td><td class="num"><b>'+fmtMoney(dk.reduce(function(s,k){return s+sd[k].due-sd[k].paid;},0))+'</b></td></tr>' : '<tr><td colspan="4"><div class="empty">لا توجد مستحقات متبقية — سجّل المستخلصات من شاشة مقاولي الباطن</div></td></tr>')+'</tbody>';
   document.getElementById('weeklyUnassignedTable').innerHTML = unassigned.length ?
     '<thead><tr><th>التاريخ</th><th>النوع</th><th>الطرف</th><th>البيان</th><th class="num">المبلغ</th></tr></thead><tbody>'+
     unassigned.map(function(r){return '<tr><td>'+fmtDate(r.date)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.party||'')+'</td><td class="wrap">'+esc(r.desc||'')+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>';}).join('')+'</tbody>' :
-    '<tbody><tr><td><div class="empty">ممتاز — كل الحركات الحالية مرتبطة بمشروع</div></td></tr></tbody>';
+    '<tbody><tr><td><div class="empty">ممتاز — كل حركات الفترة مرتبطة بمشروع</div></td></tr></tbody>';
 }
+function setWeek(from,to){ WK.from=from; WK.to=to; renderWeekly(); }
+document.getElementById('wkPrev').addEventListener('click', function(){ setWeek(addDays(WK.from,-7), addDays(WK.to,-7)); });
+document.getElementById('wkNext').addEventListener('click', function(){ setWeek(addDays(WK.from,7), addDays(WK.to,7)); });
+document.getElementById('wkNow').addEventListener('click', function(){ var t=todayISO(); setWeek(addDays(t,-6), t); });
+document.getElementById('wkFrom').addEventListener('change', function(){ if(this.value) setWeek(this.value, WK.to); });
+document.getElementById('wkTo').addEventListener('change', function(){ if(this.value) setWeek(WK.from, this.value); });
+document.getElementById('wkPrint').addEventListener('click', function(){ window.print(); });
+document.getElementById('wkExport').addEventListener('click', function(){ exportData('weekly','دفعة-الخميس'); });
 
 function kpi(label,val,cls){ return '<div class="kpi"><div class="label">'+label+'</div><div class="value '+(cls||'')+'">'+val+'</div></div>'; }
 function emptyState(title,sub){ return '<div class="empty"><div class="big">—</div><div style="font-weight:700">'+title+'</div><div class="helptext">'+ (sub||'') +'</div></div>'; }
@@ -990,6 +1064,7 @@ var VIEW_META = {
 };
 var DEFAULT_PAY = {'نثريات':'عهدة','مشتريات':'نقدي','عمالة':'نقدي','مقاول باطن':'شيك','رواتب':'تحويل'};
 var VIEW_FILTERS = {};
+var DEFAULT_COST_ITEM = {'نثريات':'عهدة نثرية','مقاول باطن':'مقاولين باطن','مستحق مقاول':'مقاولين باطن','عمالة':'عمالة يومية','رواتب':'رواتب','مشتريات':'مشتريات'};
 function viewRows(view){
   var meta = VIEW_META[view];
   return allTx().filter(function(r){
@@ -1248,16 +1323,16 @@ function openTxModal(view, meta, existing){
     if(name && S.custodians.indexOf(name)===-1){ S.custodians.push(name); saveConfig(); }
     fillCust(name);
   });
-  function sync(){
+  function sync(typeChanged){
     var t = typeSel ? typeSel.value : defType, isIn = t==='عهدة-استلام', isAcc = t==='مستحق مقاول';
     ['t_wi_wrap','t_ci_wrap'].forEach(function(id){ var w=document.getElementById(id); if(w) w.style.display = isIn ? 'none' : ''; });
     var pw = document.getElementById('t_pay_wrap');
     if(pw){ pw.style.display = isAcc ? 'none' : ''; document.getElementById('t_pay').parentNode.style.display = isIn ? 'none' : ''; }
     var cw = document.getElementById('t_cust_wrap'); if(cw) cw.style.display = (isIn || (payEl && payEl.value==='عهدة')) && !isAcc ? '' : 'none';
-    if(pw && !isIn && !isAcc && payEl && !ex){ payEl.value = DEFAULT_PAY[t]||payEl.value; }
+    if(typeChanged===true && pw && !isIn && !isAcc && payEl && !ex){ payEl.value = DEFAULT_PAY[t]||payEl.value; }
   }
-  if(typeSel) typeSel.addEventListener('change', sync);
-  if(payEl) payEl.addEventListener('change', sync);
+  if(typeSel) typeSel.addEventListener('change', function(){ sync(true); });
+  if(payEl) payEl.addEventListener('change', function(){ sync(false); });
   sync();
 }
 
@@ -1302,13 +1377,15 @@ function applyRole(){
   if(field) go('quick');
 }
 function renderQuick(){
-  var types = [['مشتريات','🛒 شراء مواد'],['نثريات','💵 مصروف من العهدة'],['مقاول باطن','🔧 دفعة مقاول'],['عمالة','👷 سلفة / يومية'],['عهدة-استلام','📥 استلام عهدة']];
+  var types = [['مشتريات','🛒 شراء مواد'],['نثريات','💵 مصروف نثري'],['مقاول باطن','🔧 دفعة مقاول'],['عمالة','👷 سلفة / يومية'],['عهدة-استلام','📥 استلام عهدة']];
   var st = {type: types[0][0]};
   var f = document.getElementById('quickForm');
   f.innerHTML = '<div class="qtypes" id="qTypes">'+types.map(function(t,i){return '<button type="button" data-t="'+t[0]+'" class="'+(i===0?'on':'')+'">'+t[1]+'</button>';}).join('')+'</div>'+
     '<div class="field"><label>المشروع</label><select id="q_project"><option value="">— اختر المشروع —</option>'+S.projects.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>';}).join('')+'</select></div>'+
     '<div class="field" id="q_wi_wrap"><label>بند الأعمال</label><select id="q_item"></select></div>'+
     '<div class="field"><label id="q_party_label">المورد / البيان</label><input id="q_party" placeholder="مثال: فاتورة رقم 25 — مكتبة النور"></div>'+
+    '<div class="field" id="q_pay_wrap"><label>طريقة الدفع</label><select id="q_pay">'+PAY_METHODS.map(function(m){return '<option>'+m+'</option>';}).join('')+'</select></div>'+
+    '<div class="field" id="q_cust_wrap"><label>أمين العهدة (اسمك)</label><input id="q_cust" value="'+esc((S.userEmail||'').split('@')[0])+'"></div>'+
     '<div class="field"><label>المبلغ (ج.م)</label><input id="q_amount" type="number" inputmode="decimal"></div>'+
     '<div class="field"><label>التاريخ</label><input id="q_date" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div>'+
     '<div class="field"><label>ملاحظة (اختياري)</label><input id="q_desc"></div>'+
@@ -1318,9 +1395,12 @@ function renderQuick(){
   function syncType(){
     var isIn = st.type==='عهدة-استلام';
     document.getElementById('q_wi_wrap').style.display = isIn ? 'none' : '';
+    document.getElementById('q_pay_wrap').style.display = (isIn || st.type==='مستحق مقاول') ? 'none' : '';
+    var pv = document.getElementById('q_pay').value; document.getElementById('q_cust_wrap').style.display = (isIn || (pv==='عهدة' && st.type!=='مستحق مقاول')) ? '' : 'none';
     document.getElementById('q_party_label').textContent = isIn ? 'من استلمت العهدة / البيان' : (st.type==='مقاول باطن' ? 'اسم المقاول' : (st.type==='عمالة' ? 'اسم العامل' : 'المورد / البيان'));
   }
   fillItems(); proj.addEventListener('change', fillItems);
+  document.getElementById('q_pay').addEventListener('change', syncType);
   document.querySelectorAll('#qTypes button').forEach(function(b){ b.addEventListener('click', function(){
     document.querySelectorAll('#qTypes button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); st.type=b.dataset.t; syncType();
   }); });
@@ -1331,15 +1411,18 @@ function renderQuick(){
     if(!isIn && !proj.value){ toast('اختر المشروع'); return; }
     if(!isIn && !item.value){ toast('اختر بند الأعمال'); return; }
     var wi = resolveWorkItem(proj.value, isIn?'':item.value);
+    var pay = isIn ? '' : document.getElementById('q_pay').value, cust = document.getElementById('q_cust').value.trim();
+    if((isIn || pay==='عهدة') && !cust){ toast('اكتب اسم أمين العهدة'); return; }
+    if(!document.getElementById('q_date').value){ toast('اختر التاريخ'); return; }
     var btn = this; btn.disabled = true;
     var db = await waitForDb(); if(!db){ toast('⚠ لا يوجد اتصال — لم يُرسل'); btn.disabled=false; return; }
     var doc = {id:'pend-'+uid(), created_at:new Date().toISOString(), date:document.getElementById('q_date').value, project_id: proj.value||null,
       type:st.type, item_id:wi.item_id, work_item:wi.work_item, party:document.getElementById('q_party').value.trim(), desc:document.getElementById('q_desc').value.trim(),
-      amount:amount, source:'إدخال مباشر — '+(S.userEmail||'مستخدم محلي'), by:S.userEmail||''};
+      pay_method: pay, custodian: (isIn||pay==='عهدة')? cust : '', amount:amount, source:'إدخال مباشر — '+(S.userEmail||'مستخدم محلي'), by:S.userEmail||''};
     try{ await db.collection('pending').doc(doc.id).set(doc); S.pending.push(doc); toast('✔ أُرسلت للمراجعة'); renderQuick(); updateInboxBadge(); }
     catch(e){ toast('⚠ تعذر الإرسال — حاول تاني'); btn.disabled=false; }
   });
-  syncType();
+  document.getElementById('q_pay').value='عهدة'; syncType();
   var mine = S.pending.filter(function(r){ return (r.by||'')===(S.userEmail||''); }).sort(function(a,b){return (b.created_at||'').localeCompare(a.created_at||'');}).slice(0,15);
   document.getElementById('quickMine').innerHTML = '<thead><tr><th>التاريخ</th><th>النوع</th><th>المشروع</th><th class="num">المبلغ</th><th>الحالة</th></tr></thead><tbody>'+
     (mine.length? mine.map(function(r){ return '<tr><td>'+fmtDate(r.date)+'</td><td>'+typePill(r.type)+'</td><td class="wrap">'+esc(projName(r.project_id))+'</td><td class="num">'+fmtMoney(r.amount)+'</td><td><span class="pill status-جاري">بانتظار المراجعة</span></td></tr>'; }).join('') : '<tr><td colspan="5"><div class="empty">لا توجد طلبات معلّقة</div></td></tr>')+'</tbody>';
@@ -1355,8 +1438,8 @@ function matchProjectId(name){
 }
 function renderInbox(){
   updateInboxBadge();
-  var types = ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات','ايراد','عهدة-استلام'];
-  var head = '<thead><tr><th><input type="checkbox" id="inboxAll" checked></th><th>التاريخ</th><th>المشروع</th><th>النوع</th><th>بند الأعمال</th><th>الطرف / البيان</th><th class="num">المبلغ</th><th>المصدر</th><th></th></tr></thead>';
+  var types = ['نثريات','مقاول باطن','مستحق مقاول','عمالة','رواتب','مشتريات','ايراد','عهدة-استلام'];
+  var head = '<thead><tr><th><input type="checkbox" id="inboxAll" checked></th><th>التاريخ</th><th>المشروع</th><th>النوع</th><th>بند الأعمال</th><th>الطرف / البيان</th><th>الدفع / أمين العهدة</th><th class="num">المبلغ</th><th>المصدر</th><th></th></tr></thead>';
   var body = S.pending.length ? S.pending.map(function(r){
     var pid = r.project_id!=null ? r.project_id : matchProjectId(r.project);
     var wiOpts = workItemOptions(pid), sel = '';
@@ -1368,11 +1451,12 @@ function renderInbox(){
       '<td><select class="ibtype">'+types.map(function(t){return '<option'+(t===r.type?' selected':'')+'>'+t+'</option>';}).join('')+'</select></td>'+
       '<td><select class="ibitem" style="max-width:200px"><option value="">— اختر —</option>'+wiOpts.map(function(o){return '<option value="'+esc(o.value)+'"'+(o.value===sel?' selected':'')+'>'+esc(o.label)+'</option>';}).join('')+'</select>'+(!sel && r.work_item?'<div class="helptext">من البريد: '+esc(r.work_item)+'</div>':'')+'</td>'+
       '<td class="wrap"><input class="ibparty" value="'+esc(r.party||'')+'" style="width:100%"><div class="helptext">'+esc(r.desc||'')+'</div></td>'+
+      '<td><select class="ibpay">'+PAY_METHODS.map(function(m){return '<option'+(m===(r.pay_method||DEFAULT_PAY[r.type]||'نقدي')?' selected':'')+'>'+m+'</option>';}).join('')+'</select><input class="ibcust" list="custList" placeholder="أمين العهدة" value="'+esc(r.custodian||'')+'" style="width:120px;margin-top:4px"></td>'+
       '<td class="num"><input class="ibamt" type="number" value="'+(Number(r.amount)||0)+'" style="width:100px"></td>'+
       '<td class="wrap helptext">'+esc(r.source||'')+'</td>'+
       '<td style="white-space:nowrap"><button class="btn sm primary ibok">تأكيد</button> <button class="btn sm ghost danger ibno">رفض</button></td></tr>';
-  }).join('') : '<tr><td colspan="9"><div class="empty">لا توجد حركات بانتظار المراجعة<br><span class="helptext">اطلب من Claude قراءة البريد وتجهيز الحركات، ثم أضفها هنا</span></div></td></tr>';
-  var t = document.getElementById('inboxTable'); t.innerHTML = head+'<tbody>'+body+'</tbody>';
+  }).join('') : '<tr><td colspan="10"><div class="empty">لا توجد حركات بانتظار المراجعة<br><span class="helptext">اطلب من Claude قراءة البريد وتجهيز الحركات، ثم أضفها هنا</span></div></td></tr>';
+  var t = document.getElementById('inboxTable'); t.innerHTML = head+'<tbody>'+body+'</tbody>'+'<datalist id="custList">'+S.custodians.map(function(c){return '<option value="'+esc(c)+'">';}).join('')+'</datalist>';
   var all = document.getElementById('inboxAll'); if(all) all.addEventListener('change', function(){ t.querySelectorAll('.ibchk').forEach(function(c){c.checked=all.checked;}); });
   t.querySelectorAll('.ibproj').forEach(function(sel){ sel.addEventListener('change', function(){
     var tr = sel.closest('tr'), cur = tr.querySelector('.ibitem'); var opts = workItemOptions(sel.value);
@@ -1393,8 +1477,15 @@ async function confirmPending(trs){
     if(isCost && !wiRaw){ toast('اختر بند الأعمال قبل التأكيد'); continue; }
     var wi = resolveWorkItem(pid, wiRaw);
     var orig = S.pending.find(function(x){return x.id===id;}) || {};
+    var isIn = type==='عهدة-استلام', isAcc = type==='مستحق مقاول';
+    var pay = (isCost && !isAcc) ? tr.querySelector('.ibpay').value : '';
+    var cust = tr.querySelector('.ibcust').value.trim();
+    if(isIn && !cust){ toast('اكتب اسم أمين العهدة للعهدة المستلمة'); continue; }
+    if(pay==='عهدة' && !cust){ toast('اكتب أمين العهدة للمصروف من العهدة'); continue; }
+    if(!tr.querySelector('.ibdate').value){ toast('التاريخ مطلوب'); continue; }
+    if(cust && S.custodians.indexOf(cust)===-1 && (isIn || pay==='عهدة')){ S.custodians.push(cust); saveConfig(); }
     var ok = await addTxRow({date: tr.querySelector('.ibdate').value, project_id: pid, type:type, item_id:wi.item_id, work_item:wi.work_item,
-      cost_item:'', party: tr.querySelector('.ibparty').value.trim(), desc: orig.desc||'', amount:amount, source: orig.source||''});
+      cost_item: DEFAULT_COST_ITEM[type]||'', pay_method: pay, custodian: (isIn||pay==='عهدة')? cust : '', party: tr.querySelector('.ibparty').value.trim(), desc: orig.desc||'', amount:amount, source: orig.source||'', requested_by: orig.by||''});
     if(!ok) break;
     try{ var db = await waitForDb(); await db.collection('pending').doc(id).delete(); }catch(e){}
     S.pending = S.pending.filter(function(x){return x.id!==id;}); done++;
@@ -1431,53 +1522,54 @@ document.getElementById('inboxFile').addEventListener('change', function(e){
 
 /* ================= REPORTS ================= */
 document.querySelectorAll('#reportTabs button').forEach(function(b){ b.addEventListener('click', function(){
-  document.querySelectorAll('#reportTabs button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active');
+  document.querySelectorAll('#reportTabs button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active'); REP.tab = b.dataset.rep;
   document.getElementById('repByWork').style.display = b.dataset.rep==='bywork'?'block':'none';
   document.getElementById('repByItem').style.display = b.dataset.rep==='byitem'?'block':'none';
   document.getElementById('repProfit').style.display = b.dataset.rep==='profit'?'block':'none';
 }); });
+var REP = {from:'', to:'', tab:'bywork'};
 function renderMatrix(tx, keyFn, tableId, firstLabel){
   var matrix = {};
   tx.forEach(function(r){ var it = keyFn(r); if(!matrix[it]) matrix[it]={}; var pid = r.project_id||'بدون مشروع'; matrix[it][pid] = (matrix[it][pid]||0)+(Number(r.amount)||0); });
   var projIds = S.projects.map(function(p){return p.id;}).concat(['بدون مشروع']);
-  var items = Object.keys(matrix);
+  var items = Object.keys(matrix).sort(function(a,b){ var ta=0,tb=0; projIds.forEach(function(p){ta+=matrix[a][p]||0; tb+=matrix[b][p]||0;}); return tb-ta; });
   var head = '<thead><tr><th>'+firstLabel+'</th>'+projIds.map(function(pid){return '<th class="num">'+esc(pid==='بدون مشروع'?pid:projName(pid))+'</th>';}).join('')+'<th class="num">الإجمالي</th></tr></thead>';
+  var raw = [], colTot = projIds.map(function(){return 0;}), grand = 0;
   var body = items.length ? items.map(function(it){
-    var rowTotal=0;
-    var cells = projIds.map(function(pid){ var v=(matrix[it][pid]||0); rowTotal+=v; return '<td class="num">'+(v?fmtMoney(v):'—')+'</td>'; }).join('');
+    var rowTotal=0, rawRow=[it];
+    var cells = projIds.map(function(pid,i){ var v=(matrix[it][pid]||0); rowTotal+=v; colTot[i]+=v; rawRow.push(v); return '<td class="num">'+(v?fmtMoney(v):'—')+'</td>'; }).join('');
+    grand += rowTotal; rawRow.push(rowTotal); raw.push(rawRow);
     return '<tr><td><b>'+esc(it)+'</b></td>'+cells+'<td class="num"><b>'+fmtMoney(rowTotal)+'</b></td></tr>';
-  }).join('') : '<tr><td colspan="99"><div class="empty">لا توجد بيانات تكاليف بعد</div></td></tr>';
+  }).join('') + '<tr style="background:var(--surface-2)"><td><b>الإجمالي</b></td>'+colTot.map(function(v){return '<td class="num"><b>'+fmtMoney(v)+'</b></td>';}).join('')+'<td class="num"><b>'+fmtMoney(grand)+'</b></td></tr>'
+    : '<tr><td colspan="99"><div class="empty">لا توجد بيانات تكاليف في هذه الفترة</div></td></tr>';
   document.getElementById(tableId).innerHTML = head+'<tbody>'+body+'</tbody>';
+  REPDATA[tableId] = {headers:[firstLabel].concat(projIds.map(function(pid){return pid==='بدون مشروع'?pid:projName(pid);})).concat(['الإجمالي']), rows:raw};
 }
 function renderReports(){
-  var costTypes = COST_TYPES;
-  var tx = allTx();
-  renderMatrix(tx.filter(function(r){return costTypes.indexOf(r.type)!==-1;}), function(r){return r.work_item||'غير محدد';}, 'repByWorkTable', 'بند الأعمال');
-  // matrix: cost item x project
-  var matrix = {};
-  tx.filter(function(r){return costTypes.indexOf(r.type)!==-1;}).forEach(function(r){
-    var it = r.cost_item||'غير محدد';
-    if(!matrix[it]) matrix[it]={};
-    var pid = r.project_id||'بدون مشروع';
-    matrix[it][pid] = (matrix[it][pid]||0)+(Number(r.amount)||0);
-  });
-  var projIds = S.projects.map(function(p){return p.id;}).concat(['بدون مشروع']);
-  var items = Object.keys(matrix);
-  var head = '<thead><tr><th>البند</th>'+projIds.map(function(pid){return '<th class="num">'+esc(pid==='بدون مشروع'?pid:projName(pid))+'</th>';}).join('')+'<th class="num">الإجمالي</th></tr></thead>';
-  var body = items.length ? items.map(function(it){
-    var rowTotal=0;
-    var cells = projIds.map(function(pid){ var v=(matrix[it][pid]||0); rowTotal+=v; return '<td class="num">'+(v?fmtMoney(v):'—')+'</td>'; }).join('');
-    return '<tr><td><b>'+esc(it)+'</b></td>'+cells+'<td class="num"><b>'+fmtMoney(rowTotal)+'</b></td></tr>';
-  }).join('') : '<tr><td colspan="99"><div class="empty">لا توجد بيانات تكاليف بعد</div></td></tr>';
-  document.getElementById('repByItemTable').innerHTML = head+'<tbody>'+body+'</tbody>';
-
+  document.getElementById('repFrom').value = REP.from; document.getElementById('repTo').value = REP.to;
+  var all = allTx().filter(function(r){ return inRange(r, REP.from, REP.to); });
+  var cost = all.filter(isCost);
+  renderMatrix(cost, function(r){return r.work_item||'غير محدد';}, 'repByWorkTable', 'بند الأعمال');
+  renderMatrix(cost, function(r){return r.cost_item||'غير محدد';}, 'repByItemTable', 'نوع التكلفة');
+  var prow=[];
   var profitRows = S.projects.map(function(p){
-    var cost = projectActualCost(p.id), rev = projectRevenue(p.id);
-    return '<tr><td>'+esc(p.name)+'</td><td class="num">'+ (p.contract_value?fmtMoney(p.contract_value):'—') +'</td><td class="num">'+fmtMoney(cost)+'</td><td class="num">'+fmtMoney(rev)+'</td><td class="num '+((rev-cost)>=0?'diff-pos':'diff-neg')+'">'+fmtMoney(rev-cost)+'</td></tr>';
+    var c = sumAmt(cost.filter(function(r){return r.project_id===p.id;})), rev = sumAmt(all.filter(function(r){return r.project_id===p.id && r.type==='ايراد';}));
+    var cv = Number(p.contract_value)||0;
+    prow.push([p.name,cv,c,rev,rev-c,cv?Math.max(cv-rev,0):0]);
+    return '<tr><td>'+esc(p.name)+'</td><td class="num">'+(cv?fmtMoney(cv):'—')+'</td><td class="num">'+fmtMoney(c)+'</td><td class="num">'+fmtMoney(rev)+'</td><td class="num '+((rev-c)>=0?'diff-pos':'diff-neg')+'">'+fmtMoney(rev-c)+'</td><td class="num">'+(cv?fmtMoney(Math.max(cv-rev,0)):'—')+'</td></tr>';
   }).join('');
-  document.getElementById('repProfitTable').innerHTML = '<thead><tr><th>المشروع</th><th class="num">قيمة العقد</th><th class="num">التكلفة</th><th class="num">الإيراد</th><th class="num">صافي الربح</th></tr></thead><tbody>'+
-    (profitRows || '<tr><td colspan="5"><div class="empty">لا توجد مشاريع بعد</div></td></tr>') + '</tbody>';
+  document.getElementById('repProfitTable').innerHTML = '<thead><tr><th>المشروع</th><th class="num">قيمة العقد</th><th class="num">التكلفة</th><th class="num">الإيراد المحصّل</th><th class="num">صافي (إيراد − تكلفة)</th><th class="num">متبقي للتحصيل</th></tr></thead><tbody>'+
+    (profitRows || '<tr><td colspan="6"><div class="empty">لا توجد مشاريع بعد</div></td></tr>') + '</tbody>';
+  REPDATA.repProfitTable = {headers:['المشروع','قيمة العقد','التكلفة','الإيراد المحصّل','صافي','متبقي للتحصيل'], rows:prow};
 }
+document.getElementById('repFrom').addEventListener('change', function(){ REP.from=this.value; renderReports(); });
+document.getElementById('repTo').addEventListener('change', function(){ REP.to=this.value; renderReports(); });
+document.getElementById('repReset').addEventListener('click', function(){ REP.from=''; REP.to=''; renderReports(); });
+document.getElementById('repPrint').addEventListener('click', function(){ window.print(); });
+document.getElementById('repExport').addEventListener('click', function(){
+  var map = {bywork:['repByWorkTable','تكاليف-حسب-بند-الأعمال'], byitem:['repByItemTable','تكاليف-حسب-نوع-التكلفة'], profit:['repProfitTable','ربحية-المشاريع']};
+  var m = map[REP.tab]; exportData(m[0], m[1]);
+});
 
 /* ================= SETTINGS ================= */
 var ROLE_LABEL = {admin:'مدير',accountant:'محاسب',engineer:'مهندس موقع',purchaser:'مندوب مشتريات'};
@@ -1487,6 +1579,11 @@ function renderSettings(){
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface-2);border-radius:7px"><span dir="ltr" style="flex:1;text-align:right">'+esc(em)+'</span><span class="pill status-منتهى">'+ROLE_LABEL[S.roles[em]]+'</span><button class="btn sm ghost danger rmrole" data-e="'+esc(em)+'">حذف</button></div>';
   }).join('') || '<div class="helptext">لا يوجد مستخدمون مضافون — الجميع حاليًا مديرون</div>';
   rl.querySelectorAll('.rmrole').forEach(function(btn){ btn.addEventListener('click', function(){ delete S.roles[btn.dataset.e]; saveConfig(); renderSettings(); }); });
+  var cl = document.getElementById('custList2');
+  cl.innerHTML = S.custodians.map(function(c,i){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface-2);border-radius:7px"><span style="flex:1">'+esc(c)+'</span><button class="btn sm ghost danger rmcust" data-i="'+i+'">حذف</button></div>';
+  }).join('') || '<div class="helptext">لم تُضف أسماء بعد — تُضاف تلقائيًا عند تسجيل العهدة</div>';
+  cl.querySelectorAll('.rmcust').forEach(function(btn){ btn.addEventListener('click', function(){ S.custodians.splice(Number(btn.dataset.i),1); saveConfig(); renderSettings(); }); });
   var wl = document.getElementById('workItemsList');
   wl.innerHTML = S.workItems.map(function(c,i){
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface-2);border-radius:7px"><span style="flex:1">'+esc(c)+'</span><button class="btn sm ghost danger rmwi" data-i="'+i+'">حذف</button></div>';
@@ -1498,6 +1595,35 @@ function renderSettings(){
   }).join('');
   el.querySelectorAll('.rmci').forEach(function(btn){ btn.addEventListener('click', function(){ S.costItems.splice(Number(btn.dataset.i),1); saveConfig(); renderSettings(); }); });
 }
+document.getElementById('addCustBtn').addEventListener('click', function(){
+  var inp = document.getElementById('newCustInput'); var v = inp.value.trim();
+  if(!v || S.custodians.indexOf(v)!==-1) return; S.custodians.push(v); inp.value=''; saveConfig(); renderSettings();
+});
+function downloadBlob(text, name, type){ var b=new Blob([text],{type:type||'application/json'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+document.getElementById('backupBtn').addEventListener('click', function(){
+  var data = {app:'moqawel-pro', version:1, exported_at:new Date().toISOString(),
+    config:{cost_items:S.costItems, work_items:S.workItems, custodians:S.custodians}, projects:S.projects,
+    batches:S.batches.map(function(b){ return {id:b.id,label:b.label||'',created_at:b.created_at||'',rows:(b.rows||[]).map(cleanRow)}; }), pending:S.pending};
+  downloadBlob(JSON.stringify(data), 'moqawel-backup-'+todayISO()+'.json'); toast('تم تحميل النسخة الاحتياطية');
+});
+document.getElementById('restoreBtn').addEventListener('click', function(){ document.getElementById('restoreFile').click(); });
+document.getElementById('restoreFile').addEventListener('change', function(e){
+  var f = e.target.files[0]; if(!f) return; var rd = new FileReader();
+  rd.onload = async function(){
+    try{
+      var d = JSON.parse(rd.result);
+      if(d.app!=='moqawel-pro' || !Array.isArray(d.projects) || !Array.isArray(d.batches)){ toast('⚠ هذا ليس ملف نسخة احتياطية صالح'); return; }
+      if(!confirm('سيتم دمج '+d.projects.length+' مشروع و'+d.batches.length+' دفعة حركات مع البيانات الحالية (نفس المعرّف يُستبدل). متابعة؟')) return;
+      var db = await waitForDb(); if(!db){ toast('⚠ لا يوجد اتصال بقاعدة البيانات'); return; }
+      for(var i=0;i<d.projects.length;i++){ var pr=d.projects[i]; await db.collection('projects').doc(pr.id).set(pr); var k=S.projects.findIndex(function(x){return x.id===pr.id;}); if(k>-1) S.projects[k]=pr; else S.projects.push(pr); }
+      for(var j=0;j<d.batches.length;j++){ var b=d.batches[j]; await db.collection('batches').doc(b.id).set(b); var q=S.batches.findIndex(function(x){return x.id===b.id;}); if(q>-1) S.batches[q]=b; else S.batches.push(b); }
+      if(d.config){ ['cost_items','work_items','custodians'].forEach(function(k2){ var tgt={cost_items:'costItems',work_items:'workItems',custodians:'custodians'}[k2]; (d.config[k2]||[]).forEach(function(v){ if(S[tgt].indexOf(v)===-1) S[tgt].push(v); }); }); await saveConfig(); }
+      toast('تمت الاستعادة'); renderAll();
+    }catch(err){ toast('⚠ تعذرت قراءة الملف'); }
+    e.target.value='';
+  };
+  rd.readAsText(f);
+});
 document.getElementById('addRoleBtn').addEventListener('click', function(){
   var em = document.getElementById('newRoleEmail').value.trim().toLowerCase(), role = document.getElementById('newRoleSel').value;
   if(!em || em.indexOf('@')===-1){ toast('اكتب بريدًا صحيحًا'); return; }
@@ -1521,10 +1647,82 @@ var FIELD_DEFS = [
   {key:'type', label:'نوع الحركة', guess:[]},
   {key:'work_item', label:'بند الأعمال', guess:['بند الاعمال','بند الأعمال','بيان الاعمال','بند']},
   {key:'cost_item', label:'نوع التكلفة', guess:[]},
+  {key:'pay_method', label:'طريقة الدفع', guess:['طريقة الدفع']},
+  {key:'custodian', label:'أمين العهدة', guess:['أمين العهدة']},
   {key:'party', label:'اسم الطرف (مقاول/عامل/بيان)', guess:['بيان','اسم','المقاول','اسم العامل']},
   {key:'desc', label:'بيان إضافي', guess:['ملاحظات','بيان الاعمال']},
   {key:'amount', label:'المبلغ', guess:['المنصرف','اجمالي','اجمالى','مستحق','اجمالي الحساب','العهدة']}
 ];
+var TEMPLATES = {
+  'عهدة مستلمة': {type:'عهدة-استلام', cols:['التاريخ','أمين العهدة','المبلغ','ملاحظات'], ex:['2026-10-07','م/ محمد عصام',50000,'استلام من الصراف']},
+  'نثريات': {type:'نثريات', cols:['التاريخ','المشروع','بند الأعمال','الطرف / البيان','المبلغ','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','دهانات','ضيافة عمال',1250,'م/ محمد عصام','']},
+  'دفعة مقاول': {type:'مقاول باطن', cols:['التاريخ','المشروع','بند الأعمال','اسم المقاول','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','التكييف › الصاج','محمد عبده صاج تكييف',20000,'شيك','','دفعة تحت الحساب']},
+  'مستخلص مقاول': {type:'مستحق مقاول', cols:['التاريخ','المشروع','بند الأعمال','اسم المقاول','المبلغ','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','التكييف › الصاج','محمد عبده صاج تكييف',66000,'مستخلص رقم 2']},
+  'عمالة': {type:'عمالة', cols:['التاريخ','المشروع','بند الأعمال','اسم العامل / الكشف','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','دهانات','يوميات الأسبوع 1-7/10',49850,'نقدي','','']},
+  'رواتب': {type:'رواتب', cols:['التاريخ','المشروع','الموظف / الشهر','المبلغ','طريقة الدفع','ملاحظات'], ex:['2026-10-31','','رواتب أكتوبر — مهندس الموقع',12000,'تحويل','']},
+  'مشتريات': {type:'مشتريات', cols:['التاريخ','المشروع','بند الأعمال','الصنف / المورد','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','كهرباء','فاتورة 25 — كشافات',6795,'عهدة','م/ محمد عصام','']},
+  'إيرادات': {type:'ايراد', cols:['التاريخ','المشروع','مصدر الإيراد / رقم المستخلص','المبلغ','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','مستخلص رقم 3',250000,'']}
+};
+var COL2FIELD = {'التاريخ':'date','المشروع':'project','بند الأعمال':'work_item','الطرف / البيان':'party','اسم المقاول':'party','اسم العامل / الكشف':'party','الموظف / الشهر':'party','الصنف / المورد':'party','مصدر الإيراد / رقم المستخلص':'party','المبلغ':'amount','طريقة الدفع':'pay_method','أمين العهدة':'custodian','ملاحظات':'desc'};
+function buildTemplate(label){
+  var t = TEMPLATES[label]; if(!window.XLSX || !XLSX.utils){ toast('مكتبة إكسل غير محمّلة'); return; }
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet([t.cols, t.ex]); ws['!cols'] = t.cols.map(function(){return {wch:24};});
+  XLSX.utils.book_append_sheet(wb, ws, ('قالب - '+label).slice(0,31));
+  var lists = [['المشاريع الحالية','بنود الأعمال','طرق الدفع','أمناء العهدة']];
+  var n = Math.max(S.projects.length, S.workItems.length, PAY_METHODS.length, S.custodians.length);
+  var allItems = S.workItems.slice(); S.projects.forEach(function(pr){ itemFlat(pr).forEach(function(f){ if(allItems.indexOf(f.path)===-1) allItems.push(f.path); }); });
+  n = Math.max(n, allItems.length);
+  for(var i=0;i<n;i++) lists.push([(S.projects[i]||{}).name||'', allItems[i]||'', PAY_METHODS[i]||'', S.custodians[i]||'']);
+  var ws2 = XLSX.utils.aoa_to_sheet(lists); ws2['!cols']=[{wch:40},{wch:36},{wch:14},{wch:24}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'قوائم مرجعية');
+  var ws3 = XLSX.utils.aoa_to_sheet([['تعليمات'],['1) املأ الصف الأول بعد العناوين، واحذف صف المثال الأول أو استبدله.'],['2) اسم المشروع وبند الأعمال يُكتبان كما في شيت "قوائم مرجعية" ليرتبطا تلقائيًا بالبند الفرعي.'],['3) التاريخ بصيغة 2026-10-07 أو تاريخ إكسل عادي. المبلغ رقم موجب بدون حروف.'],['4) لا تغيّر اسم الشيت الأول ولا عناوين الأعمدة.']]);
+  XLSX.utils.book_append_sheet(wb, ws3, 'تعليمات');
+  try{ wb.Workbook={Views:[{RTL:true}]}; }catch(e){}
+  XLSX.writeFile(wb, 'قالب-'+label+'.xlsx');
+}
+(function(){ var box=document.getElementById('tplButtons'); box.innerHTML = Object.keys(TEMPLATES).map(function(k){return '<button class="btn sm" data-tpl="'+k+'">⬇ '+k+'</button>';}).join(''); box.querySelectorAll('button').forEach(function(b){ b.addEventListener('click', function(){ buildTemplate(b.dataset.tpl); }); }); })();
+function parseAnyDate(v){
+  if(v instanceof Date && !isNaN(v)) return toISODate(v);
+  var t = String(v||'').trim(); if(!t) return '';
+  if(/^\d{4}-\d{1,2}-\d{1,2}/.test(t)){ var m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0'); }
+  var m2 = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/); if(m2) return m2[3]+'-'+m2[2].padStart(2,'0')+'-'+m2[1].padStart(2,'0');
+  var d = new Date(t); return isNaN(d)? '' : toISODate(d);
+}
+function parseTemplateWorkbook(wb){
+  var label = Object.keys(TEMPLATES).find(function(k){ return wb.SheetNames[0]===('قالب - '+k).slice(0,31); });
+  if(!label) return false;
+  var t = TEMPLATES[label], aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:true, defval:'', cellDates:true});
+  var heads = (aoa[0]||[]).map(function(h){return String(h).trim();});
+  var built = [], issues = [], seenNew = {};
+  aoa.slice(1).forEach(function(r, idx){
+    if(!r.some(function(c){return String(c).trim()!=='';})) return;
+    var o = {type:t.type, work_item:'', cost_item:DEFAULT_COST_ITEM[t.type]||'', pay_method:'', custodian:'', party:'', desc:'', project:'', _row: idx+2, _err:[], _warn:[]};
+    heads.forEach(function(h,i){ var f = COL2FIELD[h]; if(f) o[f] = r[i]; });
+    if(t.type==='عهدة-استلام'){ o.custodian = String(o.custodian||o.party||'').trim(); o.party = o.custodian; }
+    o.date = parseAnyDate(o.date); o.amount = parseFloat(String(o.amount).replace(/[,\s]/g,''));
+    ['project','work_item','party','desc','pay_method','custodian'].forEach(function(k){ o[k] = String(o[k]==null?'':o[k]).trim(); });
+    if(!o.date) o._err.push('التاريخ غير صالح');
+    if(!(o.amount>0)) o._err.push('المبلغ غير صالح');
+    var costLike = COST_TYPES.indexOf(t.type)!==-1;
+    if(costLike || t.type==='مستحق مقاول'){
+      if(!o.project && t.type!=='رواتب') o._warn.push('بلا مشروع');
+      if(!o.work_item && t.type!=='رواتب') o._err.push('بند الأعمال مطلوب');
+    }
+    if(o.project && !S.projects.some(function(p){return p.name.trim()===o.project;})){ o._warn.push('مشروع جديد سيُنشأ'); seenNew[o.project]=1; }
+    if(costLike && t.type!=='رواتب' || t.type==='رواتب'){
+      if(costLike){
+        if(!o.pay_method) o.pay_method = DEFAULT_PAY[t.type]||'نقدي';
+        if(PAY_METHODS.indexOf(o.pay_method)===-1) o._err.push('طريقة الدفع غير معروفة');
+        if(o.pay_method==='عهدة' && !o.custodian) o._err.push('أمين العهدة مطلوب');
+      }
+    }
+    if(t.type==='عهدة-استلام' && !o.custodian) o._err.push('أمين العهدة مطلوب');
+    built.push(o);
+  });
+  S.importState.built = built; S.importState.templateLabel = label; S.importState.newProjects = Object.keys(seenNew);
+  return true;
+}
 function resetImport(){
   S.importState = {file:null, workbook:null, sheetName:null, headers:[], rows:[], mapping:{}, fixedValues:{}};
   document.getElementById('impPanel1').style.display='';
@@ -1547,6 +1745,7 @@ function handleFile(file){
     try{
       var wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
       S.importState.workbook = wb; S.importState.file = file.name;
+      if(parseTemplateWorkbook(wb)){ renderImportPreview(); document.getElementById('impPanel1').style.display='none'; document.getElementById('impPanel3').style.display=''; ['impStep1','impStep2'].forEach(function(i){document.getElementById(i).classList.remove('active');}); document.getElementById('impStep3').classList.add('active'); return; }
       var sel = document.getElementById('impSheetSelect');
       sel.innerHTML = wb.SheetNames.map(function(n){return '<option>'+esc(n)+'</option>';}).join('');
       sel.onchange = function(){ loadSheet(sel.value); };
@@ -1563,8 +1762,12 @@ function loadSheet(name){
   var ws = S.importState.workbook.Sheets[name];
   var aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
   // find header row: first row with >=2 non-empty cells within first 8 rows
-  var headerRowIdx = 0;
-  for(var i=0;i<Math.min(8,aoa.length);i++){ var nonEmpty = aoa[i].filter(function(c){return String(c).trim()!=='';}).length; if(nonEmpty>=2){ headerRowIdx=i; break; } }
+  // أصل الجدول: الصف الأكثر خلايا نصية ضمن أول 15 صفًا (يتخطى عناوين الشركة والفترة أعلى الملف)
+  var headerRowIdx = 0, bestCount = 0;
+  for(var i=0;i<Math.min(15,aoa.length);i++){
+    var cnt = aoa[i].filter(function(c){ return String(c).trim()!=='' && isNaN(Number(String(c).replace(/,/g,''))); }).length;
+    if(cnt>bestCount){ bestCount=cnt; headerRowIdx=i; }
+  }
   var headers = aoa[headerRowIdx].map(function(h,i){ return String(h).trim() || ('عمود '+(i+1)); });
   var rows = aoa.slice(headerRowIdx+1).filter(function(r){ return r.some(function(c){return String(c).trim()!=='';}); });
   S.importState.headers = headers;
@@ -1577,7 +1780,7 @@ function buildMapGrid(){
   var html = '';
   FIELD_DEFS.forEach(function(f){
     var guessIdx = -1;
-    headers.forEach(function(h,i){ if(guessIdx===-1){ f.guess.forEach(function(g){ if(h.indexOf(g)!==-1) guessIdx=i; }); } });
+    headers.forEach(function(h,i){ var hn=h.replace(/ـ/g,''); if(guessIdx===-1){ f.guess.forEach(function(g){ if(hn.indexOf(g)!==-1) guessIdx=i; }); } });
     html += '<div class="field"><label>'+f.label+'</label>'+
       '<select class="mapsel" data-key="'+f.key+'">'+
         '<option value="__none__">— تجاهل —</option>'+
@@ -1623,29 +1826,49 @@ document.getElementById('impToReview').addEventListener('click', function(){
 });
 function buildPreview(){
   var st = S.importState;
-  var built = st.rows.map(function(r){
-    var out = {};
+  var built = st.rows.map(function(r, idx){
+    var out = {_err:[], _warn:[], _row: idx+2};
     FIELD_DEFS.forEach(function(f){
       if(f.key in st.mapping){ out[f.key] = r[st.mapping[f.key]]; }
       else if(f.key in st.fixedValues){ out[f.key] = st.fixedValues[f.key]; }
       else { out[f.key] = ''; }
     });
     out.amount = parseFloat(String(out.amount).replace(/,/g,'')) || 0;
-    if(out.date){ var d = new Date(out.date); if(!isNaN(d)) out.date = d.toISOString().slice(0,10); }
+    out.date = parseAnyDate(out.date);
     if(!out.type) out.type='نثريات';
+    ['project','work_item','party','desc','pay_method','custodian','cost_item'].forEach(function(k){ out[k] = String(out[k]==null?'':out[k]).trim(); });
+    if(!out.date) out._err.push('التاريخ غير صالح');
+    if(COST_TYPES.indexOf(out.type)!==-1){
+      if(!out.cost_item) out.cost_item = DEFAULT_COST_ITEM[out.type]||'';
+      if(!out.pay_method) out.pay_method = DEFAULT_PAY[out.type]||'نقدي';
+    }
     return out;
   }).filter(function(r){ return r.amount>0; });
-  st.built = built;
-  document.getElementById('impReviewSummary').innerHTML = '<b>'+built.length+'</b> صف سيتم استيرادهم من أصل '+st.rows.length+' صف في الملف — إجمالي المبالغ: <b>'+fmtMoney(built.reduce(function(s,r){return s+r.amount;},0))+'</b>';
+  var seenNew = {}; built.forEach(function(o){ if(o.project && !S.projects.some(function(p){return p.name.trim()===o.project;})){ o._warn.push('مشروع جديد سيُنشأ'); seenNew[o.project]=1; } });
+  st.built = built; st.templateLabel = ''; st.newProjects = Object.keys(seenNew);
+  renderImportPreview(st.rows.length);
+}
+function renderImportPreview(totalRows){
+  var st = S.importState, built = st.built;
+  var good = built.filter(function(r){return !r._err.length;}), bad = built.length-good.length;
+  document.getElementById('impReviewSummary').innerHTML =
+    (st.templateLabel? '<div class="pill status-منتهى" style="margin-bottom:6px">قالب: '+esc(st.templateLabel)+'</div><br>' : '')+
+    '<b>'+good.length+'</b> صف صالح للاستيراد'+(totalRows? ' من أصل '+totalRows+' صف في الملف' : '')+' — إجمالي المبالغ: <b>'+fmtMoney(sumAmt(good))+'</b>'+
+    (bad? '<br><span style="color:var(--bad);font-weight:700">⚠ '+bad+' صف فيه أخطاء ولن يُستورد — صحّحه في الملف وأعد رفعه</span>' : '')+
+    (st.newProjects && st.newProjects.length? '<br><span style="color:var(--warn);font-weight:700">سيُنشأ '+st.newProjects.length+' مشروع جديد: '+esc(st.newProjects.join('، '))+' — تأكد أن الأسماء صحيحة وليست أخطاء إملائية</span>' : '');
   var table = document.getElementById('impPreviewTable');
-  table.innerHTML = '<thead><tr><th>التاريخ</th><th>المشروع</th><th>النوع</th><th>بند الأعمال</th><th>الطرف</th><th>البيان</th><th class="num">المبلغ</th></tr></thead><tbody>'+
-    built.slice(0,200).map(function(r){ return '<tr><td>'+esc(r.date)+'</td><td>'+esc(r.project)+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.work_item)+'</td><td>'+esc(r.party)+'</td><td>'+esc(r.desc)+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>'; }).join('')+
-    '</tbody>';
+  table.innerHTML = '<thead><tr><th>#</th><th>الحالة</th><th>التاريخ</th><th>المشروع</th><th>النوع</th><th>بند الأعمال</th><th>الطرف</th><th>الدفع</th><th class="num">المبلغ</th></tr></thead><tbody>'+
+    built.slice(0,300).map(function(r){
+      var st2 = r._err.length ? '<span style="color:var(--bad)">✖ '+esc(r._err.join('، '))+'</span>' : (r._warn.length ? '<span style="color:var(--warn)">⚠ '+esc(r._warn.join('، '))+'</span>' : '<span style="color:var(--good)">✔</span>');
+      return '<tr><td>'+(r._row||'')+'</td><td class="wrap">'+st2+'</td><td>'+esc(r.date)+'</td><td class="wrap">'+esc(r.project)+'</td><td>'+esc(r.type)+'</td><td class="wrap">'+esc(r.work_item)+'</td><td class="wrap">'+esc(r.party)+'</td><td>'+esc(r.pay_method||'')+(r.custodian?' / '+esc(r.custodian):'')+'</td><td class="num">'+fmtMoney(r.amount)+'</td></tr>';
+    }).join('')+(built.length>300?'<tr><td colspan="9" class="helptext">… يُعرض أول 300 صف فقط، والباقي سيُستورد أيضًا</td></tr>':'')+'</tbody>';
 }
 document.getElementById('impRestartBtn').addEventListener('click', resetImport);
 document.getElementById('impConfirmBtn').addEventListener('click', async function(){
   var st = S.importState;
-  if(!st.built || !st.built.length){ toast('لا توجد صفوف صالحة للاستيراد'); return; }
+  var goodRows = (st.built||[]).filter(function(r){return !r._err || !r._err.length;});
+  if(!goodRows.length){ toast('لا توجد صفوف صالحة للاستيراد'); return; }
+  var confirmBtn = this; if(confirmBtn.disabled) return; confirmBtn.disabled = true;
   // resolve project names to ids (create project stub if not found)
   var projCache = {};
   function resolveProject(name){
@@ -1660,12 +1883,18 @@ document.getElementById('impConfirmBtn').addEventListener('click', async functio
     projCache[name] = found.id;
     return found.id;
   }
-  var rows = st.built.map(function(r){
+  var rows = goodRows.map(function(r){
     var pid = resolveProject(r.project), itemId = '', wiText = r.work_item||'';
     var pr = S.projects.find(function(x){return x.id===pid;});
     if(pr && wiText){ var hit = itemFlat(pr).filter(function(f){return f.path===wiText.trim() || f.name===wiText.trim();}); if(hit.length===1){ itemId=hit[0].id; wiText=hit[0].path; } }
-    return {date:r.date, project_id: pid, type:r.type, item_id:itemId, work_item:wiText, cost_item:r.cost_item||'', party:r.party||'', desc:r.desc||'', amount:r.amount};
+    var isIn = r.type==='عهدة-استلام', isCostT = COST_TYPES.indexOf(r.type)!==-1;
+    return {date:r.date, project_id: pid, type:r.type, item_id:itemId, work_item:wiText, cost_item:isIn?'':(r.cost_item||DEFAULT_COST_ITEM[r.type]||''), pay_method:isCostT?(r.pay_method||DEFAULT_PAY[r.type]||''):'', custodian:(isIn||r.pay_method==='عهدة'||r.type==='نثريات')?(r.custodian||''):'', party:r.party||'', desc:r.desc||'', amount:r.amount, by:S.userEmail||'', created_at:new Date().toISOString(), source:'استيراد: '+(st.file||'')};
   });
+  var skipped = 0;
+  if(document.getElementById('impSkipDup').checked){
+    var seenKeys = {}; rows = rows.filter(function(r){ var k=[r.date,r.amount,r.party,r.type,r.project_id||''].join('|'); if(seenKeys[k] || allTx().some(function(x){return x.date===r.date && Number(x.amount)===Number(r.amount) && (x.party||'')===(r.party||'') && x.type===r.type && (x.project_id||'')===(r.project_id||'');})){ skipped++; return false; } seenKeys[k]=1; return true; });
+  }
+  if(!rows.length){ toast('كل الصفوف مكررة — لم يُستورد شيء'); confirmBtn.disabled=false; return; }
   // chunk into batches of 400 rows to respect per-document size limits
   var CHUNK=400;
   var label = (st.file||'ملف') + ' / ' + (st.sheetName||'');
@@ -1678,7 +1907,8 @@ document.getElementById('impConfirmBtn').addEventListener('click', async functio
     S.batches.push(batch);
     savedCount += chunk.length;
   }
-  if(savedCount>0){ toast('تم استيراد '+savedCount+' صف بنجاح'); }
+  confirmBtn.disabled = false;
+  if(savedCount>0){ toast('تم استيراد '+savedCount+' صف'+(skipped?' — وتجاهل '+skipped+' مكرر':'')); }
   renderProjectsList(); renderDashboard();
   if(savedCount===rows.length) resetImport();
 });

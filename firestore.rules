@@ -1,0 +1,45 @@
+rules_version = '2';
+// قواعد حماية مقاول Pro — تطبّق حسب الأدوار المسجّلة في الإعدادات (meta/config.roles)
+// admin = مدير | accountant = محاسب | engineer = مهندس موقع | purchaser = مندوب مشتريات
+// ملاحظة: إذا لم تُضف أي أدوار بعد، يُعامل الجميع كمديرين (كما في البرنامج).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null && request.auth.token.email != null; }
+    function cfgPath() { return /databases/$(database)/documents/meta/config; }
+    function hasRoles() { return exists(cfgPath()) && ('roles' in get(cfgPath()).data) && get(cfgPath()).data.roles.size() > 0; }
+    function myRole() {
+      return !hasRoles() ? 'admin'
+        : get(cfgPath()).data.roles.get(request.auth.token.email.lower(), 'engineer');
+    }
+    function isAdmin() { return signedIn() && myRole() == 'admin'; }
+    function isStaff() { return signedIn() && (myRole() == 'admin' || myRole() == 'accountant'); }
+
+    // الإعدادات والقوائم: الكل يقرأ (يحتاجها نموذج الإدخال) — المدير فقط يعدّل
+    match /meta/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // المشاريع وبنودها: الكل يقرأ الأسماء والبنود — الإدارة والمحاسب فقط يعدّلون
+    // (ملاحظة: الميزانيات وقيمة العقد داخل المشروع، فمن يقرأ المشروع يراها)
+    match /projects/{id} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
+    // الحركات المالية المعتمدة: للمدير والمحاسب فقط (المهندس والمندوب لا يقرآن الحسابات)
+    match /batches/{id} {
+      allow read, write: if isStaff();
+    }
+
+    // صندوق المراجعة: أي مستخدم يُنشئ طلبًا باسمه ويرى طلباته فقط — المحاسب يرى الكل ويعتمد ويرفض
+    match /pending/{id} {
+      allow create: if signedIn() && request.resource.data.by == request.auth.token.email.lower();
+      allow read: if isStaff() || (signedIn() && resource.data.by == request.auth.token.email.lower());
+      allow update, delete: if isStaff();
+    }
+
+    match /{other=**} { allow read, write: if false; }
+  }
+}
