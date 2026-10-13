@@ -850,9 +850,11 @@ async function deleteProjectAndRelated(id){
         else jobs.push(db.collection('batches').doc(b.id).delete());
       }
     });
-    ['siteEntries','purchaseRequests','emailItems'].forEach(function(c){
-      jobs.push(db.collection(c).get().then(function(snap){snap.docs.forEach(function(d){if(d.data().project_id===id)jobs.push(db.collection(c).doc(d.id).delete());});}));
-    });
+    var opsNames=['siteEntries','purchaseRequests','emailItems'];
+    for(var oi=0;oi<opsNames.length;oi++){
+      var col=opsNames[oi],snap=await db.collection(col).get();
+      snap.docs.forEach(function(d){if(d.data().project_id===id)jobs.push(db.collection(col).doc(d.id).delete());});
+    }
     await Promise.all(jobs);
     await db.collection('projects').doc(id).delete();
     S.batches.forEach(function(b){b.rows=(b.rows||[]).filter(function(r){return r.project_id!==id;});});
