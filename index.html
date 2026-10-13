@@ -1016,6 +1016,8 @@ function openTxModal(view, meta, editRef){
   var currentCost=v('cost_item',meta.fixedCostItem||S.costItems[0]),costOptions=S.costItems.map(function(c){return '<option '+(currentCost===c?'selected':'')+'>'+esc(c)+'</option>';}).join('');
   html+='<div class="grid2"><div class="field"><label>تصنيف التكلفة</label><select id="t_costitem">'+costOptions+'</select></div><div class="field"><label>'+meta.partyLabel+'</label><input id="t_party" value="'+esc(v('party'))+'" placeholder="اسم المقاول أو العامل أو المورد"></div></div>';
   html+='<div class="field"><label>بند المقايسة</label><select id="t_boq"><option value="">— اختر بند المقايسة —</option></select><div id="t_boq_info" class="helptext">التكاليف الفعلية يجب ربطها ببند مقايسة، باستثناء التأمينات والضرائب والإكراميات وحركات العهد.</div></div>';
+  var payKind=v('payment_kind','cash'),payAccount=v('payment_account_id','internal-cash');
+  html+='<div class="grid2"><div class="field"><label>طريقة الصرف / التحصيل</label><select id="t_payment_kind"><option value="cash" '+(payKind==='cash'?'selected':'')+'>نقدي</option><option value="cheque" '+(payKind==='cheque'?'selected':'')+'>شيك</option><option value="transfer" '+(payKind==='transfer'?'selected':'')+'>تحويل بنكي</option></select></div><div class="field"><label>اسم البنك أو الخزينة الداخلية</label><select id="t_payment_account"><option value="">— اختر الحساب —</option>'+((S.cashAccounts||[]).map(function(a){return '<option value="'+esc(a.id)+'" '+(a.id===payAccount?'selected':'')+'>'+esc(a.name)+(a.kind==='cash'?' (خزينة)':' (بنك)')+'</option>';}).join(''))+'</select></div></div><p class="helptext">تُستخدم هذه البيانات لتحديد الحساب الذي زاد أو نقص. سجّل المبلغ المقبوض أو المدفوع فعليًا في حقلي نقدًا الآن / شيك الآن عند وجود تسوية.</p>';
   html+='<div class="field"><label>بيان إضافي / رقم فاتورة / رقم مستخلص</label><input id="t_desc" value="'+esc(v('desc'))+'"></div>';
   var qtyLabel=view==='labor'?'عدد الأيام / الوحدات':(view==='purchases'?'الكمية المشتراة':(view==='subcontractors'?'كمية الأعمال المنفذة':'الكمية'));
   var unitLabel=view==='labor'?'يوم':(view==='purchases'?'وحدة القياس':(view==='subcontractors'?'وحدة البند':'الوحدة'));
@@ -1031,7 +1033,7 @@ function openTxModal(view, meta, editRef){
     if(view==='custody'&&(type==='عهدة-استلام'||type==='عهدة-رد')&&!document.getElementById('t_custodian').value.trim()){toast('اسم صاحب العهدة مطلوب');return false;}
     if(!exempt&&['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'].indexOf(type)!==-1&&(!projectId||!boqId)){toast('يلزم اختيار المشروع وبند المقايسة لكل تكلفة فعلية. التأمينات والضرائب والإكراميات والعهد مستثناة.');return false;}
     var proj=S.projects.find(function(x){return x.id===projectId;}),boq=proj&&((proj.boq)||[]).find(function(x){return x.id===boqId;});
-    var updated=Object.assign({},old||{}, {date:document.getElementById('t_date').value,project_id:projectId,type:type,cost_item:exempt&&['تأمينات','ضرائب','إكراميات','عهدة-استلام','عهدة-رد'].indexOf(type)!==-1?type:costItem,custodian:view==='custody'?document.getElementById('t_custodian').value.trim():(old&&old.custodian||''),boq_id:exempt?null:boqId,boq_item:boq?boq.item:'',boq_unit_price:boq?Number(boq.unit_price)||0:0,boq_value:boq?(Number(boq.qty)||0)*(Number(boq.unit_price)||0):0,party:document.getElementById('t_party').value.trim(),desc:document.getElementById('t_desc').value.trim(),quantity:getVal('t_qty'),unit:document.getElementById('t_unit').value.trim(),unit_price:getVal('t_unit_price'),amount:amount,prior_paid:getVal('t_prior'),advances:getVal('t_advances'),insurance_amount:getVal('t_insurance'),tax_amount:getVal('t_tax'),direct_deductions:getVal('t_direct'),cheque_now:getVal('t_cheque'),cash_now:getVal('t_cash'),remaining:Number(document.getElementById('t_remaining')?document.getElementById('t_remaining').value:amount)||0});
+    var updated=Object.assign({},old||{}, {date:document.getElementById('t_date').value,project_id:projectId,type:type,cost_item:exempt&&['تأمينات','ضرائب','إكراميات','عهدة-استلام','عهدة-رد'].indexOf(type)!==-1?type:costItem,custodian:view==='custody'?document.getElementById('t_custodian').value.trim():(old&&old.custodian||''),boq_id:exempt?null:boqId,boq_item:boq?boq.item:'',boq_unit_price:boq?Number(boq.unit_price)||0:0,boq_value:boq?(Number(boq.qty)||0)*(Number(boq.unit_price)||0):0,party:document.getElementById('t_party').value.trim(),desc:document.getElementById('t_desc').value.trim(),payment_kind:document.getElementById('t_payment_kind').value,payment_account_id:document.getElementById('t_payment_account').value,quantity:getVal('t_qty'),unit:document.getElementById('t_unit').value.trim(),unit_price:getVal('t_unit_price'),amount:amount,prior_paid:getVal('t_prior'),advances:getVal('t_advances'),insurance_amount:getVal('t_insurance'),tax_amount:getVal('t_tax'),direct_deductions:getVal('t_direct'),cheque_now:getVal('t_cheque'),cash_now:getVal('t_cash'),remaining:Number(document.getElementById('t_remaining')?document.getElementById('t_remaining').value:amount)||0});
     if(isEdit){var b=S.batches.find(function(x){return x.id===editRef.batchId;}),before=Object.assign({},b.rows[editRef.idx]);delete updated.__batch;delete updated.__idx;b.rows[editRef.idx]=updated;var ok=await saveBatch(b);if(!ok){b.rows[editRef.idx]=before;return false;}}
     else if(!await addTxRow(updated))return false;
     toast(isEdit?'تم تصحيح الحركة وحفظها':'تم حفظ الحركة');try{renderGenericView(view);renderDashboard();renderReports();if(S.currentProjectId)renderProjectDetail(S.currentProjectId);}catch(e){}return true;
@@ -1111,6 +1113,39 @@ function renderReports(){
 }
 
 /* ================= SETTINGS ================= */
+function accountMovement(r){
+  if(!r.payment_account_id)return 0;
+  var type=String(r.type||''),amount=Number(r.amount)||0;
+  var paid=Number(r.cash_now||0)+Number(r.cheque_now||0);
+  if(type==='ايراد')return Number(r.amount_received!=null?r.amount_received:amount);
+  if(['عهدة-استلام','نثريات','عهدة-رد','مشتريات','مقاول باطن','عمالة','رواتب','سلفة','شيك','تأمينات','ضرائب','إكراميات'].indexOf(type)!==-1)
+    return -(paid>0?paid:amount);
+  return 0;
+}
+function accountBalance(a){
+  return (Number(a.opening_balance)||0)+allTx().filter(function(r){return r.payment_account_id===a.id;}).reduce(function(s,r){return s+accountMovement(r);},0);
+}
+function renderCashAccounts(){
+  var rows=S.cashAccounts||[],total=rows.reduce(function(s,a){return s+accountBalance(a);},0);
+  document.getElementById('cashAccountKpis').innerHTML=[kpi('عدد الحسابات',rows.length,''),kpi('إجمالي الأرصدة',fmtMoney(total),'good')].join('');
+  document.getElementById('cashAccountsTable').innerHTML='<thead><tr><th>اسم الخزينة / البنك</th><th>النوع</th><th class="num">الرصيد الافتتاحي</th><th class="num">الرصيد الحالي</th><th></th></tr></thead><tbody>'+
+    (rows.map(function(a){return '<tr><td>'+esc(a.name)+'</td><td>'+ (a.kind==='cash'?'خزينة داخلية':'بنك')+'</td><td class="num">'+fmtMoney(a.opening_balance)+'</td><td class="num"><b>'+fmtMoney(accountBalance(a))+'</b></td><td><button class="btn sm edit-account" data-id="'+esc(a.id)+'">تعديل</button></td></tr>';}).join('')||'<tr><td colspan="5">لا توجد حسابات بعد</td></tr>')+'</tbody>';
+  document.querySelectorAll('.edit-account').forEach(function(b){b.addEventListener('click',function(){openCashAccountModal(S.cashAccounts.find(function(a){return a.id===b.dataset.id;}));});});
+}
+function openCashAccountModal(existing){
+  var a=existing||{id:'account-'+uid(),name:'',kind:'bank',opening_balance:0};
+  var html='<div class="field"><label>اسم الحساب *</label><input id="ca_name" value="'+esc(a.name)+'" placeholder="الخزينة الداخلية أو اسم البنك"></div><div class="field"><label>نوع الحساب</label><select id="ca_kind"><option value="cash" '+(a.kind==='cash'?'selected':'')+'>خزينة داخلية</option><option value="bank" '+(a.kind!=='cash'?'selected':'')+'>بنك</option></select></div><div class="field"><label>الرصيد الافتتاحي (ج.م)</label><input id="ca_opening" type="number" step=".01" value="'+esc(a.opening_balance||0)+'"></div><p class="helptext">أدخل الرصيد في تاريخ بدء استخدام البرنامج. لا تكرر رصيدًا سبق تسجيله كحركة.</p>';
+  openModal(existing?'تعديل حساب':'إضافة خزينة / بنك',html,async function(){
+    var name=document.getElementById('ca_name').value.trim();if(!name){toast('اسم الحساب مطلوب');return false;}
+    var obj={id:a.id,name:name,kind:document.getElementById('ca_kind').value,opening_balance:Number(document.getElementById('ca_opening').value)||0};
+    var db=await waitForDb();if(!db){toast('لا يوجد اتصال بقاعدة البيانات');return false;}
+    try{await db.collection('cashAccounts').doc(obj.id).set(obj);}catch(e){toast('تعذر حفظ الحساب');return false;}
+    if(existing){var idx=S.cashAccounts.findIndex(function(x){return x.id===obj.id;});if(idx>=0)S.cashAccounts[idx]=obj;}else S.cashAccounts.push(obj);
+    renderCashAccounts();toast('تم حفظ الحساب');return true;
+  });
+}
+document.getElementById('addCashAccountBtn').addEventListener('click',function(){openCashAccountModal(null);});
+
 function renderSettings(){
   var el = document.getElementById('costItemsList');
   el.innerHTML = S.costItems.map(function(c,i){
