@@ -213,6 +213,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
       <button data-view="salaries"><span class="ic">🧾</span> الرواتب</button>
       <button data-view="purchases"><span class="ic">📦</span> المشتريات</button>
       <button data-view="revenues"><span class="ic">📈</span> الإيرادات</button>
+      <button data-view="cashAccounts"><span class="ic">🏦</span> الخزائن والبنوك</button>
       <div class="sep"></div>
       <button data-view="import"><span class="ic">⇪</span> استيراد إكسل</button>
       <button data-view="reports"><span class="ic">▤</span> التقارير</button>
@@ -304,6 +305,12 @@ table.data td.wrap{white-space:normal;min-width:160px}
         <div class="view-head"><div><h1></h1><p></p></div><button class="btn primary new-tx-btn">+ إيراد جديد</button></div>
         <div class="kpis gen-kpis"></div>
         <div class="tablewrap"><table class="data gen-table"></table></div>
+      </section>
+
+      <section class="view" id="view-cashAccounts" data-title="الخزائن والبنوك">
+        <div class="view-head"><div><h1>الخزائن والبنوك</h1><p>إدارة الرصيد الافتتاحي ومراجعة المقبوضات والمدفوعات لكل حساب.</p></div><button class="btn primary" id="addCashAccountBtn">+ إضافة خزينة / بنك</button></div>
+        <div class="kpis" id="cashAccountKpis"></div>
+        <div class="card"><div class="pad"><div class="tablewrap"><table class="data" id="cashAccountsTable"></table></div></div></div>
       </section>
 
       <!-- ========== THURSDAY PAYMENT ========== -->
@@ -414,6 +421,7 @@ var S = {
   db: null,
   projects: [],      // [{id,name,location,owner,contract_value,start_date,end_date,status,notes,boq:[...]}]
   costItems: ['أعمال الحفر والتكسير والتعديل','أعمال الخرسانة','أعمال البناء','أعمال العزل','أعمال البياض','أعمال الدهانات','دهانات استر','فنيل','بورسلين','جرانيت','أعمال الأرضيات سيراميك','أعمال تكسية الحوائط','أعمال الألوميتال','أعمال النجارة (باب وشباك)','كمر حديد','أعمال حديد الكريتال','الأعمال الصحية','الأعمال الكهربائية','أعمال التيار الخفيف','أعمال التكييف','أعمال الغازات الطبية','أعمال الإطفاء','تأمينات','ضرائب','إكراميات','مصاريف نقل','كراسة شروط','أخرى'],
+  cashAccounts: [], // خزائن وبنوك وأرصدة افتتاحية
   batches: [],        // [{id,label,rows:[...]}]
   currentProjectId: null,
   importState: null,
@@ -475,6 +483,8 @@ async function loadData(db, label){
     var projSnap = await db.collection('projects').get();
     S.projects = projSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; if(!v.boq) v.boq=[]; return v; });
   }catch(e){ console.error('projects', e); toast('⚠ تعذر تحميل المشاريع'); }
+  try{var accountSnap=await db.collection('cashAccounts').get();S.cashAccounts=accountSnap.docs.map(function(d){var v=d.data();v.id=d.id;return v;});}catch(e){console.error('cashAccounts',e);S.cashAccounts=[];}
+  if(!S.cashAccounts.length)S.cashAccounts=[{id:'internal-cash',name:'الخزينة الداخلية',kind:'cash',opening_balance:0}];
   try{
     var batchSnap = await db.collection('batches').get();
     S.batches = batchSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
@@ -571,7 +581,7 @@ async function saveBatch(b){
 async function saveOperations(){var db=await waitForDb();if(!db){toast('⚠ لا يوجد اتصال بقاعدة البيانات');return false;}try{var jobs=[];S.ops.siteEntries.forEach(function(x){jobs.push(db.collection('siteEntries').doc(x.id).set(x));});S.ops.purchaseRequests.forEach(function(x){jobs.push(db.collection('purchaseRequests').doc(x.id).set(x));});S.ops.emailItems.forEach(function(x){jobs.push(db.collection('emailItems').doc(x.id).set(x));});await Promise.all(jobs);return true;}catch(e){toast('⚠ تعذر حفظ بيانات التشغيل');return false;}}
 
 /* ---------------- nav ---------------- */
-var VIEWS = ['dashboard','projects','projectDetail','custody','weekly','operations','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
+var VIEWS = ['dashboard','projects','projectDetail','custody','weekly','operations','subcontractors','labor','salaries','purchases','revenues','cashAccounts','import','reports','settings'];
 function go(view){
   VIEWS.forEach(function(v){ document.getElementById('view-'+v).classList.toggle('active', v===view); });
   document.querySelectorAll('.nav button[data-view]').forEach(function(b){ b.classList.toggle('active', b.dataset.view===view); });
@@ -581,6 +591,7 @@ function go(view){
   if(view==='weekly') renderWeekly();
   if(view==='operations') renderOperations();
   if(view==='reports') renderReports();
+  if(view==='cashAccounts') renderCashAccounts();
   if(view==='settings') renderSettings();
   if(['custody','subcontractors','labor','salaries','purchases','revenues'].indexOf(view)!==-1) renderGenericView(view);
 }
