@@ -1,4 +1,11 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.boq-standard-table{width:100%;min-width:1000px;table-layout:auto;border-collapse:collapse;direction:rtl}.boq-standard-table th,.boq-standard-table td{padding:10px 12px;vertical-align:top;white-space:nowrap}.boq-standard-table th:nth-child(2),.boq-standard-table td:nth-child(2){white-space:normal;min-width:420px;max-width:720px;line-height:1.65}.boq-row-actions{margin-top:8px;display:flex;gap:6px;opacity:.9}.boq-standard-table .num{text-align:center;white-space:nowrap}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.boq-standard-table{width:100%;min-width:1000px;table-layout:auto;border-collapse:collapse;direction:rtl}.boq-standard-table th,.boq-standard-table td{padding:10px 12px;vertical-align:top;white-space:nowrap}.boq-standard-table th:nth-child(2),.boq-standard-table td:nth-child(2){white-space:normal;min-width:420px;max-width:720px;line-height:1.65}.boq-row-actions{margin-top:8px;display:flex;gap:6px;opacity:.9}.boq-standard-table .num{text-align:center;white-space:nowrap}/* Accounting dashboard readability */
+.kpi,.kpi-card,.stat-card{min-height:100px}
+.kpi .value,.kpi .num,.kpi-value,.stat-value{font-size:clamp(22px,2vw,30px)!important;font-weight:800!important;line-height:1.35!important}
+.kpi .label,.kpi-label,.stat-label{font-size:14px!important;font-weight:600}
+#cashAccountKpis .kpi{min-height:112px}
+#cashAccountsTable td.num,#cashAccountsTable th.num{font-size:16px;font-weight:650;white-space:nowrap}
+#cashAccountsTable td b{font-size:18px;font-weight:800}
+</style></head><body>
 <title>مقاول Pro | نظام إدارة وحسابات شركات المقاولات</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -484,7 +491,16 @@ async function loadData(db, label){
     S.projects = projSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; if(!v.boq) v.boq=[]; return v; });
   }catch(e){ console.error('projects', e); toast('⚠ تعذر تحميل المشاريع'); }
   try{var accountSnap=await db.collection('cashAccounts').get();S.cashAccounts=accountSnap.docs.map(function(d){var v=d.data();v.id=d.id;return v;});}catch(e){console.error('cashAccounts',e);S.cashAccounts=[];}
-  if(!S.cashAccounts.length)S.cashAccounts=[{id:'internal-cash',name:'الخزينة الداخلية',kind:'cash',opening_balance:0}];
+  var standardAccounts=[
+    {id:'internal-cash',name:'الخزينة الداخلية',kind:'cash',opening_balance:0},
+    {id:'bank-nbe',name:'البنك الأهلي المصري',kind:'bank',opening_balance:0},
+    {id:'bank-cib',name:'بنك CIB',kind:'bank',opening_balance:0},
+    {id:'bank-faisal',name:'بنك فيصل الإسلامي',kind:'bank',opening_balance:0},
+    {id:'bank-nbk',name:'بنك الكويت الوطني',kind:'bank',opening_balance:0}
+  ];
+  var accountChanged=false;
+  standardAccounts.forEach(function(a){if(!S.cashAccounts.some(function(x){return x.id===a.id||String(x.name||'').trim()===a.name;})){S.cashAccounts.push(a);accountChanged=true;}});
+  if(accountChanged){try{await Promise.all(S.cashAccounts.map(function(a){return db.collection('cashAccounts').doc(a.id).set(a,{merge:true});}));}catch(e){console.error('seed standard accounts',e);toast('تعذر حفظ بعض حسابات الخزينة والبنوك؛ راجع صلاحيات قاعدة البيانات.');}}
   try{
     var batchSnap = await db.collection('batches').get();
     S.batches = batchSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
@@ -1123,7 +1139,9 @@ function accountMovement(r){
   var paid=kind==='cheque'?(cheque>0?cheque:amount):kind==='transfer'?(transfer>0?transfer:amount):(cash>0?cash:amount);
   if(type==='ايراد'||type==='إيراد'||type==='إيرادات'){
     var received=Number(r.amount_received);
-    return received>0?received:amount;
+    if(kind==='cheque')return Math.abs(cheque>0?cheque:(received>0?received:amount));
+    if(kind==='transfer')return Math.abs(transfer>0?transfer:(received>0?received:amount));
+    return Math.abs(cash>0?cash:(received>0?received:amount));
   }
   if(type==='تحويل بين الحسابات')return 0; // تحويل الحسابات يجب أن يُسجل بقيد مزدوج مستقل
   if(['عهدة-استلام','نثريات','عهدة-رد','مشتريات','مقاول باطن','مقاول باطن','عمالة','رواتب','سلفة','شيك','تأمينات','ضرائب','إكراميات'].indexOf(type)!==-1)
