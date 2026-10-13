@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="ar"><head><meta charset=utf8><meta name="theme-color" content="#14253d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="مقاول Pro"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon.svg"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>مقاول Pro | نظام إدارة وحسابات شركات المقاولات</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -221,6 +221,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
       <button data-view="labor"><span class="ic">👷</span> العمالة اليومية</button>
       <button data-view="salaries"><span class="ic">🧾</span> الرواتب</button>
       <button data-view="purchases"><span class="ic">📦</span> المشتريات</button>
+      <button data-view="deductions"><span class="ic">🧮</span> الاستقطاعات والسلف</button>
       <button data-view="revenues"><span class="ic">📈</span> الإيرادات</button>
       <div class="sep"></div>
       <button data-view="inbox"><span class="ic">✉</span> صندوق المراجعة <span class="pill" id="inboxBadge" style="display:none;background:var(--accent);color:var(--accent-fg);margin-right:auto"></span></button>
@@ -325,6 +326,12 @@ table.data td.wrap{white-space:normal;min-width:160px}
         <div class="kpis gen-kpis"></div>
         <div class="tablewrap"><table class="data gen-table"></table></div>
       </section>
+      <section class="view" id="view-deductions" data-title="الاستقطاعات والسلف" data-desc="تأمينات وضرائب وإكراميات وسلف وشيكات — لا تُحتسب تكلفة على البنود، لكنها تخصم من الخزينة أو العهدة">
+        <div class="view-head"><div><h1></h1><p></p></div><button class="btn primary new-tx-btn">+ حركة جديدة</button></div>
+        <div class="kpis gen-kpis"></div>
+        <div class="chip-row type-filter"></div>
+        <div class="tablewrap"><table class="data gen-table"></table></div>
+      </section>
       <section class="view" id="view-revenues" data-txtype="ايراد" data-title="الإيرادات" data-desc="المستخلصات والدفعات المحصّلة من العميل لكل مشروع">
         <div class="view-head"><div><h1></h1><p></p></div><button class="btn primary new-tx-btn">+ إيراد جديد</button></div>
         <div class="kpis gen-kpis"></div>
@@ -349,6 +356,10 @@ table.data td.wrap{white-space:normal;min-width:160px}
         <div class="card" style="margin-bottom:16px"><div class="pad">
           <h3>التكاليف حسب المشروع (خلال الفترة)</h3>
           <div class="tablewrap"><table class="data" id="weeklyProjectsTable"></table></div>
+        </div></div>
+        <div class="card" style="margin-bottom:16px"><div class="pad">
+          <h3>تسوية العمالة والمقاولين والاستقطاعات (الفترة المختارة)</h3>
+          <div class="tablewrap"><table class="data" id="weeklyPartyTable"></table></div>
         </div></div>
         <div class="card" style="margin-bottom:16px"><div class="pad">
           <h3>مستحقات مقاولي الباطن المطلوب صرفها (إلى اليوم)</h3>
@@ -510,18 +521,27 @@ var S = {
 function allTx(){ var out=[]; S.batches.forEach(function(b){ (b.rows||[]).forEach(function(r,i){ r.__batch=b.id; r.__idx=i; out.push(r); }); }); return out; }
 var COST_TYPES = ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'];
 var PAY_METHODS = ['عهدة','نقدي','شيك','تحويل'];
+var OUT_EXTRA = ['تأمينات','ضرائب','إكراميات','سلفة','شيك'];
+var SETTLE_KEYS = ['prior_paid','advances','insurance_amount','tax_amount','direct_deductions','cheque_now','cash_now'];
+function isOutflow(r){ return COST_TYPES.indexOf(r.type)!==-1 || OUT_EXTRA.indexOf(r.type)!==-1; }
+function hasSettle(r){ return SETTLE_KEYS.some(function(k){return Number(r[k])>0;}) || r.remaining!=null; }
+function remainingOf(r){ if(r.remaining!=null && r.remaining!=='') return Number(r.remaining)||0; return (Number(r.amount)||0) - SETTLE_KEYS.reduce(function(s,k){return s+(Number(r[k])||0);},0); }
+function pickSettle(o){ var out={}, any=false; SETTLE_KEYS.forEach(function(k){ var v=Number(o[k])||0; if(v>0){ out[k]=v; any=true; } }); if(out.advances) out.deductions=out.advances; if(any || o.remaining!=null){ var t=Object.assign({amount:o.amount},out); out.remaining=remainingOf(Object.assign({},t,{remaining:null})); } return out; }
+
 function isCost(r){ return COST_TYPES.indexOf(r.type)!==-1; }
 function fromCustody(r){ return r.type==='نثريات' || r.pay_method==='عهدة'; }   // مصروف خرج من العهدة
 function rootOf(path){ return (path||'').split(' › ')[0]; }
-function cleanRow(r){ var o={}; Object.keys(r).forEach(function(k){ if(k.indexOf('__')!==0) o[k]=r[k]; }); return o; }
+function cleanRow(r){ var o={}; Object.keys(r).forEach(function(k){ if(k.indexOf('__')!==0 && r[k]!==undefined) o[k]=r[k]; }); return o; }
 function sumAmt(rows){ return rows.reduce(function(s,r){return s+(Number(r.amount)||0);},0); }
 function custodyStats(tx){
   var inTx = tx.filter(function(r){return r.type==='عهدة-استلام';});
-  var outTx = tx.filter(function(r){return isCost(r) && fromCustody(r);});
+  var outTx = tx.filter(function(r){return isOutflow(r) && fromCustody(r);});
+  var retTx = tx.filter(function(r){return r.type==='عهدة-رد';});
   var by = {};
   inTx.forEach(function(r){ var k=r.custodian||'غير محدد'; by[k]=by[k]||{in:0,out:0}; by[k].in+=Number(r.amount)||0; });
   outTx.forEach(function(r){ var k=r.custodian||'غير محدد'; by[k]=by[k]||{in:0,out:0}; by[k].out+=Number(r.amount)||0; });
-  return {inA:sumAmt(inTx), outA:sumAmt(outTx), by:by};
+  retTx.forEach(function(r){ var k=r.custodian||'غير محدد'; by[k]=by[k]||{in:0,out:0}; by[k].out+=Number(r.amount)||0; });
+  return {inA:sumAmt(inTx), outA:sumAmt(outTx)+sumAmt(retTx), by:by};
 }
 function toISODate(d){ if(!(d instanceof Date) || isNaN(d)) return ''; var t=new Date(d.getTime()+43200000); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
 function fmtMoney(n){ n = Number(n)||0; return n.toLocaleString('ar-EG',{maximumFractionDigits:0}) + ' ج.م'; }
@@ -715,13 +735,13 @@ async function saveBatch(b){
 function acctKind(pay){ return pay==='شيك' ? 'cheque' : (pay==='تحويل' ? 'transfer' : 'cash'); }
 function defaultAccount(row){
   var accs = S.accounts||[]; if(!accs.length) return '';
-  var wantCash = (row.type==='عهدة-استلام') || (row.type!=='ايراد' && (row.pay_method==='نقدي' || !row.pay_method));
+  var wantCash = (row.type==='عهدة-استلام' || row.type==='عهدة-رد') || (row.type!=='ايراد' && (row.pay_method==='نقدي' || !row.pay_method));
   var hit = accs.find(function(a){ return a.kind===(wantCash?'cash':'bank'); });
   return (hit||accs[0]).id;
 }
 function needsAccount(row){
-  if(row.type==='ايراد' || row.type==='عهدة-استلام') return true;
-  return isCost(row) && !!row.pay_method && row.pay_method!=='عهدة';
+  if(row.type==='ايراد' || row.type==='عهدة-استلام' || row.type==='عهدة-رد') return true;
+  return isOutflow(row) && !!row.pay_method && row.pay_method!=='عهدة';
 }
 function autoAccount(row){
   if(row.payment_account_id || !needsAccount(row)) return row;
@@ -738,8 +758,9 @@ function accountMovement(r, accId){
   var cash = Number(r.cash_now)||0, cheque = Number(r.cheque_now)||0, transfer = Number(r.transfer_now)||0;
   var paid = kind==='cheque' ? (cheque>0?cheque:amount) : kind==='transfer' ? (transfer>0?transfer:amount) : (cash>0?cash:amount);
   if(r.type==='ايراد' || r.type==='إيراد' || r.type==='إيرادات'){ var rc = Number(r.amount_received); return Math.abs(kind==='cheque'?(cheque>0?cheque:(rc>0?rc:amount)):kind==='transfer'?(transfer>0?transfer:(rc>0?rc:amount)):(cash>0?cash:(rc>0?rc:amount))); }
+  if(r.type==='عهدة-رد') return Math.abs(amount);
   if(r.pay_method==='عهدة') return 0;
-  if(['عهدة-استلام','نثريات','عهدة-رد','مشتريات','مقاول باطن','عمالة','رواتب','سلفة','شيك','تأمينات','ضرائب','إكراميات'].indexOf(r.type)!==-1) return -Math.abs(paid);
+  if(['عهدة-استلام','نثريات','مشتريات','مقاول باطن','عمالة','رواتب','سلفة','شيك','تأمينات','ضرائب','إكراميات'].indexOf(r.type)!==-1) return -Math.abs(paid);
   return 0;
 }
 function accountBalance(a){
@@ -798,7 +819,7 @@ function openTransferModal(){
 document.addEventListener('click', function(e){ var t=e.target; if(t && t.id==='addAccountBtn') openAccountModal(null); if(t && t.id==='transferBtn') openTransferModal(); });
 
 /* ---------------- nav ---------------- */
-var VIEWS = ['dashboard','projects','projectDetail','inbox','quick','custody','accounts','weekly','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
+var VIEWS = ['dashboard','projects','projectDetail','inbox','quick','custody','accounts','deductions','weekly','subcontractors','labor','salaries','purchases','revenues','import','reports','settings'];
 function go(view){
   if(isFieldRole() && view!=='quick') view='quick';
   VIEWS.forEach(function(v){ document.getElementById('view-'+v).classList.toggle('active', v===view); });
@@ -812,7 +833,7 @@ function go(view){
   if(view==='quick') renderQuick();
   if(view==='reports') renderReports();
   if(view==='settings') renderSettings();
-  if(['custody','subcontractors','labor','salaries','purchases','revenues'].indexOf(view)!==-1) renderGenericView(view);
+  if(['custody','subcontractors','labor','salaries','purchases','revenues','deductions'].indexOf(view)!==-1) renderGenericView(view);
 }
 document.querySelectorAll('.nav button[data-view]').forEach(function(b){ b.addEventListener('click', function(){ go(b.dataset.view); }); });
 document.getElementById('burgerBtn').addEventListener('click', function(){ document.getElementById('navEl').classList.toggle('open'); });
@@ -900,6 +921,14 @@ function renderWeekly(){
   // subcontractor dues (all time): accruals - payments
   var sd = {}; all.forEach(function(r){ if(r.type==='مستحق مقاول'||r.type==='مقاول باطن'){ var k=(r.party||'غير محدد').trim(); sd[k]=sd[k]||{due:0,paid:0}; if(r.type==='مستحق مقاول') sd[k].due+=Number(r.amount)||0; else sd[k].paid+=Number(r.amount)||0; } });
   var dk = Object.keys(sd).filter(function(k){return sd[k].due-sd[k].paid>0;}).sort(function(a,b){return (sd[b].due-sd[b].paid)-(sd[a].due-sd[a].paid);});
+  var pg2 = {};
+  tx.filter(function(r){ return isOutflow(r) && r.type!=='مشتريات' && r.type!=='نثريات' && r.type!=='رواتب'; }).forEach(function(r){
+    var key=[r.project_id||'',r.type,(r.party||'بدون اسم')].join('\u001f'); var g=pg2[key]=pg2[key]||{pid:r.project_id||'',type:r.type,party:r.party||'بدون اسم',gross:0,prior:0,adv:0,ins:0,tax:0,dir:0,chq:0,cash:0,rem:0,set:false};
+    g.gross+=Number(r.amount)||0; g.prior+=Number(r.prior_paid)||0; g.adv+=Number(r.advances)||0; g.ins+=Number(r.insurance_amount)||0; g.tax+=Number(r.tax_amount)||0; g.dir+=Number(r.direct_deductions)||0; g.chq+=Number(r.cheque_now)||0; g.cash+=Number(r.cash_now)||0; if(hasSettle(r)){ g.set=true; g.rem+=remainingOf(r); }
+  });
+  var pgr = Object.keys(pg2).map(function(k){return pg2[k];}).sort(function(a,b){return (projName(a.pid)+a.type+a.party).localeCompare(projName(b.pid)+b.type+b.party,'ar');});
+  document.getElementById('weeklyPartyTable').innerHTML = pgr.length ? '<thead><tr><th>المشروع</th><th>النوع</th><th>الطرف</th><th class="num">المبلغ</th><th class="num">سبق صرفه</th><th class="num">سلف/خصومات</th><th class="num">تأمينات</th><th class="num">ضرائب</th><th class="num">استقطاعات</th><th class="num">شيك</th><th class="num">نقد</th><th class="num">المتبقي</th></tr></thead><tbody>'+
+    pgr.map(function(g){ return '<tr><td class="wrap">'+esc(projName(g.pid))+'</td><td>'+esc(g.type)+'</td><td class="wrap">'+esc(g.party)+'</td><td class="num">'+fmtMoney(g.gross)+'</td><td class="num">'+fmtMoney(g.prior)+'</td><td class="num">'+fmtMoney(g.adv)+'</td><td class="num">'+fmtMoney(g.ins)+'</td><td class="num">'+fmtMoney(g.tax)+'</td><td class="num">'+fmtMoney(g.dir)+'</td><td class="num">'+fmtMoney(g.chq)+'</td><td class="num">'+fmtMoney(g.cash)+'</td><td class="num">'+(g.set?'<b>'+fmtMoney(g.rem)+'</b>':'—')+'</td></tr>'; }).join('')+'</tbody>' : '<tbody><tr><td><div class="empty">لا حركات في الفترة</div></td></tr></tbody>';
   document.getElementById('weeklyDueTable').innerHTML = '<thead><tr><th>المقاول</th><th class="num">المستخلصات</th><th class="num">المدفوع</th><th class="num">المطلوب صرفه</th></tr></thead><tbody>'+
     (dk.length? dk.map(function(k){return '<tr><td><b>'+esc(k)+'</b></td><td class="num">'+fmtMoney(sd[k].due)+'</td><td class="num">'+fmtMoney(sd[k].paid)+'</td><td class="num diff-neg">'+fmtMoney(sd[k].due-sd[k].paid)+'</td></tr>';}).join('')+'<tr><td><b>الإجمالي</b></td><td></td><td></td><td class="num"><b>'+fmtMoney(dk.reduce(function(s,k){return s+sd[k].due-sd[k].paid;},0))+'</b></td></tr>' : '<tr><td colspan="4"><div class="empty">لا توجد مستحقات متبقية — سجّل المستخلصات من شاشة مقاولي الباطن</div></td></tr>')+'</tbody>';
   document.getElementById('weeklyUnassignedTable').innerHTML = unassigned.length ?
@@ -1171,21 +1200,22 @@ document.getElementById('tplHospitalBtn').addEventListener('click', async functi
 
 /* ================= GENERIC TRANSACTION VIEWS ================= */
 var VIEW_META = {
-  custody: {types:['عهدة-استلام','نثريات'], partyLabel:'البيان', needsCostItem:true, needsWorkItem:true, needsPay:true, defaultType:'نثريات', showCustodyOut:true, typeChoices:[['نثريات','صرف نثريات / مصروفات'],['عهدة-استلام','استلام عهدة']]},
+  custody: {types:['عهدة-استلام','عهدة-رد','نثريات'], partyLabel:'البيان', needsCostItem:true, needsWorkItem:true, needsPay:true, defaultType:'نثريات', showCustodyOut:true, typeChoices:[['نثريات','صرف نثريات / مصروفات'],['عهدة-استلام','استلام عهدة'],['عهدة-رد','رد عهدة للخزينة']]},
   subcontractors: {types:['مقاول باطن','مستحق مقاول'], partyLabel:'اسم المقاول', needsCostItem:true, needsWorkItem:true, needsPay:true, defaultType:'مقاول باطن', fixedCostItem:'مقاولين باطن', typeChoices:[['مقاول باطن','دفعة مدفوعة للمقاول'],['مستحق مقاول','مستخلص / مستحق للمقاول (لا يُحسب تكلفة)']]},
   labor: {types:['عمالة'], partyLabel:'اسم العامل / الموقع', needsCostItem:true, needsWorkItem:true, needsPay:true, defaultType:'عمالة', fixedCostItem:'عمالة يومية'},
   salaries: {types:['رواتب'], partyLabel:'الشهر / الموظف', needsCostItem:true, needsWorkItem:true, needsPay:true, defaultType:'رواتب', fixedCostItem:'رواتب'},
   purchases: {types:['مشتريات'], partyLabel:'الصنف / المورد', needsCostItem:true, needsWorkItem:true, needsPay:true, defaultType:'مشتريات', fixedCostItem:'مشتريات'},
+  deductions: {types:OUT_EXTRA, partyLabel:'الجهة / الطرف', needsCostItem:false, needsWorkItem:false, needsPay:true, defaultType:'تأمينات', typeChoices:[['تأمينات','تأمينات'],['ضرائب','ضرائب'],['إكراميات','إكراميات'],['سلفة','سلفة (عامل / مقاول)'],['شيك','شيك']]},
   revenues: {types:['ايراد'], partyLabel:'مصدر الإيراد (مستخلص رقم...)', needsCostItem:false, needsWorkItem:false, needsPay:false, defaultType:'ايراد'}
 };
-var DEFAULT_PAY = {'نثريات':'عهدة','مشتريات':'نقدي','عمالة':'نقدي','مقاول باطن':'شيك','رواتب':'تحويل'};
+var DEFAULT_PAY = {'تأمينات':'نقدي','ضرائب':'نقدي','إكراميات':'نقدي','سلفة':'نقدي','شيك':'شيك','عهدة-رد':'نقدي','نثريات':'عهدة','مشتريات':'نقدي','عمالة':'نقدي','مقاول باطن':'شيك','رواتب':'تحويل'};
 var VIEW_FILTERS = {};
-var DEFAULT_COST_ITEM = {'نثريات':'عهدة نثرية','مقاول باطن':'مقاولين باطن','مستحق مقاول':'مقاولين باطن','عمالة':'عمالة يومية','رواتب':'رواتب','مشتريات':'مشتريات'};
+var DEFAULT_COST_ITEM = {'تأمينات':'تأمينات','ضرائب':'ضرائب','إكراميات':'إكراميات','سلفة':'سلف','شيك':'شيكات','نثريات':'عهدة نثرية','مقاول باطن':'مقاولين باطن','مستحق مقاول':'مقاولين باطن','عمالة':'عمالة يومية','رواتب':'رواتب','مشتريات':'مشتريات'};
 function viewRows(view){
   var meta = VIEW_META[view];
   return allTx().filter(function(r){
     if(meta.types.indexOf(r.type)!==-1) return true;
-    return !!meta.showCustodyOut && isCost(r) && fromCustody(r);     // كشف العهدة يشمل كل ما خرج من العهدة
+    return !!meta.showCustodyOut && isOutflow(r) && fromCustody(r);     // كشف العهدة يشمل كل ما خرج من العهدة
   });
 }
 function applyFilters(view, rows){
@@ -1225,7 +1255,7 @@ function refreshProjectFilter(view){
   sel.innerHTML = '<option value="">كل المشاريع</option><option value="__none__">— بلا مشروع —</option>'+S.projects.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>';}).join('');
   sel.value = cur;
 }
-function txToSheetRow(r){ return {'التاريخ':r.date||'','المشروع':projName(r.project_id),'النوع':r.type||'','بند الأعمال':r.work_item||'','نوع التكلفة':r.cost_item||'','الطرف':r.party||'','طريقة الدفع':r.pay_method||'','أمين العهدة':r.custodian||'','البيان':r.desc||'','المبلغ':Number(r.amount)||0,'المصدر':r.source||''}; }
+function txToSheetRow(r){ return {'التاريخ':r.date||'','المشروع':projName(r.project_id),'النوع':r.type||'','بند الأعمال':r.work_item||'','نوع التكلفة':r.cost_item||'','الطرف':r.party||'','طريقة الدفع':r.pay_method||'','أمين العهدة':r.custodian||'','البيان':r.desc||'','المبلغ':Number(r.amount)||0,'سبق صرفه':Number(r.prior_paid)||'','سلف/خصومات':Number(r.advances)||'','تأمينات':Number(r.insurance_amount)||'','ضرائب':Number(r.tax_amount)||'','استقطاعات مباشرة':Number(r.direct_deductions)||'','شيك الآن':Number(r.cheque_now)||'','نقدًا الآن':Number(r.cash_now)||'','المتبقي':hasSettle(r)?remainingOf(r):'','المصدر':r.source||''}; }
 function downloadSheet(rows, name){
   if(!window.XLSX || !XLSX.utils || !XLSX.utils.json_to_sheet){ toast('مكتبة إكسل غير محمّلة — تحقق من الاتصال'); return; }
   var ws = XLSX.utils.json_to_sheet(rows); ws['!cols'] = Object.keys(rows[0]||{}).map(function(){return {wch:20};});
@@ -1287,8 +1317,9 @@ function renderGenericView(view, keepFilters){
   rows.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var table = sec.querySelector('.gen-table');
   var isCustodyView = view==='custody', multi = meta.types.length>1 || meta.showCustodyOut;
-  var cols = 4 + (multi?1:0) + (meta.needsWorkItem?1:0) + (meta.needsCostItem?1:0) + (meta.needsPay?1:0);
-  var header = '<thead><tr><th>التاريخ</th><th>المشروع</th>'+(multi?'<th>النوع</th>':'')+(meta.needsWorkItem?'<th>بند الأعمال</th>':'')+(meta.needsCostItem?'<th>نوع التكلفة</th>':'')+'<th>'+meta.partyLabel+'</th>'+(meta.needsPay?'<th>الدفع</th>':'')+'<th class="num">المبلغ</th><th></th></tr></thead>';
+  var cols = 4 + (rows.some(hasSettle)?8:0) + (multi?1:0) + (meta.needsWorkItem?1:0) + (meta.needsCostItem?1:0) + (meta.needsPay?1:0);
+  var showSet = rows.some(hasSettle);
+  var header = '<thead><tr><th>التاريخ</th><th>المشروع</th>'+(multi?'<th>النوع</th>':'')+(meta.needsWorkItem?'<th>بند الأعمال</th>':'')+(meta.needsCostItem?'<th>نوع التكلفة</th>':'')+'<th>'+meta.partyLabel+'</th>'+(meta.needsPay?'<th>الدفع</th>':'')+'<th class="num">المبلغ</th>'+(showSet?'<th class="num">سبق صرفه</th><th class="num">سلف/خصومات</th><th class="num">تأمينات</th><th class="num">ضرائب</th><th class="num">استقطاعات</th><th class="num">شيك</th><th class="num">نقد</th><th class="num">المتبقي</th>':'')+'<th></th></tr></thead>';
   var body = rows.length ? rows.map(function(r){
     return '<tr>'+
       '<td>'+fmtDate(r.date)+'</td>'+
@@ -1299,6 +1330,7 @@ function renderGenericView(view, keepFilters){
       '<td class="wrap">'+esc(r.party||'')+(r.custodian?' <span class="helptext">(عهدة '+esc(r.custodian)+')</span>':'')+(r.desc?' <span class="helptext">— '+esc(r.desc)+'</span>':'')+'</td>'+
       (meta.needsPay? '<td>'+esc(r.pay_method||'—')+'</td>' : '')+
       '<td class="num">'+fmtMoney(r.amount)+'</td>'+
+      (showSet? (hasSettle(r)? ['prior_paid','advances','insurance_amount','tax_amount','direct_deductions','cheque_now','cash_now'].map(function(k){return '<td class="num">'+(Number(r[k])? fmtMoney(r[k]):'—')+'</td>';}).join('')+'<td class="num"><b>'+fmtMoney(remainingOf(r))+'</b></td>' : '<td colspan="8"></td>') : '')+
       '<td style="white-space:nowrap"><button class="btn sm ghost edtx" data-batch="'+r.__batch+'" data-row="'+r.__idx+'">تعديل</button> <button class="btn sm ghost danger rmtx" data-batch="'+r.__batch+'" data-row="'+r.__idx+'">حذف</button></td>'+
     '</tr>';
   }).join('') : '<tr><td colspan="'+(cols+1)+'"><div class="empty">لا توجد حركات'+(all.length?' مطابقة للبحث':' بعد')+'<br><span class="helptext">أضف حركة يدويًا أو استورد ملف إكسل</span></div></td></tr>';
@@ -1357,6 +1389,13 @@ function openTxModal(view, meta, existing){
     html += '<div class="grid2" id="t_pay_wrap"><div class="field"><label>طريقة الدفع</label><select id="t_pay">'+PAY_METHODS.map(function(m){return '<option>'+m+'</option>';}).join('')+'</select></div>'+
       '<div class="field" id="t_cust_wrap"><label>أمين العهدة</label><select id="t_cust"></select></div></div>';
   } else if(view==='custody'){ }
+  var settleView = ['subcontractors','labor','salaries','purchases'].indexOf(view)!==-1;
+  if(settleView){
+    var sv = function(k){ return esc(ex && ex[k]!=null ? ex[k] : ''); };
+    html += '<details id="t_settle_box"'+(ex && hasSettle(ex)?' open':'')+' style="margin:10px 0"><summary style="cursor:pointer;font-weight:700">تسوية المستخلص والاستقطاعات (اختياري)</summary><p class="helptext">المتبقي = المبلغ − سبق صرفه − السلف − التأمينات − الضرائب − الاستقطاعات − الشيك − النقد</p><div class="grid3" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
+      [['t_prior','سبق صرفه','prior_paid'],['t_adv','سلف / خصومات أخرى','advances'],['t_ins','التأمينات المحجوزة','insurance_amount'],['t_tax','الضرائب','tax_amount'],['t_direct','استقطاعات مباشرة','direct_deductions'],['t_cheque','شيك الآن','cheque_now'],['t_cash','نقدًا الآن','cash_now']].map(function(f){ return '<div class="field"><label>'+f[1]+'</label><input id="'+f[0]+'" type="number" min="0" step=".01" value="'+sv(f[2])+'"></div>'; }).join('')+
+      '<div class="field"><label>المتبقي بعد التسوية</label><input id="t_remaining" readonly></div></div></details>';
+  }
   if(meta.needsPay || view==='revenues'){ html += '<div class="field" id="t_acct_wrap"><label>الخزينة / البنك</label><select id="t_acct"></select></div>'; }
   html += '<div class="field"><label>بيان إضافي (اختياري)</label><input id="t_desc" value="'+esc(ex? ex.desc||'' : '')+'"></div>';
   html += '<div class="field"><label>المبلغ</label><input id="t_amount" type="number" inputmode="decimal" value="'+(ex? ex.amount : '')+'"></div>';
@@ -1365,12 +1404,13 @@ function openTxModal(view, meta, existing){
     if(!(amount>0)){ toast('المبلغ مطلوب'); return false; }
     var typeSel = document.getElementById('t_type');
     var type = typeSel ? typeSel.value : defType;
-    var isIn = type==='عهدة-استلام', isAccrual = type==='مستحق مقاول';
+    var isIn = type==='عهدة-استلام' || type==='عهدة-رد', isAccrual = type==='مستحق مقاول';
     var wiRaw = (meta.needsWorkItem && !isIn) ? document.getElementById('t_workitem').value : '';
     if(meta.needsWorkItem && !isIn && !wiRaw){ toast('اختر بند الأعمال'); return false; }
     var projectId = document.getElementById('t_project').value || null;
     if(isCost({type:type}) || isAccrual){ if(!projectId && view!=='salaries' && !confirm('لم تختر مشروعًا — ستظهر الحركة في "حركات بلا مشروع". متابعة؟')) return false; }
     var wi = resolveWorkItem(projectId, wiRaw);
+    var isExtra = OUT_EXTRA.indexOf(type)!==-1;
     var ciSel = document.getElementById('t_costitem');
     var costItem = (meta.needsCostItem && !isIn && ciSel) ? ciSel.value : (meta.fixedCostItem||'');
     var payEl = document.getElementById('t_pay'), custEl = document.getElementById('t_cust');
@@ -1378,6 +1418,7 @@ function openTxModal(view, meta, existing){
     var custodian = (isIn || pay==='عهدة') && custEl ? custEl.value : '';
     var acctEl = document.getElementById('t_acct'), acctShown = acctEl && acctEl.parentNode.style.display!=='none' && (S.accounts||[]).length>0;
     if(acctShown && !acctEl.value){ toast('اختر الخزينة أو البنك'); return false; }
+    if(isExtra) costItem = type;
     var row = {
       date: document.getElementById('t_date').value, project_id: projectId, type: type,
       item_id: wi.item_id, work_item: wi.work_item, cost_item: isIn ? '' : costItem,
@@ -1385,6 +1426,11 @@ function openTxModal(view, meta, existing){
       desc: document.getElementById('t_desc').value.trim(), amount: amount
     };
     if(!row.date){ toast('التاريخ مطلوب'); return false; }
+    var settleKeys = {prior_paid:'t_prior',advances:'t_adv',insurance_amount:'t_ins',tax_amount:'t_tax',direct_deductions:'t_direct',cheque_now:'t_cheque',cash_now:'t_cash'}, settleOn = false;
+    if(document.getElementById('t_settle_box')){
+      Object.keys(settleKeys).forEach(function(k){ var v = Number(document.getElementById(settleKeys[k]).value)||0; if(v>0){ row[k]=v; settleOn=true; } });
+      if(settleOn){ if(row.advances) row.deductions=row.advances; row.remaining = remainingOf(Object.assign({}, row, {remaining:null})); }
+    }
     if(acctShown){ row.payment_account_id = acctEl.value; var acc0=S.accounts.find(function(a){return a.id===acctEl.value;}); row.payment_kind = pay ? acctKind(pay) : (acc0 && acc0.kind==='bank' ? 'transfer' : 'cash'); } else { row.payment_account_id=''; row.payment_kind=''; }
     var dup = findDuplicate(row, ex);
     if(dup && !confirm('توجد حركة مطابقة تمامًا (نفس التاريخ والطرف والمبلغ والمشروع). هل تريد إضافتها مرة أخرى؟')) return false;
@@ -1392,7 +1438,8 @@ function openTxModal(view, meta, existing){
     if(existing){
       var b = existing.batch, prev = b.rows[existing.idx];
       row.by = prev.by||''; row.created_at = prev.created_at||''; row.updated_by = S.userEmail||''; row.updated_at = new Date().toISOString(); if(prev.source) row.source = prev.source;
-      b.rows[existing.idx] = Object.assign({}, prev, row); ok = await saveBatch(b); if(!ok) b.rows[existing.idx] = prev;
+      var merged = Object.assign({}, prev, row); if(document.getElementById('t_settle_box') && !settleOn){ SETTLE_KEYS.concat(['deductions','remaining']).forEach(function(k){ delete merged[k]; }); }
+      b.rows[existing.idx] = merged; ok = await saveBatch(b); if(!ok) b.rows[existing.idx] = prev;
     } else { ok = await addTxRow(row); }
     if(!ok) return false;
     toast(existing?'تم تعديل الحركة':'تم الحفظ');
@@ -1446,7 +1493,7 @@ function openTxModal(view, meta, existing){
     fillCust(name);
   });
   function sync(typeChanged){
-    var t = typeSel ? typeSel.value : defType, isIn = t==='عهدة-استلام', isAcc = t==='مستحق مقاول';
+    var t = typeSel ? typeSel.value : defType, isIn = t==='عهدة-استلام' || t==='عهدة-رد', isAcc = t==='مستحق مقاول';
     ['t_wi_wrap','t_ci_wrap'].forEach(function(id){ var w=document.getElementById(id); if(w) w.style.display = isIn ? 'none' : ''; });
     var pw = document.getElementById('t_pay_wrap');
     if(pw){ pw.style.display = isAcc ? 'none' : ''; document.getElementById('t_pay').parentNode.style.display = isIn ? 'none' : ''; }
@@ -1458,6 +1505,11 @@ function openTxModal(view, meta, existing){
   if(typeSel) typeSel.addEventListener('change', function(){ sync(true); });
   if(payEl) payEl.addEventListener('change', function(){ sync(false); });
   sync();
+  (function(){ var box = document.getElementById('t_settle_box'); if(!box) return;
+    var ids = ['t_prior','t_adv','t_ins','t_tax','t_direct','t_cheque','t_cash','t_amount'];
+    function calc(){ var a = Number(document.getElementById('t_amount').value)||0, d = ['t_prior','t_adv','t_ins','t_tax','t_direct','t_cheque','t_cash'].reduce(function(s,i){return s+(Number(document.getElementById(i).value)||0);},0); document.getElementById('t_remaining').value = (a-d).toFixed(2); }
+    ids.forEach(function(i){ document.getElementById(i).addEventListener('input', calc); }); calc();
+  })();
 }
 
 /* ================= MODAL HELPER ================= */
@@ -1575,6 +1627,7 @@ function initSheetCard(){
         var o = built[i];
         var doc = {id:'pend-'+uid(), created_at:new Date().toISOString(), date:o.date, project_id: matchProjectId(o.project)||null, project:o.project, type:o.type, item_id:'', work_item:o.work_item,
           party:o.party, desc:o.desc, pay_method:o.pay_method||'', custodian:o.custodian||'', amount:o.amount, source:'كشف: '+period+' — '+(S.userEmail||''), by:S.userEmail||'', sheet_id:sid, sheet_name:period};
+        Object.assign(doc, pickSettle(o));
         await db.collection('pending').doc(doc.id).set(doc); S.pending.push(doc); n++;
       }
       toast('✔ أُرسل الكشف ('+n+' حركة) للمحاسب'); renderQuick(); updateInboxBadge();
@@ -1655,8 +1708,8 @@ async function confirmPending(trs){
     if(pay==='عهدة' && !cust){ toast('اكتب أمين العهدة للمصروف من العهدة'); continue; }
     if(!tr.querySelector('.ibdate').value){ toast('التاريخ مطلوب'); continue; }
     if(cust && S.custodians.indexOf(cust)===-1 && (isIn || pay==='عهدة')){ S.custodians.push(cust); saveConfig(); }
-    var ok = await addTxRow({date: tr.querySelector('.ibdate').value, project_id: pid, type:type, item_id:wi.item_id, work_item:wi.work_item,
-      cost_item: DEFAULT_COST_ITEM[type]||'', pay_method: pay, custodian: (isIn||pay==='عهدة')? cust : '', party: tr.querySelector('.ibparty').value.trim(), desc: orig.desc||'', amount:amount, source: orig.source||'', requested_by: orig.by||'', sheet_name: orig.sheet_name||''});
+    var ok = await addTxRow(Object.assign({date: tr.querySelector('.ibdate').value, project_id: pid, type:type, item_id:wi.item_id, work_item:wi.work_item,
+      cost_item: DEFAULT_COST_ITEM[type]||'', pay_method: pay, custodian: (isIn||pay==='عهدة')? cust : '', party: tr.querySelector('.ibparty').value.trim(), desc: orig.desc||'', amount:amount, source: orig.source||'', requested_by: orig.by||'', sheet_name: orig.sheet_name||''}, pickSettle(orig)));
     if(!ok) break;
     try{ var db = await waitForDb(); await db.collection('pending').doc(id).delete(); }catch(e){}
     S.pending = S.pending.filter(function(x){return x.id!==id;}); done++;
@@ -1823,19 +1876,29 @@ var FIELD_DEFS = [
   {key:'custodian', label:'أمين العهدة', guess:['أمين العهدة']},
   {key:'party', label:'اسم الطرف (مقاول/عامل/بيان)', guess:['بيان','اسم','المقاول','اسم العامل']},
   {key:'desc', label:'بيان إضافي', guess:['ملاحظات','بيان الاعمال']},
+  {key:'prior_paid', label:'سبق صرفه', guess:['سبق صرفه','سبق صرف','سابق']},
+  {key:'advances', label:'سلف / خصومات', guess:['سلف','خصومات']},
+  {key:'insurance_amount', label:'التأمينات المحجوزة', guess:['تأمينات','تامينات']},
+  {key:'tax_amount', label:'الضرائب', guess:['ضرائب','ضريبة']},
+  {key:'direct_deductions', label:'استقطاعات مباشرة', guess:['استقطاع']},
+  {key:'cheque_now', label:'شيك الآن', guess:['شيك الآن','شيك الان']},
+  {key:'cash_now', label:'نقدًا الآن', guess:['نقدا الآن','نقداً الآن']},
   {key:'amount', label:'المبلغ', guess:['المنصرف','اجمالي','اجمالى','مستحق','اجمالي الحساب','العهدة']}
 ];
 var TEMPLATES = {
   'عهدة مستلمة': {type:'عهدة-استلام', cols:['التاريخ','أمين العهدة','المبلغ','ملاحظات'], ex:['2026-10-07','م/ محمد عصام',50000,'استلام من الصراف']},
   'نثريات': {type:'نثريات', cols:['التاريخ','المشروع','بند الأعمال','الطرف / البيان','المبلغ','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','دهانات','ضيافة عمال',1250,'م/ محمد عصام','']},
-  'دفعة مقاول': {type:'مقاول باطن', cols:['التاريخ','المشروع','بند الأعمال','اسم المقاول','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','التكييف › الصاج','محمد عبده صاج تكييف',20000,'شيك','','دفعة تحت الحساب']},
+  'دفعة مقاول': {type:'مقاول باطن', cols:['التاريخ','المشروع','بند الأعمال','اسم المقاول','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات','سبق صرفه','سلف/خصومات','تأمينات','ضرائب','استقطاعات مباشرة','شيك الآن','نقدًا الآن'], ex:['2026-10-07','مبنى عميد كلية الطب','التكييف › الصاج','محمد عبده صاج تكييف',20000,'شيك','','دفعة تحت الحساب','','','','','','','']},
   'مستخلص مقاول': {type:'مستحق مقاول', cols:['التاريخ','المشروع','بند الأعمال','اسم المقاول','المبلغ','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','التكييف › الصاج','محمد عبده صاج تكييف',66000,'مستخلص رقم 2']},
-  'عمالة': {type:'عمالة', cols:['التاريخ','المشروع','بند الأعمال','اسم العامل / الكشف','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','دهانات','يوميات الأسبوع 1-7/10',49850,'نقدي','','']},
+  'عمالة': {type:'عمالة', cols:['التاريخ','المشروع','بند الأعمال','اسم العامل / الكشف','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات','سبق صرفه','سلف/خصومات','تأمينات','ضرائب','استقطاعات مباشرة','شيك الآن','نقدًا الآن'], ex:['2026-10-07','مبنى عميد كلية الطب','دهانات','يوميات الأسبوع 1-7/10',49850,'نقدي','','','','','','','','','']},
   'رواتب': {type:'رواتب', cols:['التاريخ','المشروع','الموظف / الشهر','المبلغ','طريقة الدفع','ملاحظات'], ex:['2026-10-31','','رواتب أكتوبر — مهندس الموقع',12000,'تحويل','']},
-  'مشتريات': {type:'مشتريات', cols:['التاريخ','المشروع','بند الأعمال','الصنف / المورد','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','كهرباء','فاتورة 25 — كشافات',6795,'عهدة','م/ محمد عصام','']},
+  'مشتريات': {type:'مشتريات', cols:['التاريخ','المشروع','بند الأعمال','الصنف / المورد','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات','سبق صرفه','سلف/خصومات','تأمينات','ضرائب','استقطاعات مباشرة','شيك الآن','نقدًا الآن'], ex:['2026-10-07','مبنى عميد كلية الطب','كهرباء','فاتورة 25 — كشافات',6795,'عهدة','م/ محمد عصام','','','','','','','','']},
+  'تأمينات': {type:'تأمينات', cols:['التاريخ','المشروع','الطرف / البيان','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','هيئة التأمينات',3000,'نقدي','','']},
+  'ضرائب': {type:'ضرائب', cols:['التاريخ','المشروع','الطرف / البيان','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','مصلحة الضرائب',2000,'تحويل','','']},
+  'سلفة': {type:'سلفة', cols:['التاريخ','المشروع','الطرف / البيان','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','سلفة على الحساب — اسم العامل',1000,'نقدي','','']},
   'إيرادات': {type:'ايراد', cols:['التاريخ','المشروع','مصدر الإيراد / رقم المستخلص','المبلغ','ملاحظات'], ex:['2026-10-07','مبنى عميد كلية الطب','مستخلص رقم 3',250000,'']}
 };
-var COL2FIELD = {'التاريخ':'date','المشروع':'project','بند الأعمال':'work_item','الطرف / البيان':'party','اسم المقاول':'party','اسم العامل / الكشف':'party','الموظف / الشهر':'party','الصنف / المورد':'party','مصدر الإيراد / رقم المستخلص':'party','المبلغ':'amount','طريقة الدفع':'pay_method','أمين العهدة':'custodian','ملاحظات':'desc'};
+var COL2FIELD = {'التاريخ':'date','المشروع':'project','بند الأعمال':'work_item','الطرف / البيان':'party','اسم المقاول':'party','اسم العامل / الكشف':'party','الموظف / الشهر':'party','الصنف / المورد':'party','مصدر الإيراد / رقم المستخلص':'party','المبلغ':'amount','طريقة الدفع':'pay_method','أمين العهدة':'custodian','ملاحظات':'desc','سبق صرفه':'prior_paid','سلف/خصومات':'advances','تأمينات':'insurance_amount','ضرائب':'tax_amount','استقطاعات مباشرة':'direct_deductions','شيك الآن':'cheque_now','نقدًا الآن':'cash_now'};
 function buildTemplate(label){
   var t = TEMPLATES[label]; if(!window.XLSX || !XLSX.utils){ toast('مكتبة إكسل غير محمّلة'); return; }
   var wb = XLSX.utils.book_new();
@@ -1873,10 +1936,12 @@ function parseTemplateWorkbook(wb){
     heads.forEach(function(h,i){ var f = COL2FIELD[h]; if(f) o[f] = r[i]; });
     if(t.type==='عهدة-استلام'){ o.custodian = String(o.custodian||o.party||'').trim(); o.party = o.custodian; }
     o.date = parseAnyDate(o.date); o.amount = parseFloat(String(o.amount).replace(/[,\s]/g,''));
+    SETTLE_KEYS.forEach(function(k){ o[k] = parseFloat(String(o[k]==null?'':o[k]).replace(/[,\s]/g,''))||0; });
     ['project','work_item','party','desc','pay_method','custodian'].forEach(function(k){ o[k] = String(o[k]==null?'':o[k]).trim(); });
     if(!o.date) o._err.push('التاريخ غير صالح');
     if(!(o.amount>0)) o._err.push('المبلغ غير صالح');
-    var costLike = COST_TYPES.indexOf(t.type)!==-1;
+    var costLike = COST_TYPES.indexOf(t.type)!==-1, outExtra = OUT_EXTRA.indexOf(t.type)!==-1;
+    if(outExtra){ if(!o.pay_method) o.pay_method = DEFAULT_PAY[t.type]||'نقدي'; if(PAY_METHODS.indexOf(o.pay_method)===-1) o._err.push('طريقة الدفع غير معروفة'); if(o.pay_method==='عهدة' && !o.custodian) o._err.push('أمين العهدة مطلوب'); }
     if(costLike || t.type==='مستحق مقاول'){
       if(!o.project && t.type!=='رواتب') o._warn.push('بلا مشروع');
       if(!o.work_item && t.type!=='رواتب') o._err.push('بند الأعمال مطلوب');
@@ -2006,11 +2071,12 @@ function buildPreview(){
       else { out[f.key] = ''; }
     });
     out.amount = parseFloat(String(out.amount).replace(/,/g,'')) || 0;
+    SETTLE_KEYS.forEach(function(k){ out[k] = parseFloat(String(out[k]==null?'':out[k]).replace(/,/g,''))||0; });
     out.date = parseAnyDate(out.date);
     if(!out.type) out.type='نثريات';
     ['project','work_item','party','desc','pay_method','custodian','cost_item'].forEach(function(k){ out[k] = String(out[k]==null?'':out[k]).trim(); });
     if(!out.date) out._err.push('التاريخ غير صالح');
-    if(COST_TYPES.indexOf(out.type)!==-1){
+    if(isOutflow(out)){
       if(!out.cost_item) out.cost_item = DEFAULT_COST_ITEM[out.type]||'';
       if(!out.pay_method) out.pay_method = DEFAULT_PAY[out.type]||'نقدي';
     }
@@ -2059,8 +2125,8 @@ document.getElementById('impConfirmBtn').addEventListener('click', async functio
     var pid = resolveProject(r.project), itemId = '', wiText = r.work_item||'';
     var pr = S.projects.find(function(x){return x.id===pid;});
     if(pr && wiText){ var hit = itemFlat(pr).filter(function(f){return f.path===wiText.trim() || f.name===wiText.trim();}); if(hit.length===1){ itemId=hit[0].id; wiText=hit[0].path; } }
-    var isIn = r.type==='عهدة-استلام', isCostT = COST_TYPES.indexOf(r.type)!==-1;
-    return {date:r.date, project_id: pid, type:r.type, item_id:itemId, work_item:wiText, cost_item:isIn?'':(r.cost_item||DEFAULT_COST_ITEM[r.type]||''), pay_method:isCostT?(r.pay_method||DEFAULT_PAY[r.type]||''):'', custodian:(isIn||r.pay_method==='عهدة'||r.type==='نثريات')?(r.custodian||''):'', party:r.party||'', desc:r.desc||'', amount:r.amount, by:S.userEmail||'', created_at:new Date().toISOString(), source:'استيراد: '+(st.file||'')};
+    var isIn = r.type==='عهدة-استلام', isCostT = isOutflow(r);
+    return Object.assign(pickSettle(r), {date:r.date, project_id: pid, type:r.type, item_id:itemId, work_item:wiText, cost_item:isIn?'':(r.cost_item||DEFAULT_COST_ITEM[r.type]||''), pay_method:isCostT?(r.pay_method||DEFAULT_PAY[r.type]||''):'', custodian:(isIn||r.pay_method==='عهدة'||r.type==='نثريات')?(r.custodian||''):'', party:r.party||'', desc:r.desc||'', amount:r.amount, by:S.userEmail||'', created_at:new Date().toISOString(), source:'استيراد: '+(st.file||'')});
   });
   rows.forEach(autoAccount);
   var skipped = 0;

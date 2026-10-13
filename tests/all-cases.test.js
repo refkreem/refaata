@@ -111,6 +111,25 @@ let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else
  console.log('INBOX',ib.slice(0,500)); const pbefore=(await rowsDb()).length; const okb=await pg.$('.ibok'); if(okb){ await okb.click(); await pg.waitForTimeout(500); ok('inbox confirm one',(await rowsDb()).length===pbefore+1);} else ok('inbox ok btn',false);
  const rj=await pg.$('.ibno'); if(rj){ await rj.click(); await pg.waitForTimeout(400); ok('inbox reject',true);} else ok('inbox reject btn',false);
  await pg.click('#inboxConfirmAllBtn'); await pg.waitForTimeout(800); ok('inbox confirm all',(await rowsDb()).length>pbefore+1);
+ // deductions, settlement, custody return
+ await addTx('deductions',async()=>{ await pg.selectOption('#t_type','تأمينات'); await pg.fill('#t_party','هيئة التأمينات'); await pg.fill('#t_amount','3000'); });
+ ok('deduction row saved with account',(await rowsDb()).some(r=>r.type==='تأمينات'&&r.amount===3000&&r.payment_account_id==='internal-cash'));
+ await go('deductions'); ok('deductions view lists it',(await txt('#view-deductions')).includes('هيئة التأمينات'));
+ await addTx('subcontractors',async()=>{ await pg.selectOption('#t_workitem',await wiOpt()); await pg.fill('#t_party','مقاول تسوية'); await pg.fill('#t_amount','10000'); await pg.evaluate(()=>document.getElementById('t_settle_box').open=true); await pg.fill('#t_prior','2000'); await pg.fill('#t_ins','500'); await pg.fill('#t_tax','300'); await pg.fill('#t_adv','200'); await pg.fill('#t_cash','4000'); });
+ const sr=(await rowsDb()).find(r=>r.party==='مقاول تسوية'); ok('settlement fields saved',sr&&sr.insurance_amount===500&&sr.tax_amount===300&&sr.remaining===3000,sr);
+ await go('subcontractors'); const sv=await txt('#view-subcontractors .gen-table'); ok('settlement columns shown',sv.includes('تأمينات')&&sv.includes('المتبقي')&&/3,000/.test(sv),sv.slice(0,300));
+ await addTx('custody',async()=>{ await pg.selectOption('#t_type','عهدة-رد'); await pg.selectOption('#t_cust','محمد عصام'); await pg.fill('#t_amount','1000'); });
+ ok('custody return row',(await rowsDb()).some(r=>r.type==='عهدة-رد'&&r.amount===1000&&r.payment_account_id));
+ await go('custody'); const cv=await txt('#view-custody'); ok('custody balance after return',/7,000/.test(cv)||/7,500/.test(cv),cv.slice(100,400));
+ await go('weekly'); await pg.evaluate(()=>{document.getElementById('wkFrom').value='2026-01-01';document.getElementById('wkFrom').dispatchEvent(new Event('change'));}); await pg.waitForTimeout(300); ok('weekly party settlement table',(await txt('#weeklyPartyTable')).includes('مقاول تسوية'),(await txt('#weeklyPartyTable')).slice(0,200));
+ // import with settlement columns
+ { const XL3=require(S+'/xl/node_modules/xlsx'); const hdr=['التاريخ','المشروع','بند الأعمال','اسم المقاول','المبلغ','طريقة الدفع','أمين العهدة','ملاحظات','سبق صرفه','سلف/خصومات','تأمينات','ضرائب','استقطاعات مباشرة','شيك الآن','نقدًا الآن'];
+   const ws=XL3.utils.aoa_to_sheet([hdr,['2026-10-09','مشروع اختبار','تكييف اختبار','مقاول استيراد',8000,'شيك','','',1000,0,400,200,0,5000,0]]); const wbk=XL3.utils.book_new(); XL3.utils.book_append_sheet(wbk,ws,('قالب - دفعة مقاول').slice(0,31)); XL3.writeFile(wbk,S+'/settle.xlsx');
+   await go('import'); await pg.setInputFiles('#fileInput',S+'/settle.xlsx'); await pg.waitForTimeout(700); await pg.click('#impConfirmBtn'); await pg.waitForTimeout(700);
+   const ir=(await rowsDb()).find(r=>r.party==='مقاول استيراد'); ok('import keeps settlement fields',ir&&ir.insurance_amount===400&&ir.cheque_now===5000&&ir.remaining===1400,ir); }
+ // template has settlement columns
+ { await go('import'); const d9=pg.waitForEvent('download',{timeout:4000}).catch(()=>null); await pg.evaluate(()=>[...document.querySelectorAll('#tplButtons button')].find(b=>b.innerText.includes('دفعة مقاول')).click()); const dd9=await d9; await dd9.saveAs(S+'/tpl2.xlsx'); const w9=require(S+'/xl/node_modules/xlsx').readFile(S+'/tpl2.xlsx'); ok('template has deduction columns',JSON.stringify(require(S+'/xl/node_modules/xlsx').utils.sheet_to_json(w9.Sheets[w9.SheetNames[0]],{header:1})[0]).includes('تأمينات')); }
+ const tbtn=await pg.$$eval('#tplButtons button',b=>b.map(x=>x.innerText)); ok('extra templates exist',tbtn.some(t=>t.includes('ضرائب'))&&tbtn.some(t=>t.includes('سلفة')),tbtn);
  // backup / restore
  await go('settings'); const d4=pg.waitForEvent('download',{timeout:4000}).catch(()=>null); await pg.click('#backupBtn'); const bk=await d4; ok('backup download',!!bk);
  if(bk){ await bk.saveAs(S+'/backup.json'); const j=JSON.parse(fs.readFileSync(S+'/backup.json','utf8')); ok('backup has data',JSON.stringify(j).length>500); 
