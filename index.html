@@ -106,6 +106,12 @@ a{color:var(--accent)}
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid2>*,.grid3>*{min-width:0}
+#dashRecent,#dashByItem{overflow-x:auto}
+#dashRecent table.data,#dashByItem table.data{min-width:0;width:100%}
+#dashRecent td,#dashByItem td{white-space:normal}
+.shell{min-width:0;max-width:100vw}
+html,body{overflow-x:hidden}
 @media (max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
 
 .field{display:flex;flex-direction:column;gap:5px;min-width:0}
@@ -554,7 +560,7 @@ function remainingOf(r){ if(r.remaining!=null && r.remaining!=='') return Number
 function pickSettle(o){ var out={}, any=false; SETTLE_KEYS.forEach(function(k){ var v=Number(o[k])||0; if(v>0){ out[k]=v; any=true; } }); if(out.advances) out.deductions=out.advances; if(any || o.remaining!=null){ var t=Object.assign({amount:o.amount},out); out.remaining=remainingOf(Object.assign({},t,{remaining:null})); } return out; }
 
 function isCost(r){ return COST_TYPES.indexOf(r.type)!==-1; }
-function fromCustody(r){ return r.type==='نثريات' || r.pay_method==='عهدة'; }   // مصروف خرج من العهدة
+function fromCustody(r){ return r.pay_method==='عهدة' || (r.type==='نثريات' && !r.pay_method); }   // مصروف خرج من العهدة
 function rootOf(path){ return (path||'').split(' › ')[0]; }
 function cleanRow(r){ var o={}; Object.keys(r).forEach(function(k){ if(k.indexOf('__')!==0 && r[k]!==undefined) o[k]=r[k]; }); return o; }
 function sumAmt(rows){ return rows.reduce(function(s,r){return s+(Number(r.amount)||0);},0); }
@@ -855,10 +861,10 @@ function renderAccountLedger(){
   title.textContent = 'كشف حساب: '+a.name;
   var mv = allTx().map(function(r){ return {r:r, m:accountMovement(r,a.id)}; }).filter(function(x){ return x.m!==0; }).sort(function(x,y){ return (x.r.date||'').localeCompare(y.r.date||''); });
   var run = Number(a.opening_balance)||0;
-  var body = '<tr><td colspan="5"><b>رصيد افتتاحي</b></td><td class="num"><b>'+fmtMoney(run)+'</b></td><td></td></tr>' + mv.map(function(x){
+  var body = '<tr><td colspan="6"><b>رصيد افتتاحي</b></td><td class="num"><b>'+fmtMoney(run)+'</b></td><td></td></tr>' + mv.map(function(x){
     run += x.m; var r=x.r, who = r.type==='تحويل بين الحسابات' ? ('تحويل '+(x.m<0?'إلى ':'من ')+accountName(x.m<0?r.to_account:r.from_account)) : (r.party||r.desc||'');
-    return '<tr><td>'+fmtDate(r.date)+'</td><td>'+typePill(r.type)+'</td><td class="wrap">'+esc(projName(r.project_id))+'</td><td class="wrap">'+esc(who)+'</td><td class="num">'+(x.m>0?fmtMoney(x.m):'')+'</td><td class="num">'+fmtMoney(run)+'</td><td>'+(x.m<0?'<span class="helptext">مدفوع '+fmtMoney(-x.m)+'</span>':'')+(r.type==='تحويل بين الحسابات'?' <button class="btn sm ghost danger rmtr" data-batch="'+r.__batch+'" data-row="'+r.__idx+'">حذف</button>':'')+'</td></tr>'; }).join('');
-  t.innerHTML = '<thead><tr><th>التاريخ</th><th>النوع</th><th>المشروع</th><th>البيان</th><th class="num">وارد</th><th class="num">الرصيد</th><th>صادر</th></tr></thead><tbody>'+body+'</tbody>';
+    return '<tr><td>'+fmtDate(r.date)+'</td><td>'+typePill(r.type)+'</td><td class="wrap">'+esc(projName(r.project_id))+'</td><td class="wrap">'+esc(who)+'</td><td class="num">'+(x.m>0?fmtMoney(x.m):'')+'</td><td class="num">'+(x.m<0?fmtMoney(-x.m):'')+'</td><td class="num"><b>'+fmtMoney(run)+'</b></td><td>'+(r.type==='تحويل بين الحسابات'?'<button class="btn sm ghost danger rmtr" data-batch="'+r.__batch+'" data-row="'+r.__idx+'">حذف</button>':'')+'</td></tr>'; }).join('');
+  t.innerHTML = '<thead><tr><th>التاريخ</th><th>النوع</th><th>المشروع</th><th>البيان</th><th class="num">وارد</th><th class="num">صادر</th><th class="num">الرصيد</th><th></th></tr></thead><tbody>'+body+'</tbody>';
   t.querySelectorAll('.rmtr').forEach(function(b){ b.addEventListener('click', async function(){ if(!confirm('حذف هذا التحويل؟')) return; await removeTx(b.dataset.batch, Number(b.dataset.row)); renderAccounts(); try{renderDashboard();}catch(e){} }); });
 }
 function openAccountModal(existing){
