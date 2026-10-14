@@ -520,8 +520,8 @@ var S = {
 
 function allTx(){ var out=[]; S.batches.forEach(function(b){ (b.rows||[]).forEach(function(r,i){ r.__batch=b.id; r.__idx=i; out.push(r); }); }); return out; }
 var COST_TYPES = ['نثريات','مقاول باطن','عمالة','رواتب','مشتريات'];
-var PAY_METHODS = ['عهدة','نقدي','شيك','تحويل'];
 var OUT_EXTRA = ['تأمينات','ضرائب','إكراميات','سلفة','شيك'];
+var PAY_METHODS = ['عهدة','نقدي','شيك','تحويل'];
 var SETTLE_KEYS = ['prior_paid','advances','insurance_amount','tax_amount','direct_deductions','cheque_now','cash_now'];
 function isOutflow(r){ return COST_TYPES.indexOf(r.type)!==-1 || OUT_EXTRA.indexOf(r.type)!==-1; }
 function hasSettle(r){ return SETTLE_KEYS.some(function(k){return Number(r[k])>0;}) || r.remaining!=null; }
