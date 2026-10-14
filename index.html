@@ -626,7 +626,27 @@ var FIREBASE_CONFIG = {
   measurementId: "G-2BXMFZ6HZ7"
 };
 
+
+/* ---- namespace: النظام الجديد يبدأ فارغًا ولا يرى بيانات النسخ القديمة (تبقى كما هي في Firebase) ---- */
+var NS = 'v3';
+function wrapDb(raw){
+  function wrapQ(q){
+    return {
+      get: function(){ return q.get().then(function(snap){ var docs = snap.docs.filter(function(d){ var v=d.data()||{}; return v.ns===NS; }); return {docs:docs, empty:!docs.length, size:docs.length}; }); },
+      where: function(){ return wrapQ(q.where.apply(q, arguments)); }
+    };
+  }
+  return {
+    collection: function(name){
+      var c = raw.collection(name), w = wrapQ(c);
+      w.doc = function(id){ var d = c.doc(id); return { get:function(){ return d.get(); }, set:function(data,opt){ return d.set(Object.assign({}, data, {ns:NS}), opt); }, delete:function(){ return d.delete(); } }; };
+      return w;
+    },
+    doc: function(path){ var d = raw.doc(path==='meta/config' ? 'meta/config_v3' : path); return { get:function(){ return d.get(); }, set:function(data,opt){ return d.set(Object.assign({}, data, {ns:NS}), opt); }, delete:function(){ return d.delete(); } }; }
+  };
+}
 async function loadData(db, label, email){
+  db = wrapDb(db);
   S.db = db; S.userEmail = (email||'').toLowerCase();
   var dot = document.getElementById('connDot'), txt = document.getElementById('connText');
   dot.classList.add('on'); txt.textContent = label;
@@ -656,7 +676,7 @@ async function loadData(db, label, email){
     try{
       var accSnap = await db.collection('cashAccounts').get();
       S.accounts = accSnap.docs.map(function(d){ var v=d.data(); v.id=d.id; return v; });
-      var std = [{id:'internal-cash',name:'الخزينة الداخلية',kind:'cash',opening_balance:0},{id:'bank-nbe',name:'البنك الأهلي المصري',kind:'bank',opening_balance:0},{id:'bank-cib',name:'بنك CIB',kind:'bank',opening_balance:0},{id:'bank-faisal',name:'بنك فيصل الإسلامي',kind:'bank',opening_balance:0},{id:'bank-nbk',name:'بنك الكويت الوطني',kind:'bank',opening_balance:0}];
+      var std = [{id:'internal-cash',name:'الخزينة الداخلية',kind:'cash',opening_balance:0},{id:'bank-nbe',name:'البنك الأهلي المصري',kind:'bank',opening_balance:0}];
       for(var si=0; si<std.length; si++){
         var a0 = std[si];
         if(!S.accounts.some(function(x){ return x.id===a0.id || String(x.name||'').trim()===a0.name; })){ S.accounts.push(a0); try{ await db.collection('cashAccounts').doc(a0.id).set(a0,{merge:true}); }catch(e2){} }
