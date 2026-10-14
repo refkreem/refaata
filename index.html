@@ -1,6 +1,7 @@
 <!doctype html><html lang="ar"><head><meta charset=utf8><meta name="theme-color" content="#14253d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="مقاول Pro"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon.svg"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>مقاول Pro | نظام إدارة وحسابات شركات المقاولات</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -412,6 +413,13 @@ table.data td.wrap{white-space:normal;min-width:160px}
           <div class="step" id="impStep2"><span class="n">2</span> تحديد الأعمدة</div>
           <div class="step" id="impStep3"><span class="n">3</span> مراجعة وتأكيد</div>
         </div>
+        <div class="card" id="thuPanel" style="margin-bottom:16px"><div class="pad">
+          <h3>ملفات الخميس — ارفعها كما وصلتك بالإيميل</h3>
+          <p class="helptext" style="margin-bottom:10px">ارفع ملف الـzip (أو ملفات الإكسل) الذي يصلك كل خميس: كشف المصروفات + أجور العمالة + كشوف المقاولين. يقرؤها البرنامج كلها دفعة واحدة، ويصنّف كل حركة ويحدد مشروعها، ثم يرسلها إلى «صندوق المراجعة» لتراجعها وتعتمدها بضغطة. الحركات المكررة تُتخطى تلقائيًا.</p>
+          <input type="file" id="thuFile" accept=".zip,.xlsx,.xls" multiple>
+          <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="thuLedger"> أضف أيضًا مستحقات المقاولين من كشوفهم (اختياري — الدفعات الفعلية تأتي من كشف المصروفات)</label>
+          <div id="thuResult"></div>
+        </div></div>
         <div class="card" id="impTplPanel" style="margin-bottom:16px"><div class="pad">
           <h3>قوالب جاهزة لكل نوع — الأسهل والأسرع</h3>
           <p class="helptext" style="margin-bottom:10px">نزّل قالب النوع المطلوب، املأه (صف لكل حركة) ثم ارفعه هنا في المربع بالأسفل — يُقرأ مباشرة بلا تحديد أعمدة، مع كشف الأخطاء قبل الحفظ.</p>
@@ -1727,6 +1735,130 @@ function initSheetCard(){
   };
 }
 
+/* ================= THURSDAY FILES (قارئ ملفات الخميس) ================= */
+var THU = {rows:[], sites:{}, period:{from:'',to:''}, files:[]};
+function nzAr(s){ return String(s==null?'':s).replace(/[ً-ٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[^؀-ۿa-zA-Z0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
+function nzTokens(s){ return nzAr(s).split(' ').map(function(t){ return t.replace(/^ال/,''); }).filter(function(t){ return t.length>1 && ['في','من','الي','علي','مبني','مبنى','مستشفي','مستشفى','جامعه','القاهره','تجديد','وتطوير','غرفه'].indexOf(t)===-1; }); }
+function smartProject(text){
+  var tk = nzTokens(text); if(!tk.length) return null; var best=null, bs=0;
+  S.projects.forEach(function(p){ var pt=nzTokens(p.name); if(!pt.length) return; var inter=pt.filter(function(t){return tk.indexOf(t)!==-1;}).length; var sc = inter/Math.min(pt.length,tk.length); if(sc>bs){ bs=sc; best=p; } });
+  return bs>=0.6 ? best : null;
+}
+function cellStr(c){ return c==null?'':String(c).replace(/\s+/g,' ').trim(); }
+function toISO(v){ if(v instanceof Date && !isNaN(v)) return toISODate(v); if(typeof v==='number' && v>30000 && v<80000){ return toISODate(new Date(Math.round((v-25569)*86400000))); } return ''; }
+function thuClassify(bayan, bnd){
+  var t = nzAr(bayan+' '+bnd), m = /من حساب مقاول\s+(.+)/.exec(nzAr(bayan));
+  if(m) return {type:'مقاول باطن', party:m[1].replace(/\s+/g,' ').trim()};
+  if(/سلفه/.test(t)) return {type:'عمالة'};
+  if(/باقي شيك|^شيك|شيك رقم/.test(t)) return {type:'نثريات', flag:'باقي شيك — راجع نوعها'};
+  if(/تحويل من .* الي/.test(t)) return {type:'نثريات', flag:'تحويل بين عهد — راجع'};
+  if(/فاتوره|فتوره|خامات|توريد|مواسير|كشاف|لمبات|اسلاك|سلك|فرش|بنزين|دهانات|كهرباء/.test(t)) return {type:'مشتريات'};
+  return {type:'نثريات'};
+}
+function thuParseExpenses(ws, fname, out){
+  var rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:false}); var h=-1, ci={};
+  for(var i=0;i<Math.min(rows.length,12);i++){ var r=rows[i]||[]; var js=r.map(function(c){return nzAr(c);}); if(js.some(function(x){return x==='المنصرف';}) && js.some(function(x){return x==='العهده';})){ h=i; js.forEach(function(x,k){ if(x==='تاريخ'||x==='التاريخ') ci.date=k; else if(/^بي.?ان$/.test(x.replace(/ /g,''))||x.indexOf('بيان')===0) ci.bayan=k; else if(x==='الموقع') ci.site=k; else if(x.indexOf('بند')===0) ci.item=k; else if(x==='المنصرف') ci.out=k; else if(x==='العهده') ci.cust=k; else if(x.indexOf('ملاحظات')===0) ci.note=k; }); break; } }
+  if(h<0) return false;
+  var head = rows.slice(0,h).map(function(r){return (r||[]).map(cellStr).join(' ');}).join(' ');
+  var pm = /من\s*(\d{4})\/(\d+)\/(\d+).{0,40}?(?:الي|إلى|الى)\s*(\d{4})\/(\d+)\/(\d+)/.exec(head.replace(/\s+/g,' '));
+  if(pm){ THU.period.from = pm[1]+'-'+('0'+pm[2]).slice(-2)+'-'+('0'+pm[3]).slice(-2); THU.period.to = pm[4]+'-'+('0'+pm[5]).slice(-2)+'-'+('0'+pm[6]).slice(-2); }
+  var custName = ''; rows.slice(0,h).forEach(function(r){ var s=(r||[]).map(cellStr).join(' '); if(/محمد\s*عصام/.test(s)) custName='م/ محمد عصام'; });
+  if(!custName){ var cn = rows.slice(0,h).map(function(r){return cellStr((r||[])[0]);}).filter(function(x){return x && x.indexOf('شركة')===-1 && x.indexOf('من')!==0;}); custName = cn.length? cn[cn.length-1] : ''; }
+  for(var k=h+1;k<rows.length;k++){ var r=rows[k]||[]; var d=toISO(r[ci.date]); var o=Number(r[ci.out])||0, c=Number(r[ci.cust])||0; if(!d || (!o && !c)) continue;
+    var bayan=cellStr(r[ci.bayan]), site=cellStr(r[ci.site]), item=cellStr(r[ci.item]), flag='';
+    var row = {date:d, amount:o||c, party:bayan, work_item:item, desc:'', pay_method:'عهدة', custodian:custName, source:'مصرفات: '+fname+' بند '+(rows[k][0]||'')};
+    if(c && !o){ row.type='عهدة-استلام'; row.pay_method=''; row.desc=item; }
+    else { var cl=thuClassify(bayan,item); row.type=cl.type; if(cl.party) row.party=cl.party; if(cl.flag) flag=cl.flag; if(row.type==='عمالة' || row.type==='نثريات'){ row.work_item = row.work_item || item; } }
+    var siteTxt = site; if(/\+/.test(site)){ flag = (flag?flag+' — ':'')+'فاتورة مقسمة على أكثر من موقع: '+site; siteTxt = site.split('+')[0]; }
+    siteTxt = siteTxt.replace(/^\s*[\d.,]+\s*/,'');
+    row.siteText = siteTxt; if(row.type!=='عهدة-استلام' && !siteTxt) flag=(flag?flag+' — ':'')+'الموقع غير محدد';
+    if(flag) row.desc = ('⚠ '+flag+(row.desc?' — '+row.desc:'')).trim();
+    out.push(row); }
+  return true;
+}
+function thuParseLabor(ws, fname, out){
+  var rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:false}); if(rows.length<4) return false;
+  var title = rows.slice(0,3).map(function(r){return (r||[]).map(cellStr).join(' ');}).join(' '); if(title.indexOf('يوميات')===-1 || title.indexOf('كشف')===-1) return false;
+  var gi=-1, ai=-1, hr=-1; for(var i=0;i<Math.min(rows.length,8);i++){ (rows[i]||[]).forEach(function(c,k){ var s=nzAr(c); if(/اجمالي الحساب|اجمالى الحساب/.test(s)||s==='اجمالي الحساب') {gi=k;hr=i;} if(s.indexOf('سلف اسبوعيه')===0) ai=k; }); }
+  if(gi<0) return false;
+  var sm = /الموقع\s*:?\s*(.+)$/.exec(cellStr(rows[1] && rows[1][0])); var site = sm? sm[1] : (ws.name_||'');
+  var dm = title.replace(/\s+/g,' ').match(/(\d{1,2})\/\s*(\d{1,2})\/\s*(\d{4})/g); var endD='';
+  if(dm && dm.length>1){ var z=/(\d{1,2})\/\s*(\d{1,2})\/\s*(\d{4})/.exec(dm[1]); if(z && Number(z[1])<=12) endD = z[3]+'-'+('0'+z[1]).slice(-2)+'-'+('0'+z[2]).slice(-2); }
+  var gross=0, adv=0, n=0; for(var k=hr+1;k<rows.length;k++){ var r=rows[k]||[]; if(typeof r[0]!=='number' || !cellStr(r[1])) continue; var g=Number(r[gi])||0; if(g<=0) continue; gross+=g; adv+=ai>=0?(Number(r[ai])||0):0; n++; }
+  if(!n) return true;
+  out.push({date:endD||THU.period.to, type:'عمالة', amount:gross, advances:adv, cash_now:gross-adv, party:'يوميات الأسبوع', work_item:'يوميات العمالة', desc:n+' عامل'+(adv?' — سلف أسبوعية '+adv:''), pay_method:'نقدي', siteText:site.replace(/^\s*(تجديد وتطوير|صيانة وترميم)\s*/,''), source:'أجور العمالة: '+fname+' / '+(ws.name_||'')});
+  return true;
+}
+function thuParseLedger(ws, sheetName, fname, out){
+  var rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:false}); var h=-1, ci={};
+  for(var i=0;i<Math.min(rows.length,8);i++){ var js=(rows[i]||[]).map(function(c){return nzAr(c);}); if(js.indexOf('التاريخ')!==-1 && js.some(function(x){return x==='مستحق';})){ h=i; js.forEach(function(x,k){ if(x==='التاريخ') ci.date=k; else if(x==='بيان الاعمال') ci.bayan=k; else if(x==='اجمالي اعمال'||x==='اجمالي اعمال') ci.gross=k; else if(x==='اجمالي'&&ci.tot==null) ci.tot=k; else if(x==='سلف') ci.adv=k; else if(x==='خصم ماسبق صرفه'||x==='خصم ما سبق صرفه') ci.prior=k; else if(x==='مستحق') ci.due=k; }); break; } }
+  if(h<0 || ci.date==null) return false;
+  var contractor = fname.replace(/\.xlsx?$/i,'').replace(/\s+/g,' ').trim();
+  var title = (rows.slice(0,h).map(function(r){return (r||[]).map(cellStr).join(' ');}).join(' ')); var sm=/الموقع\s*\/?\s*:?\s*(.+)$/.exec(title); var site = sm? sm[1] : sheetName;
+  for(var k=h+1;k<rows.length;k++){ var r=rows[k]||[]; var d=toISO(r[ci.date]); if(!d) continue; if(THU.period.from && THU.period.to && (d<THU.period.from || d>THU.period.to)) continue; if(!THU.period.from) continue;
+    var gross = Number(r[ci.gross!=null?ci.gross:ci.tot])||0, prior = ci.prior!=null?(Number(r[ci.prior])||0):0, inc = Math.round((gross-prior)*100)/100; if(inc<=0) continue;
+    out.push({date:d, type:'مستحق مقاول', ledger:true, amount:inc, party:contractor, work_item:cellStr(r[ci.bayan]).slice(0,80), desc:'إجمالي المستخلص '+Math.round(gross)+' − سبق صرفه '+Math.round(prior)+(ci.due!=null?' — المستحق بعد الخصومات '+Math.round(Number(r[ci.due])||0):''), pay_method:'', siteText:site, source:'ملف مقاول: '+fname+' / '+sheetName}); }
+  return true;
+}
+var THU_ITEMS = [];
+async function thuReadFiles(fileList){
+  var items=[];
+  for(var i=0;i<fileList.length;i++){ var f=fileList[i]; var buf = await new Promise(function(res,rej){ var rd=new FileReader(); rd.onload=function(){res(rd.result);}; rd.onerror=rej; rd.readAsArrayBuffer(f); });
+    if(/\.zip$/i.test(f.name)){ if(typeof JSZip==='undefined'){ toast('تعذر فك الـzip هنا — فك الضغط وارفع ملفات الإكسل مباشرة'); continue; }
+      var z = await JSZip.loadAsync(buf); var names = Object.keys(z.files).filter(function(n){ return !z.files[n].dir && /\.xlsx?$/i.test(n) && n.indexOf('~$')===-1 && n.indexOf('__MACOSX')===-1; });
+      for(var j=0;j<names.length;j++){ items.push({name:names[j].split('/').pop(), buf: await z.files[names[j]].async('arraybuffer')}); } }
+    else items.push({name:f.name, buf:buf}); }
+  THU_ITEMS = items.map(function(it){ try{ return {name:it.name, wb:XLSX.read(it.buf,{type:'array',cellDates:true})}; }catch(e){ return null; } }).filter(Boolean);
+  return thuAnalyze();
+}
+function thuAnalyze(){
+  THU = {rows:[], sites:{}, period:{from:'',to:''}, files:[], ledgerRows:0}; var wbs = THU_ITEMS;
+  // pass 1: expenses (gives the period)
+  var rows=[]; wbs.forEach(function(w){ w.wb.SheetNames.forEach(function(sn){ if(thuParseExpenses(w.wb.Sheets[sn], w.name, rows)) THU.files.push('مصرفات: '+w.name); }); });
+  wbs.forEach(function(w){ w.wb.SheetNames.forEach(function(sn){ var ws=w.wb.Sheets[sn]; ws.name_=sn; if(/اجور|يوميات/.test(nzAr(w.name))||true){ if(thuParseLabor(ws, w.name, rows)){ if(THU.files.indexOf('عمالة: '+w.name)===-1) THU.files.push('عمالة: '+w.name); return; } } }); });
+  var ledgerFiles = {}; wbs.forEach(function(w){ w.wb.SheetNames.forEach(function(sn){ var ws=w.wb.Sheets[sn]; var before=rows.length; var isExp = THU.files.indexOf('مصرفات: '+w.name)!==-1, isLab = THU.files.indexOf('عمالة: '+w.name)!==-1; if(isExp||isLab) return; if(thuParseLedger(ws, sn, w.name, rows)) ledgerFiles[w.name]=1; }); });
+  Object.keys(ledgerFiles).forEach(function(n){ THU.files.push('مقاول: '+n); });
+  var wantLedger = !!(document.getElementById('thuLedger') && document.getElementById('thuLedger').checked);
+  THU.ledgerRows = rows.filter(function(r){return r.ledger;}).length; if(!wantLedger) rows = rows.filter(function(r){return !r.ledger;});
+  var freq = {}; rows.forEach(function(r){ var p = r.siteText? smartProject(r.siteText) : null; r.project_id = p? p.id : ''; r.project = p? p.name : ''; if(r.siteText && !p){ var k=r.siteText.replace(/\s+/g,' ').trim(); freq[k]=(freq[k]||0)+1; r.siteText=k; } });
+  var clusters = []; Object.keys(freq).sort(function(a,b){return freq[b]-freq[a] || a.length-b.length;}).forEach(function(t){ var tk=nzTokens(t), hit=null; clusters.forEach(function(c){ if(hit) return; var inter=c.tk.filter(function(x){return tk.indexOf(x)!==-1;}).length; if(tk.length && c.tk.length && inter/Math.min(tk.length,c.tk.length)>=0.6) hit=c; }); if(hit){ hit.n+=freq[t]; hit.members.push(t); } else clusters.push({name:t, tk:tk, n:freq[t], members:[t]}); });
+  var canon = {}; clusters.forEach(function(c){ c.members.forEach(function(m){ canon[m]=c.name; }); THU.sites[c.name]=c.n; });
+  rows.forEach(function(r){ if(!r.project_id && r.siteText) r.siteCanon = canon[r.siteText]; });
+  // de-duplicate against what is already registered or waiting
+  var have = {}; function key(r){ return [r.date, Math.round(Number(r.amount)||0), nzAr(r.party), r.type].join('|'); }
+  try{ allTx().forEach(function(r){ have[key(r)]=1; }); }catch(e){} S.pending.forEach(function(r){ have[key(r)]=1; });
+  THU.skipped = 0; THU.rows = rows.filter(function(r){ if(have[key(r)]){ THU.skipped++; return false; } return true; });
+  return THU;
+}
+function thuRender(){
+  var box = document.getElementById('thuResult'); if(!box) return; var rows = THU.rows;
+  if(!rows.length){ box.innerHTML = '<p class="helptext">'+(THU.skipped? 'كل الحركات ('+THU.skipped+') مسجّلة أو بانتظار المراجعة بالفعل — لا جديد.' : 'لم أجد حركات في الملفات — تأكد أنها ملفات الخميس (مصرفات، أجور عمالة، كشوف مقاولين).')+'</p>'; return; }
+  var by = {}; rows.forEach(function(r){ var g=by[r.type]=by[r.type]||{n:0,s:0}; g.n++; g.s+=Number(r.amount)||0; });
+  var sites = Object.keys(THU.sites);
+  box.innerHTML = '<div class="tablewrap" style="margin:10px 0"><table class="data" style="min-width:0"><thead><tr><th>النوع</th><th class="num">العدد</th><th class="num">الإجمالي</th></tr></thead><tbody>'+Object.keys(by).map(function(t){ return '<tr><td>'+typePill(t)+'</td><td class="num">'+by[t].n+'</td><td class="num">'+fmtMoney(by[t].s)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+    '<p class="helptext">'+(THU.ledgerRows? 'سطور مستخلصات المقاولين في الفترة: '+THU.ledgerRows+' · ':'')+'الفترة: '+(THU.period.from||'—')+' ← '+(THU.period.to||'—')+' · الملفات: '+THU.files.length+(THU.skipped?' · تخطيت '+THU.skipped+' حركة مكررة':'')+'</p>'+
+    (sites.length? '<div style="margin:10px 0"><b>مواقع غير موجودة كمشاريع ('+sites.length+')</b><ul style="margin:6px 18px">'+sites.map(function(s){return '<li>'+esc(s)+' <span class="helptext">('+THU.sites[s]+' حركة)</span></li>';}).join('')+'</ul><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="thuMake" checked> أنشئ هذه المشاريع تلقائيًا وأسند حركاتها لها</label></div>' : '')+
+    '<button class="btn primary" id="thuSend">إرسال '+rows.length+' حركة إلى صندوق المراجعة</button>';
+  document.getElementById('thuSend').onclick = thuSend;
+}
+async function thuSend(){
+  var btn=document.getElementById('thuSend'); btn.disabled=true; var db = await waitForDb(); if(!db){ toast('⚠ لا يوجد اتصال بقاعدة البيانات'); btn.disabled=false; return; }
+  var make = document.getElementById('thuMake'); var made={};
+  if(make && make.checked){ var names=Object.keys(THU.sites); for(var i=0;i<names.length;i++){ var nm=names[i].replace(/\s+/g,' ').trim().slice(0,90); var ex=smartProject(nm); var p = ex || {id:uid(), name:nm, location:'', owner:'', contract_value:'', start_date:'', end_date:'', status:'جاري', notes:'أُنشئ من ملفات الخميس', boq:[]}; if(!ex){ if(!(await saveProject(p))) { btn.disabled=false; return; } S.projects.push(p); } made[names[i]]=p; } }
+  var sid='sheet-'+uid(), name='الخميس '+(THU.period.to||todayISO()), n=0;
+  for(var j=0;j<THU.rows.length;j++){ var r=THU.rows[j]; var pid=r.project_id, pn=r.project; if(!pid && made[r.siteCanon]){ pid=made[r.siteCanon].id; pn=made[r.siteCanon].name; }
+    var doc = {id:'pend-'+uid(), created_at:new Date().toISOString(), date:r.date, project_id:pid||null, project:pn||'', type:r.type, item_id:'', work_item:r.work_item||'', party:r.party||'', desc:r.desc||'', pay_method:r.pay_method||'', custodian:r.custodian||'', amount:r.amount, source:r.source+' — '+(S.userEmail||''), by:S.userEmail||'', sheet_id:sid, sheet_name:name};
+    Object.assign(doc, pickSettle({amount:r.amount, prior_paid:r.prior_paid, advances:r.advances, cash_now:r.cash_now}));
+    await db.collection('pending').doc(doc.id).set(doc); S.pending.push(doc); n++; if(r.custodian && S.custodians.indexOf(r.custodian)===-1){ S.custodians.push(r.custodian); saveConfig(); } }
+  updateInboxBadge(); toast('✔ أُرسلت '+n+' حركة إلى صندوق المراجعة'); THU.rows=[]; document.getElementById('thuResult').innerHTML='<p>✔ أُرسلت '+n+' حركة. افتح «صندوق المراجعة» لتراجعها وتعتمدها.</p>'; INBOX_SHEET=sid;
+}
+function initThursday(){
+  var inp=document.getElementById('thuFile'); if(!inp) return;
+  inp.addEventListener('change', async function(){ var fs=inp.files; if(!fs.length) return; var box=document.getElementById('thuResult'); box.innerHTML='<p class="helptext">جارٍ قراءة الملفات…</p>';
+    try{ await thuReadFiles(fs); thuRender(); }catch(e){ console.error(e); box.innerHTML='<p>⚠ تعذر قراءة الملفات</p>'; } inp.value=''; });
+  document.getElementById('thuLedger').addEventListener('change', function(){ if(THU_ITEMS.length){ thuAnalyze(); thuRender(); } });
+}
+
 /* ================= INBOX (review queue) ================= */
 var INBOX_SHEET = '';
 function updateInboxBadge(){ var b=document.getElementById('inboxBadge'); if(!b) return; var n=S.pending.length; b.style.display = n? '' : 'none'; b.textContent = n; }
@@ -2174,6 +2306,7 @@ function buildTemplate(label){
   try{ wb.Workbook={Views:[{RTL:true}]}; }catch(e){}
   XLSX.writeFile(wb, 'قالب-'+label+'.xlsx');
 }
+initThursday();
 (function(){ var box=document.getElementById('tplButtons'); box.innerHTML = Object.keys(TEMPLATES).map(function(k){return '<button class="btn sm" data-tpl="'+k+'">⬇ '+k+'</button>';}).join(''); box.querySelectorAll('button').forEach(function(b){ b.addEventListener('click', function(){ buildTemplate(b.dataset.tpl); }); }); })();
 function parseAnyDate(v){
   if(v instanceof Date && !isNaN(v)) return toISODate(v);
