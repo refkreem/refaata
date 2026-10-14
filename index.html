@@ -478,7 +478,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
   <div class="stg" data-g="g1"><button class="stgh" type="button">▾ عام</button><div class="stgk"><button type="button" data-sec="company">بيانات الشركة</button><button type="button" data-sec="users">المستخدمون والصلاحيات</button></div></div>
   <div class="stg" data-g="g2"><button class="stgh" type="button">▾ المالية</button><div class="stgk"><button type="button" data-sec="accounts">الخزائن والبنوك</button><button type="button" data-sec="custodians">أمناء العهدة</button><button type="button" data-sec="pay">طرق الدفع</button><button type="button" data-sec="costs">أنواع التكلفة</button></div></div>
   <div class="stg" data-g="g3"><button class="stgh" type="button">▾ الأعمال</button><div class="stgk"><button type="button" data-sec="worktree">شجرة بنود الأعمال</button></div></div>
-  <div class="stg" data-g="g4"><button class="stgh" type="button">▾ النظام</button><div class="stgk"><button type="button" data-sec="backup">نسخة احتياطية واستعادة</button><button type="button" data-sec="about">عن النظام</button></div></div>
+  <div class="stg" data-g="g4"><button class="stgh" type="button">▾ النظام</button><div class="stgk"><button type="button" data-sec="backup">نسخة احتياطية واستعادة</button><button type="button" data-sec="demo">بيانات تجريبية</button><button type="button" data-sec="about">عن النظام</button></div></div>
 </nav>
           <div id="setPanes">
             <div class="setpane" data-sec="company" style="display:none"><div class="card"><div class="pad"><h3>بيانات الشركة</h3><p class="helptext" style="margin-bottom:10px">تظهر في رأس البرنامج وفي رأس التقارير المطبوعة.</p>
@@ -523,7 +523,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
           <p class="helptext" style="margin-bottom:10px">حمّل نسخة كاملة من كل البيانات (مشاريع، بنود، حركات، إعدادات) واحفظها. الاستعادة تدمج الملف مع البيانات الحالية ولا تحذف شيئًا.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="backupBtn">⬇ تحميل نسخة احتياطية</button><button class="btn" id="restoreBtn">⇪ استعادة من ملف</button></div>
           <input type="file" id="restoreFile" accept=".json,application/json" hidden>
-        </div></div></div><div class="setpane" data-sec="about" style="display:none"><div class="card"><div class="pad"><h3>عن النظام</h3><p class="helptext">مقاول Pro — إدخال واحد يغذي الخزينة والمشروع والتكلفة والتقارير. يمكن تثبيته على شاشة التليفون من قائمة المتصفح («إضافة إلى الشاشة الرئيسية»).</p></div></div></div>
+        </div></div></div><div class="setpane" data-sec="demo" style="display:none"><div class="card"><div class="pad"><h3>بيانات تجريبية</h3><p class="helptext" style="margin-bottom:10px">لترى النظام ممتلئًا: مشروعان وعمليتان من كل نوع (مصروف، مشتريات، مقاول باطن، إيراد) مع عهدة. تدخل في الحسابات والتقارير مثل البيانات الحقيقية، ويمكن حذفها كلها بضغطة دون المساس ببياناتك.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="demoLoadBtn">تحميل البيانات التجريبية</button><button class="btn danger" id="demoClearBtn">حذف البيانات التجريبية</button></div><p class="helptext" id="demoState" style="margin-top:10px"></p></div></div></div><div class="setpane" data-sec="about" style="display:none"><div class="card"><div class="pad"><h3>عن النظام</h3><p class="helptext">مقاول Pro — إدخال واحد يغذي الخزينة والمشروع والتكلفة والتقارير. يمكن تثبيته على شاشة التليفون من قائمة المتصفح («إضافة إلى الشاشة الرئيسية»).</p></div></div></div>
           </div>
         </div>
       </section>
@@ -1858,6 +1858,44 @@ function initThursday(){
     try{ await thuReadFiles(fs); thuRender(); }catch(e){ console.error(e); box.innerHTML='<p>⚠ تعذر قراءة الملفات</p>'; } inp.value=''; });
   document.getElementById('thuLedger').addEventListener('change', function(){ if(THU_ITEMS.length){ thuAnalyze(); thuRender(); } });
 }
+
+/* ================= DEMO DATA (بيانات تجريبية) ================= */
+function demoCount(){ return {p:S.projects.filter(function(p){return String(p.id).indexOf('demo-')===0;}).length, b:S.batches.filter(function(b){return String(b.id).indexOf('demo-')===0;}).length}; }
+function renderDemoState(){ var el=document.getElementById('demoState'); if(!el) return; var c=demoCount(); el.textContent = c.p||c.b ? 'البيانات التجريبية محمّلة الآن ('+c.p+' مشروع، '+c.b+' حركة).' : 'لا توجد بيانات تجريبية حاليًا.'; }
+async function loadDemo(){
+  if(demoCount().p){ toast('البيانات التجريبية محمّلة بالفعل'); return; }
+  var db = await waitForDb(); if(!db){ toast('⚠ لا يوجد اتصال بقاعدة البيانات'); return; }
+  var defs = [['demo-p1','(تجريبي) وحدة عناية مركزة — مشروع أ',2500000],['demo-p2','(تجريبي) غرف عمليات — مشروع ب',1800000]], P={};
+  for(var i=0;i<defs.length;i++){
+    var p={id:defs[i][0], name:defs[i][1], location:'قصر العيني', owner:'جامعة القاهرة', contract_value:defs[i][2], start_date:'2026-10-01', end_date:'', status:'جاري', notes:'بيانات تجريبية', boq:[], items:[]};
+    HOSPITAL_TEMPLATE.forEach(function(g){ var root={id:uid(), name:g[0], parent:'', party:'', budget:0}; p.items.push(root); g[1].forEach(function(k){ p.items.push({id:uid(), name:k, parent:root.id, party:'', budget:0}); }); });
+    if(!(await saveProject(p))) return; S.projects.push(p); P[p.id]=p;
+  }
+  function wi(pid, name){ var f=itemFlat(P[pid]).find(function(x){return x.name.indexOf(name)!==-1;}); return f? {item_id:f.id, work_item:f.path} : {item_id:'', work_item:''}; }
+  function row(date, pid, type, itemName, party, amount, extra){ var r=Object.assign({date:date, project_id:pid, type:type, party:party, desc:'', amount:amount, pay_method:'', custodian:'', cost_item:DEFAULT_COST_ITEM[type]||'', demo:true}, wi(pid,itemName), extra||{}); return r; }
+  var CU='م/ محمد عصام (تجريبي)';
+  var rows = [
+    row('2026-10-04','demo-p1','ايراد','','مستخلص رقم 1 — دفعة مقدمة',500000,{pay_method:''}),
+    row('2026-10-09','demo-p2','ايراد','','مستخلص رقم 1',300000),
+    row('2026-10-05','demo-p1','عهدة-استلام','','استلام عهدة للموقع',50000,{pay_method:'نقدي',custodian:CU}),
+    row('2026-10-06','demo-p1','نثريات','كهرباء','انتقالات وإكراميات موقع',1850,{pay_method:'عهدة',custodian:CU}),
+    row('2026-10-07','demo-p2','نثريات','سباكة','عدد وأدوات صغيرة',2300,{pay_method:'عهدة',custodian:CU}),
+    row('2026-10-06','demo-p1','مشتريات','فلاتر HEPA','فلاتر HEPA — شركة الهواء النقي',38000,{pay_method:'نقدي'}),
+    row('2026-10-08','demo-p2','مشتريات','الإنارة','كابلات ولوحات — مكتب النور',12400,{pay_method:'عهدة',custodian:CU}),
+    row('2026-10-07','demo-p1','مقاول باطن','الصاج','محمد عبده — صاج تكييف',60000,{pay_method:'شيك', prior_paid:20000, insurance_amount:3000, tax_amount:1200, advances:2000, cheque_now:33800}),
+    row('2026-10-09','demo-p2','مقاول باطن','سباكة','خلف إسماعيل — سباكة',25000,{pay_method:'نقدي'})
+  ];
+  for(var k=0;k<rows.length;k++){ var r=rows[k]; r.by=S.userEmail||''; r.created_at=new Date().toISOString(); r.source='بيانات تجريبية'; if(r.advances) r.deductions=r.advances; autoAccount(r); var b={id:'demo-'+uid(), label:'بيانات تجريبية', created_at:r.created_at, rows:[r]}; if(await saveBatch(b)) S.batches.push(b); }
+  renderDemoState(); toast('✔ تم تحميل البيانات التجريبية — افتح لوحة التحكم'); try{ renderDashboard(); }catch(e){}
+}
+async function clearDemo(){
+  var db = await waitForDb(); if(!db){ toast('⚠ لا يوجد اتصال بقاعدة البيانات'); return; }
+  var bs = S.batches.filter(function(b){return String(b.id).indexOf('demo-')===0;}), ps = S.projects.filter(function(p){return String(p.id).indexOf('demo-')===0;});
+  try{ for(var i=0;i<bs.length;i++){ await db.collection('batches').doc(bs[i].id).delete(); } for(var j=0;j<ps.length;j++){ await db.collection('projects').doc(ps[j].id).delete(); } }catch(e){ toast('⚠ تعذر الحذف'); return; }
+  S.batches = S.batches.filter(function(b){return String(b.id).indexOf('demo-')!==0;}); S.projects = S.projects.filter(function(p){return String(p.id).indexOf('demo-')!==0;});
+  renderDemoState(); toast('تم حذف البيانات التجريبية'); try{ renderDashboard(); }catch(e){}
+}
+document.addEventListener('click', function(e){ var t=e.target; if(!t) return; if(t.id==='demoLoadBtn') loadDemo(); if(t.id==='demoClearBtn') clearDemo(); if(t.getAttribute && t.getAttribute('data-sec')==='demo') setTimeout(renderDemoState,0); });
 
 /* ================= INBOX (review queue) ================= */
 var INBOX_SHEET = '';

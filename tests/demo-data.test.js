@@ -1,0 +1,18 @@
+const { chromium } = require('playwright'); const fs=require('fs'); const S=__dirname;
+const XL=fs.readFileSync(S+'/xl/node_modules/xlsx/dist/xlsx.full.min.js','utf8');
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'}); const pg=await (await b.newContext({viewport:{width:1360,height:900}})).newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
+ await pg.route('**/*',r=>{const u=r.request().url(); if(u.startsWith('file:')) r.continue(); else if(u.includes('xlsx')) r.fulfill({body:XL,contentType:'text/javascript'}); else r.abort();});
+ await pg.addInitScript(()=>{ if(!localStorage.getItem('moqawel_pro_db_v1')) localStorage.setItem('moqawel_test_email','boss@x.com'); });
+ await pg.goto('file:///home/claude/refaata/index.html'); await pg.waitForTimeout(900);
+ const nd=s=>s.replace(/[٠-٩]/g,c=>'٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/[٬٫’',\s]/g,'');
+ await pg.evaluate(()=>document.querySelector('.nav [data-view="settings"]').click()); await pg.waitForTimeout(300);
+ await pg.click('#setTree [data-sec="demo"]'); await pg.click('#demoLoadBtn'); await pg.waitForTimeout(2500);
+ console.log(await pg.innerText('#demoState'));
+ await pg.evaluate(()=>document.querySelector('.nav [data-view="dashboard"]').click()); await pg.waitForTimeout(400);
+ console.log(nd(await pg.innerText('#dashKpis')).replace(/\n/g,' '));
+ await pg.screenshot({path:S+'/cycle/30-demo-dash.png'});
+ await pg.evaluate(()=>document.querySelector('.nav [data-view="settings"]').click()); await pg.click('#demoClearBtn'); await pg.waitForTimeout(1200);
+ console.log(await pg.innerText('#demoState'));
+ await pg.evaluate(()=>document.querySelector('.nav [data-view="dashboard"]').click()); await pg.waitForTimeout(300);
+ console.log(nd(await pg.innerText('#dashKpis')).replace(/\n/g,' '));
+ console.log('ERRS',errs); await b.close(); })();
