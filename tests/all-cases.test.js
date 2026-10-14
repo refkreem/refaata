@@ -4,7 +4,7 @@ let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else
 (async()=>{
  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
  const ctx=await b.newContext({viewport:{width:1300,height:900},acceptDownloads:true});
- const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message)); pg.on('dialog',d=>d.accept());
+ const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message)); let PT=''; pg.on('dialog',d=>{ d.accept(d.type()==='prompt'?PT:undefined).catch(()=>{}); });
  await pg.route('**/*',r=>{const u=r.request().url(); if(u.startsWith('file:')) r.continue(); else if(u.includes('xlsx')) r.fulfill({body:XL,contentType:'text/javascript'}); else r.abort();});
  await pg.addInitScript(()=>{ if(!localStorage.getItem('moqawel_pro_db_v1')) localStorage.setItem('moqawel_test_email','boss@x.com'); });
  await pg.goto('file:///home/claude/refaata/index.html'); await pg.waitForTimeout(800);
@@ -14,10 +14,11 @@ let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else
  const modalSave=async()=>{ await pg.click('#modalSave'); await pg.waitForTimeout(300); };
  ok('dashboard loads', (await txt('#dashKpis')).length>0);
  // settings: custodians
- await go('settings'); await pg.fill('#newCustInput','محمد عصام'); await pg.click('#addCustBtn'); await pg.waitForTimeout(200);
+ const sec=async n=>{ await pg.click('#setTree [data-sec="'+n+'"]'); await pg.waitForTimeout(100); };
+ await go('settings'); await sec('custodians'); await pg.fill('#newCustInput','محمد عصام'); await pg.click('#addCustBtn'); await pg.waitForTimeout(200);
  ok('custodian added', (await txt('#custList2')).includes('محمد عصام'));
- await pg.fill('#newWorkItemInput','تشطيب'); await pg.click('#addWorkItemBtn'); ok('work item added',(await txt('#workItemsList')).includes('تشطيب'));
- await pg.fill('#newCostItemInput','معدات'); await pg.click('#addCostItemBtn'); ok('cost item added',(await txt('#costItemsList')).includes('معدات'));
+ await sec('worktree'); await pg.fill('#newWorkItemInput','تشطيب'); await pg.click('#addWorkItemBtn'); ok('work item added',(await txt('#workItemsList')).includes('تشطيب'));
+ await sec('costs'); await pg.fill('#newCostItemInput','معدات'); await pg.click('#addCostItemBtn'); ok('cost item added',(await txt('#costItemsList')).includes('معدات'));
  // project
  await go('projects'); await pg.click('#newProjectBtn'); await pg.fill('#f_name','مشروع اختبار'); await pg.fill('#f_value','1000000'); await modalSave();
  ok('project created',(await txt('#projectsTable')).includes('مشروع اختبار'));
@@ -73,7 +74,7 @@ let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else
  // reports
  await go('reports'); ok('reports by work',(await txt('#repByWorkTable')).length>10);
  for(const t of await pg.$$('#reportTabs button')){ await t.click(); await pg.waitForTimeout(150); }
- ok('report tabs',true); ok('profit table',(await txt('#repProfitTable')).includes('مشروع اختبار'));
+ await pg.click('#reportTabs [data-rep="profit"]'); ok('report tabs',true); ok('profit table',(await txt('#repProfitTable')).includes('مشروع اختبار'));
  const d2=pg.waitForEvent('download',{timeout:4000}).catch(()=>null); await pg.click('#repExport'); ok('report export',!!(await d2));
  // import templates
  await go('import'); const btns=await pg.$$('#tplButtons button'); ok('template buttons',btns.length>=5,btns.length);
@@ -130,8 +131,24 @@ let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else
  // template has settlement columns
  { await go('import'); const d9=pg.waitForEvent('download',{timeout:4000}).catch(()=>null); await pg.evaluate(()=>[...document.querySelectorAll('#tplButtons button')].find(b=>b.innerText.includes('دفعة مقاول')).click()); const dd9=await d9; await dd9.saveAs(S+'/tpl2.xlsx'); const w9=require(S+'/xl/node_modules/xlsx').readFile(S+'/tpl2.xlsx'); ok('template has deduction columns',JSON.stringify(require(S+'/xl/node_modules/xlsx').utils.sheet_to_json(w9.Sheets[w9.SheetNames[0]],{header:1})[0]).includes('تأمينات')); }
  const tbtn=await pg.$$eval('#tplButtons button',b=>b.map(x=>x.innerText)); ok('extra templates exist',tbtn.some(t=>t.includes('ضرائب'))&&tbtn.some(t=>t.includes('سلفة')),tbtn);
+ // settings tree, company, pay methods, extra reports
+ await go('settings'); await sec('company'); await pg.fill('#co_name','شركة الاختبار'); await pg.click('#co_save'); await pg.waitForTimeout(200); ok('company name in header',(await txt('.brand')).includes('شركة الاختبار'));
+ await sec('worktree'); PT='فرع اختبار'; await pg.evaluate(()=>document.querySelector('#workItemsList .wt-add').click()); await pg.waitForTimeout(250); ok('tree child added',(await txt('#workItemsList')).includes('فرع اختبار'));
+ const wtBefore=await txt('#workItemsList'); await pg.evaluate(()=>{const b=[...document.querySelectorAll('#workItemsList .wtrow')].find(r=>r.innerText.includes('فرع اختبار')); b.querySelector('.wt-del').click();}); await pg.waitForTimeout(250); ok('tree node deleted',!(await txt('#workItemsList')).includes('فرع اختبار'));
+ await pg.click('#wtHospital'); await pg.waitForTimeout(250); ok('hospital template in tree',(await txt('#workItemsList')).length>wtBefore.length);
+ await go('projects'); await pg.evaluate(()=>{const t=[...document.querySelectorAll('#projectsTable tbody tr')].find(r=>r.innerText.includes('مشروع اختبار')); (t.querySelector('a,button')||t).click();}); await pg.waitForTimeout(300); await pg.click('#applyTreeBtn'); await pg.waitForTimeout(400); ok('settings tree applied to project',(await txt('#pdTreeTable')).includes('التكييف')||(await txt('#pdTreeTable')).length>100);
+ await go('settings'); await sec('pay'); await pg.fill('#newPayName','إنستاباي'); await pg.selectOption('#newPayKind','bank'); await pg.click('#addPayBtn'); await pg.waitForTimeout(200); ok('extra pay method added',(await txt('#payExtraList')).includes('إنستاباي'));
+ await addTx('purchases',async()=>{ await pg.selectOption('#t_workitem',await wiOpt()); await pg.selectOption('#t_pay','إنستاباي'); await pg.fill('#t_party','مورد انستا'); await pg.fill('#t_amount','123'); });
+ const ir2=(await rowsDb()).find(r=>r.party==='مورد انستا'); ok('custom pay method uses bank account',ir2&&ir2.pay_method==='إنستاباي'&&/bank/.test(ir2.payment_account_id||''),ir2);
+ await go('settings'); await sec('accounts'); ok('accounts listed in settings',(await txt('#setAccList')).includes('الخزينة'));
+ await go('reports'); const rt=await pg.$$eval('#reportTabs button',b=>b.map(x=>x.dataset.rep)); ok('12+ extra reports',rt.filter(x=>x.startsWith('r_')).length>=12,rt);
+ for(const id of rt.filter(x=>x.startsWith('r_'))){ await pg.click('#reportTabs [data-rep="'+id+'"]'); await pg.waitForTimeout(120); ok('report '+id+' renders',(await txt('#repGenericTable')).length>10); }
+ await pg.click('#reportTabs [data-rep="r_summary"]'); ok('summary has revenue line',(await txt('#repGenericTable')).includes('إجمالي الإيرادات'));
+ await pg.click('#reportTabs [data-rep="r_accts"]'); ok('accounts report lists cash box',(await txt('#repGenericTable')).includes('الخزينة'));
+ await pg.click('#reportTabs [data-rep="r_substmt"]'); await pg.selectOption('#repParty','شركة الهواء'); await pg.waitForTimeout(200); ok('contractor statement',(await txt('#repGenericTable')).includes('مدفوع')&&(await txt('#repGenericTable')).includes('20,000'));
+ { const d8=pg.waitForEvent('download',{timeout:4000}).catch(()=>null); await pg.click('#repExport'); ok('generic report export',!!(await d8)); }
  // backup / restore
- await go('settings'); const d4=pg.waitForEvent('download',{timeout:4000}).catch(()=>null); await pg.click('#backupBtn'); const bk=await d4; ok('backup download',!!bk);
+ await go('settings'); await sec('backup'); const d4=pg.waitForEvent('download',{timeout:4000}).catch(()=>null); await pg.click('#backupBtn'); const bk=await d4; ok('backup download',!!bk);
  if(bk){ await bk.saveAs(S+'/backup.json'); const j=JSON.parse(fs.readFileSync(S+'/backup.json','utf8')); ok('backup has data',JSON.stringify(j).length>500); 
    const cnt=(await rowsDb()).length; await pg.setInputFiles('#restoreFile',S+'/backup.json'); await pg.waitForTimeout(1000); ok('restore keeps rows',(await rowsDb()).length===cnt,[(await rowsDb()).length,cnt]); }
  // delete guard
