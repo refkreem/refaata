@@ -7,7 +7,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   const b = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   const pg = await ctx.newPage();
-  const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error' && !/net::|Failed to load/.test(m.text())) errs.push(m.text()); });
+  const errs = []; pg.on('pageerror', e => { errs.push(e.message); console.log('   PAGEERR', e.message); }); pg.on('console', m => { if (m.type() === 'error' && !/net::|Failed to load/.test(m.text())) errs.push(m.text()); });
   pg.on('dialog', d => d.accept());
   await pg.route(/gstatic|cdnjs|googleapis/, r => r.abort());
   await pg.goto('file://' + path.resolve(__dirname, '../index.html'));
@@ -94,7 +94,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   await set('#lines .w_name', 'محمود'); await set('#lines .w_rate', 400); await set('#lines .w_days', 6); await set('#lines .w_otn', 2); await set('#lines .w_shn', 1); await pg.waitForTimeout(100);
   ck('إجمالي: 2400 + 2×200 − 1×200 = 2600', await ev(() => document.getElementById('s_total').textContent) === '2,600');
   ck('يقترح خصم السلفة 300', (await ev(() => document.querySelector('#lines .l_hint').textContent)).includes('300'));
-  await pg.click('[data-a=useWAdv]'); await pg.selectOption('#f_acc', cash); await pg.waitForTimeout(50);
+  console.log('   dup ids:', await ev(() => document.querySelectorAll('#wr0').length), await ev(() => document.querySelector('[data-a=useWAdv]').closest('.ln').id)); await pg.click('[data-a=useWAdv]'); console.log('   adv:', await ev(() => document.querySelector('#lines .w_adv').value)); await pg.selectOption('#f_acc', cash); await pg.waitForTimeout(50);
   const sn = await ev(() => [document.getElementById('s_net').textContent, document.querySelector('#lines .w_adv').value]); ck('الصافي 2300', sn[0] === '2,300', sn); await save();
   ck('تكلفة العمالة 2600 ونقد 2300 وسلف قائمة 0', await ev(() => { const t = S.txs.filter(x => x.type === 'labor')[0]; return costOf(t) === 2600 && t.net === 2300 && workerAdv('محمود') === 0; }));
   await click('[data-a=newTx][data-p="labor|"]'); await pg.selectOption('#t_proj', pid); await set('#lines .w_name', 'عم حسن'); await pg.selectOption('#lines .w_mode', 'month'); await set('#lines .w_rate', 9000); await set('#lines .w_days', 15); await pg.waitForTimeout(80);
@@ -142,7 +142,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
    await click('[data-a=demoClear]'); await pg.waitForTimeout(800);
   ck('حذف التجريبي يُبقي بياناتي فقط', await ev(() => S.projects.length === 1 && S.accounts.length === 3 && S.cfg.contractors.length === 1 && S.txs.every(t => !t.demo)));
   // مهندس موقع
-  await ev(() => { S.cfg.roles = { 'admin@x.com': 'admin', 'eng@x.com': 'engineer' }; S.user = 'eng@x.com'; S.role = roleOf(S.user); S.view = 'purchases'; render(); });
+  await ev(() => { S.cfg.roles = { 'admin@x.com': 'admin', 'eng@x.com': 'engineer' }; S.user = 'eng@x.com'; S.role = roleOf(S.user); S.view = 'expenses'; render(); });
   const m2 = await ev(() => Array.from(document.querySelectorAll('#side a')).map(a => a.textContent.trim()));
   ck('المهندس لا يرى الخزائن/الإيرادات/التقارير/الإعدادات', !m2.join('|').match(/الخزائن|الإيرادات|التقارير|الإعدادات|لوحة/), m2);
   await click('[data-a=newTx][data-p="expense|"]'); await set('#t_amt', 250); await pg.selectOption('#t_proj', pid); await save();

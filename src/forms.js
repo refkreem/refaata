@@ -1,3 +1,5 @@
+/* لا نعيد بناء التلميحات إذا لم تتغير (حتى لا تضيع نقرة الزر عند فقدان التركيز) */
+(function(){var d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,get:d.get,set:function(v){if(this.classList&&(this.classList.contains('l_hint')||this.id==='adv_hint'||this.id==='itemhint')&&d.get.call(this)===String(v))return;d.set.call(this,v)}})})();
 /* ---------- transaction lists ---------- */
 function canEditTx(t){return isFin()||(t.by===S.user&&t.status==='pending')}
 function sumTx(t){switch(t.type){case'purchase':case'labor':return num(t.total);case'sub':return num(t.gross)-num(t.prior_paid);case'transfer':case'revenue':case'expense':case'adv':case'payment':return num(t.amount);case'progress':return 0}return 0}
