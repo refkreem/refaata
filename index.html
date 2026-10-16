@@ -264,6 +264,7 @@ table.data td.wrap{white-space:normal;min-width:160px}
         <div class="view-head">
           <div><h1>المشاريع</h1><p>بيانات كل مشروع، قيمته، مدته، وتكاليفه حتى الآن</p></div>
           <button class="btn primary" id="newProjectBtn">+ مشروع جديد</button>
+          <button class="btn ghost" id="demoCycleBtn">تطبيق دورة مالية تجريبية</button>
         </div>
         <div class="tablewrap"><table class="data" id="projectsTable"></table></div>
       </section>
@@ -1040,6 +1041,59 @@ function projectActualCost(pid){
 function projectRevenue(pid){
   return allTx().filter(function(r){return r.project_id===pid && r.type==='ايراد';}).reduce(function(s,r){return s+(Number(r.amount)||0);},0);
 }
+
+async function applyDemoFinancialCycle(){
+  var demoProjectIds = ['DEMO-CYCLE-P001','DEMO-CYCLE-P002'];
+  var demoBatchId = 'DEMO-CYCLE-FINANCIAL-BATCH';
+  if(demoProjectIds.some(function(id){ return S.projects.some(function(p){return p.id===id;}); }) ||
+     S.batches.some(function(b){return b.id===demoBatchId;})){
+    toast('بيانات الاختبار موجودة بالفعل؛ لم تتم إضافة أي شيء جديد');
+    return;
+  }
+  if(!S.db){ toast('لا يوجد اتصال بقاعدة البيانات'); return; }
+  if(!confirm('سيتم إضافة مشروعين تجريبيين و12 حركة تكلفة وإيرادين إلى قاعدة بيانات البرنامج الحالية. لن تُحذف أو تُعدّل أي بيانات موجودة، ولن تتغير الأرصدة الافتتاحية. هل تريد المتابعة؟')) return;
+
+  var projects = [
+    {id:'DEMO-CYCLE-P001',name:'اختبار الدورة المالية - مشروع 1 (تجريبي)',location:'بيانات اختبار فقط',owner:'جهة افتراضية',contract_value:200000,expected_cost:140000,duration_months:3,start_date:'2026-10-01',initial_handover_date:'2027-01-01',end_date:'2028-01-01',status:'جاري',notes:'بيانات اختبار مميزة؛ ليست مشروعًا حقيقيًا',items:[],boq:[
+      {id:'DEMO-A01',item:'خرسانة - اختبار',cost_item:'مشتريات',unit:'م3',qty:100,unit_price:1000},
+      {id:'DEMO-A02',item:'دهانات - اختبار',cost_item:'مشتريات',unit:'م2',qty:500,unit_price:200}
+    ]},
+    {id:'DEMO-CYCLE-P002',name:'اختبار الدورة المالية - مشروع 2 (تجريبي)',location:'بيانات اختبار فقط',owner:'جهة افتراضية',contract_value:200000,expected_cost:130000,duration_months:4,start_date:'2026-10-01',initial_handover_date:'2027-02-01',end_date:'2028-02-01',status:'جاري',notes:'بيانات اختبار مميزة؛ ليست مشروعًا حقيقيًا',items:[],boq:[
+      {id:'DEMO-B01',item:'كهرباء - اختبار',cost_item:'مشتريات',unit:'بند',qty:1,unit_price:120000},
+      {id:'DEMO-B02',item:'سباكة - اختبار',cost_item:'مشتريات',unit:'بند',qty:1,unit_price:80000}
+    ]}
+  ];
+  var rows = [
+    {date:'2026-10-02',project_id:demoProjectIds[0],type:'مشتريات',item_id:'',work_item:'خرسانة - اختبار',cost_item:'مشتريات',party:'مورد خرسانة تجريبي',pay_method:'عهدة',desc:'تكلفة شراء خرسانة - اختبار',amount:45000,quantity:45,unit:'م3',unit_price:1000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-03',project_id:demoProjectIds[0],type:'مقاول باطن',item_id:'',work_item:'خرسانة - اختبار',cost_item:'مقاولين باطن',party:'مقاول خرسانة تجريبي',pay_method:'عهدة',desc:'مستحق مقاول خرسانة - اختبار',amount:25000,quantity:25,unit:'م3',unit_price:1000,cash_now:15000,remaining:10000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-04',project_id:demoProjectIds[0],type:'عمالة',item_id:'',work_item:'خرسانة - اختبار',cost_item:'عمالة يومية',party:'عمال خرسانة تجريبيون',pay_method:'عهدة',desc:'أجور عمالة خرسانة - اختبار',amount:12000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-05',project_id:demoProjectIds[0],type:'مشتريات',item_id:'',work_item:'دهانات - اختبار',cost_item:'مشتريات',party:'مورد دهانات تجريبي',pay_method:'عهدة',desc:'شراء دهانات - اختبار',amount:20000,quantity:100,unit:'جردل',unit_price:200,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-06',project_id:demoProjectIds[0],type:'مقاول باطن',item_id:'',work_item:'دهانات - اختبار',cost_item:'مقاولين باطن',party:'مقاول دهانات تجريبي',pay_method:'عهدة',desc:'مستحق مقاول دهانات - اختبار',amount:18000,quantity:90,unit:'م2',unit_price:200,cash_now:10000,remaining:8000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-07',project_id:demoProjectIds[0],type:'عمالة',item_id:'',work_item:'دهانات - اختبار',cost_item:'عمالة يومية',party:'عمال دهانات تجريبيون',pay_method:'عهدة',desc:'أجور عمالة دهانات - اختبار',amount:8000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-08',project_id:demoProjectIds[1],type:'مشتريات',item_id:'',work_item:'كهرباء - اختبار',cost_item:'مشتريات',party:'مورد كهرباء تجريبي',pay_method:'عهدة',desc:'شراء خامات كهرباء - اختبار',amount:30000,quantity:1,unit:'دفعة',unit_price:30000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-09',project_id:demoProjectIds[1],type:'مقاول باطن',item_id:'',work_item:'كهرباء - اختبار',cost_item:'مقاولين باطن',party:'مقاول كهرباء تجريبي',pay_method:'عهدة',desc:'مستحق مقاول كهرباء - اختبار',amount:28000,quantity:1,unit:'دفعة',unit_price:28000,cash_now:20000,remaining:8000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-10',project_id:demoProjectIds[1],type:'عمالة',item_id:'',work_item:'كهرباء - اختبار',cost_item:'عمالة يومية',party:'عمال كهرباء تجريبيون',pay_method:'عهدة',desc:'أجور عمالة كهرباء - اختبار',amount:10000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-11',project_id:demoProjectIds[1],type:'مشتريات',item_id:'',work_item:'سباكة - اختبار',cost_item:'مشتريات',party:'مورد سباكة تجريبي',pay_method:'عهدة',desc:'شراء خامات سباكة - اختبار',amount:22000,quantity:1,unit:'دفعة',unit_price:22000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-12',project_id:demoProjectIds[1],type:'مقاول باطن',item_id:'',work_item:'سباكة - اختبار',cost_item:'مقاولين باطن',party:'مقاول سباكة تجريبي',pay_method:'عهدة',desc:'مستحق مقاول سباكة - اختبار',amount:17000,quantity:1,unit:'دفعة',unit_price:17000,cash_now:0,remaining:17000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-13',project_id:demoProjectIds[1],type:'عمالة',item_id:'',work_item:'سباكة - اختبار',cost_item:'عمالة يومية',party:'عمال سباكة تجريبيون',pay_method:'عهدة',desc:'أجور عمالة سباكة - اختبار',amount:7000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-14',project_id:demoProjectIds[0],type:'ايراد',item_id:'',work_item:'',cost_item:'',party:'مستخلص إيراد مشروع 1 تجريبي',pay_method:'',desc:'إيراد تجريبي للمشروع الأول',amount:180000,payment_account_id:'',source:'demo-cycle'},
+    {date:'2026-10-15',project_id:demoProjectIds[1],type:'ايراد',item_id:'',work_item:'',cost_item:'',party:'مستخلص إيراد مشروع 2 تجريبي',pay_method:'',desc:'إيراد تجريبي للمشروع الثاني',amount:170000,payment_account_id:'',source:'demo-cycle'}
+  ];
+  var savedProjects = [];
+  for(var i=0;i<projects.length;i++){
+    var okp = await saveProject(projects[i]);
+    if(!okp){ toast('تعذر حفظ المشروع التجريبي؛ لم تكتمل الإضافة. راجع قائمة المشاريع قبل إعادة المحاولة.'); return; }
+    savedProjects.push(projects[i]);
+  }
+  var batch = {id:demoBatchId,label:'دورة مالية تجريبية لمشروعين',created_at:new Date().toISOString(),rows:rows.map(function(r){return Object.assign({},r,{by:S.userEmail||'',created_at:new Date().toISOString()});})};
+  var okb = await saveBatch(batch);
+  if(!okb){ toast('تم حفظ المشروعين، لكن تعذر حفظ حركات الاختبار؛ راجع الاتصال قبل إعادة المحاولة.'); return; }
+  S.projects = S.projects.concat(savedProjects);
+  S.batches.push(batch);
+  renderProjectsList(); renderDashboard();
+  toast('تمت إضافة الدورة التجريبية: مشروعان و14 حركة مالية');
+}
+
 function renderProjectsList(){
   var t = document.getElementById('projectsTable');
   if(!t) return;
@@ -1065,6 +1119,7 @@ function renderProjectsList(){
   t.querySelectorAll('.clickrow').forEach(function(tr){ tr.addEventListener('click', function(){ openProjectDetail(tr.dataset.id); }); });
 }
 document.getElementById('newProjectBtn').addEventListener('click', function(){ openProjectModal(null); });
+document.getElementById('demoCycleBtn').addEventListener('click', applyDemoFinancialCycle);
 document.getElementById('backToProjects').addEventListener('click', function(){ go('projects'); });
 
 function openProjectModal(id){
