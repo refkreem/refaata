@@ -1560,7 +1560,9 @@ function openTxModal(view, meta, existing){
       laborUnits=Number(document.getElementById('t_labor_units').value)||0;
       laborNights=Number(document.getElementById('t_labor_nights').value)||0;
       laborNightRate=Number(document.getElementById('t_labor_night_rate').value)||0;
-      amount=Number((laborRate*laborUnits+laborNights*laborNightRate).toFixed(2));
+      var laborCalculated=Number((laborRate*laborUnits+laborNights*laborNightRate).toFixed(2));
+      if(laborRate>0 && laborUnits>0) amount=laborCalculated;
+      else amount=Number(document.getElementById('t_amount').value)||0;
     }
     if(!(amount>0)){ toast('أدخل الكمية وسعر الوحدة أو بيانات الأجر ليتم حساب الإجمالي'); return false; }
     var qtySaved=(view==='subcontractors'||view==='purchases')?(Number(document.getElementById('t_qty').value)||0):null;
