@@ -1055,11 +1055,13 @@ function renderProjectsList(){
       '<td>'+esc(p.owner||'—')+'</td>'+
       '<td><span class="pill status-'+esc(p.status||'جاري')+'">'+esc(p.status||'جاري')+'</span></td>'+
       '<td class="num">'+ (p.contract_value? fmtMoney(p.contract_value):'—') +'</td>'+
-      '<td class="num">'+fmtMoney(cost)+ (pct!=null? ' <span class="helptext">('+pct+'%)</span>':'') +'</td>'+
+      '<td class="num">'+ (p.expected_cost?fmtMoney(p.expected_cost):'—') +'</td>'+
+      '<td class="num">'+fmtMoney(cost)+ (pct!=null? ' <span class="helptext">('+pct+'% من العقد)</span>':'') +'</td>'+
+      '<td>'+fmtDate(p.initial_handover_date||p.end_date)+'</td>'+
       '<td>'+fmtDate(p.end_date)+'</td>'+
     '</tr>';
   }).join('');
-  t.innerHTML = '<thead><tr><th>المشروع</th><th>الجهة المالكة</th><th>الحالة</th><th class="num">قيمة العقد</th><th class="num">التكلفة حتى الآن</th><th>تاريخ التسليم</th></tr></thead><tbody>'+rows+'</tbody>';
+  t.innerHTML = '<thead><tr><th>المشروع</th><th>الجهة المالكة</th><th>الحالة</th><th class="num">قيمة العقد</th><th class="num">التكلفة المتوقعة</th><th class="num">التكلفة حتى الآن</th><th>الاستلام الابتدائي</th><th>الاستلام النهائي</th></tr></thead><tbody>'+rows+'</tbody>';
   t.querySelectorAll('.clickrow').forEach(function(tr){ tr.addEventListener('click', function(){ openProjectDetail(tr.dataset.id); }); });
 }
 document.getElementById('newProjectBtn').addEventListener('click', function(){ openProjectModal(null); });
@@ -1099,9 +1101,15 @@ function openProjectModal(id){
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
   function updateProjectDates(){
-    var initial=addMonthsSafe(startEl.value, Number(durationEl.value)||0);
-    document.getElementById('f_initial').value=initial;
-    document.getElementById('f_end').value=initial ? addMonthsSafe(initial,12) : '';
+    var months=Number(durationEl.value)||0;
+    if(startEl.value && months>0){
+      var initial=addMonthsSafe(startEl.value, months);
+      document.getElementById('f_initial').value=initial;
+      document.getElementById('f_end').value=initial ? addMonthsSafe(initial,12) : '';
+    } else if(!startEl.value || !months){
+      document.getElementById('f_initial').value=p.initial_handover_date||'';
+      document.getElementById('f_end').value=p.end_date||'';
+    }
   }
   startEl.addEventListener('change',updateProjectDates);
   durationEl.addEventListener('input',updateProjectDates);
