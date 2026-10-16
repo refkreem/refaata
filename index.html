@@ -1516,6 +1516,23 @@ function openTxModal(view, meta, existing){
     html += '<div class="field" id="t_ci_wrap"><label>نوع التكلفة</label><select id="t_costitem"></select></div>';
   }
   html += '<div class="field"><label>'+meta.partyLabel+'</label><input id="t_party" value="'+esc(ex? ex.party||'' : '')+'"></div>';
+  if(view==='subcontractors' || view==='purchases'){
+    html += '<div class="grid3">'+
+      '<div class="field"><label>الكمية</label><input id="t_qty" type="number" min="0" step=".001" value="'+esc(ex&&ex.quantity!=null?ex.quantity:'')+'"></div>'+
+      '<div class="field"><label>الوحدة</label><input id="t_unit" value="'+esc(ex&&ex.unit||'')+'" placeholder="م³، م²، قطعة..."></div>'+
+      '<div class="field"><label>سعر الوحدة (ج.م)</label><input id="t_rate" type="number" min="0" step=".01" value="'+esc(ex&&ex.unit_price!=null?ex.unit_price:'')+'"></div>'+
+    '</div><p class="helptext">إجمالي الكمية × سعر الوحدة يُحسب تلقائيًا، ويمكن تعديل الإجمالي عند الحاجة إلى تسوية.</p>';
+  }
+  if(view==='labor'){
+    html += '<div class="grid3">'+
+      '<div class="field"><label>نظام الحساب</label><select id="t_labor_basis"><option value="daily"'+(!ex||ex.labor_basis!=='monthly'?' selected':'')+'>باليومية</option><option value="monthly"'+(ex&&ex.labor_basis==='monthly'?' selected':'')+'>بالشهر</option></select></div>'+
+      '<div class="field"><label>قيمة اليومية / الشهر</label><input id="t_labor_rate" type="number" min="0" step=".01" value="'+esc(ex&&ex.labor_rate!=null?ex.labor_rate:'')+'"></div>'+
+      '<div class="field"><label>عدد الأيام / الأشهر</label><input id="t_labor_units" type="number" min="0" step=".5" value="'+esc(ex&&ex.labor_units!=null?ex.labor_units:'')+'"></div>'+
+    '</div><div class="grid2">'+
+      '<div class="field"><label>عدد السهرات / الإضافي</label><input id="t_labor_nights" type="number" min="0" step=".5" value="'+esc(ex&&ex.labor_nights!=null?ex.labor_nights:'0')+'"></div>'+
+      '<div class="field"><label>قيمة السهرة / الإضافي</label><input id="t_labor_night_rate" type="number" min="0" step=".01" value="'+esc(ex&&ex.labor_night_rate!=null?ex.labor_night_rate:'0')+'"></div>'+
+    '</div><p class="helptext">الإجمالي = قيمة اليومية/الشهر × العدد + السهرات × قيمة السهرة. تُسجل السلف في خانة السلف/الخصومات بالتسوية.</p>';
+  }
   if(meta.needsPay){
     html += '<div class="grid2" id="t_pay_wrap"><div class="field"><label>طريقة الدفع</label><select id="t_pay">'+PAY_METHODS.map(function(m){return '<option>'+m+'</option>';}).join('')+'</select></div>'+
       '<div class="field" id="t_cust_wrap"><label>أمين العهدة</label><select id="t_cust"></select></div></div>';
@@ -1532,7 +1549,23 @@ function openTxModal(view, meta, existing){
   html += '<div class="field"><label>المبلغ</label><input id="t_amount" type="number" inputmode="decimal" value="'+(ex? ex.amount : '')+'"></div>';
   openModal(existing?'تعديل حركة':'حركة جديدة', html, async function(){
     var amount = Number(document.getElementById('t_amount').value);
-    if(!(amount>0)){ toast('المبلغ مطلوب'); return false; }
+    if(view==='subcontractors' || view==='purchases'){
+      var qv=Number(document.getElementById('t_qty').value)||0, rv=Number(document.getElementById('t_rate').value)||0;
+      if(qv>0 && rv>0) amount=Number((qv*rv).toFixed(2));
+    }
+    var laborBasis='', laborRate=0, laborUnits=0, laborNights=0, laborNightRate=0;
+    if(view==='labor'){
+      laborBasis=document.getElementById('t_labor_basis').value;
+      laborRate=Number(document.getElementById('t_labor_rate').value)||0;
+      laborUnits=Number(document.getElementById('t_labor_units').value)||0;
+      laborNights=Number(document.getElementById('t_labor_nights').value)||0;
+      laborNightRate=Number(document.getElementById('t_labor_night_rate').value)||0;
+      amount=Number((laborRate*laborUnits+laborNights*laborNightRate).toFixed(2));
+    }
+    if(!(amount>0)){ toast('أدخل الكمية وسعر الوحدة أو بيانات الأجر ليتم حساب الإجمالي'); return false; }
+    var qtySaved=(view==='subcontractors'||view==='purchases')?(Number(document.getElementById('t_qty').value)||0):null;
+    var unitSaved=(view==='subcontractors'||view==='purchases')?document.getElementById('t_unit').value.trim():'';
+    var rateSaved=(view==='subcontractors'||view==='purchases')?(Number(document.getElementById('t_rate').value)||0):null;
     var typeSel = document.getElementById('t_type');
     var type = typeSel ? typeSel.value : defType;
     var isIn = type==='عهدة-استلام' || type==='عهدة-رد', isAccrual = type==='مستحق مقاول';
@@ -1556,6 +1589,8 @@ function openTxModal(view, meta, existing){
       party: document.getElementById('t_party').value.trim(), pay_method: pay, custodian: custodian,
       desc: document.getElementById('t_desc').value.trim(), amount: amount
     };
+    if(view==='subcontractors'||view==='purchases'){row.quantity=qtySaved;row.unit=unitSaved;row.unit_price=rateSaved;}
+    if(view==='labor'){row.labor_basis=laborBasis;row.labor_rate=laborRate;row.labor_units=laborUnits;row.labor_nights=laborNights;row.labor_night_rate=laborNightRate;}
     if(!row.date){ toast('التاريخ مطلوب'); return false; }
     var settleKeys = {prior_paid:'t_prior',advances:'t_adv',insurance_amount:'t_ins',tax_amount:'t_tax',direct_deductions:'t_direct',cheque_now:'t_cheque',cash_now:'t_cash'}, settleOn = false;
     if(document.getElementById('t_settle_box')){
@@ -1579,6 +1614,18 @@ function openTxModal(view, meta, existing){
   });
 
   var projSel = document.getElementById('t_project'), wiSel = document.getElementById('t_workitem'), ciSel = document.getElementById('t_costitem');
+  function syncCalculatedAmount(){
+    var amountEl=document.getElementById('t_amount'); if(!amountEl) return;
+    if(view==='subcontractors'||view==='purchases'){
+      var q=Number(document.getElementById('t_qty').value)||0, rate=Number(document.getElementById('t_rate').value)||0;
+      if(q>0 && rate>0) amountEl.value=(q*rate).toFixed(2);
+    } else if(view==='labor'){
+      var lr=Number(document.getElementById('t_labor_rate').value)||0, lu=Number(document.getElementById('t_labor_units').value)||0;
+      var ln=Number(document.getElementById('t_labor_nights').value)||0, lnr=Number(document.getElementById('t_labor_night_rate').value)||0;
+      amountEl.value=(lr*lu+ln*lnr).toFixed(2);
+    }
+  }
+  ['t_qty','t_rate','t_labor_rate','t_labor_units','t_labor_nights','t_labor_night_rate'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',syncCalculatedAmount);});
   var payEl = document.getElementById('t_pay'), custEl = document.getElementById('t_cust'), typeSel = document.getElementById('t_type');
   function fillWork(selected){
     if(!wiSel) return;
