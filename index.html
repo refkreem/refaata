@@ -225,11 +225,9 @@ table.data td.wrap{white-space:normal;min-width:160px}
       <button data-view="quick"><span class="ic">＋</span> إدخال سريع</button>
       <div class="sep" id="quickSep"></div>
       <button data-view="dashboard" class="active"><span class="ic">◆</span> لوحة التحكم</button>
+      <button data-view="accounts"><span class="ic">🏦</span> الخزائن والبنوك</button>
       <button data-view="projects"><span class="ic">▣</span> المشاريع</button>
       <div class="sep"></div>
-      <button data-view="custody"><span class="ic">💰</span> كشف العهد</button>
-      <button data-view="accounts"><span class="ic">🏦</span> الخزائن والبنوك</button>
-      <button data-view="weekly"><span class="ic">🧾</span> دفعة الخميس</button>
       <button data-view="subcontractors"><span class="ic">🔧</span> مقاولو الباطن</button>
       <button data-view="labor"><span class="ic">👷</span> العمالة اليومية</button>
       <button data-view="salaries"><span class="ic">🧾</span> الرواتب</button>
@@ -1068,7 +1066,7 @@ document.getElementById('newProjectBtn').addEventListener('click', function(){ o
 document.getElementById('backToProjects').addEventListener('click', function(){ go('projects'); });
 
 function openProjectModal(id){
-  var p = id ? S.projects.find(function(p){return p.id===id;}) : {id:uid(), name:'', location:'', owner:'', contract_value:'', start_date:'', end_date:'', status:'جاري', notes:'', boq:[]};
+  var p = id ? S.projects.find(function(p){return p.id===id;}) : {id:uid(), name:'', location:'', owner:'', contract_value:'', expected_cost:'', duration_months:'', start_date:'', initial_handover_date:'', end_date:'', status:'جاري', notes:'', boq:[]};
   var isNew = !id;
   var html =
     '<div class="field"><label>اسم المشروع</label><input id="f_name" value="'+esc(p.name)+'"></div>'+
@@ -1077,21 +1075,47 @@ function openProjectModal(id){
       '<div class="field"><label>الجهة المالكة</label><input id="f_owner" value="'+esc(p.owner||'')+'"></div>'+
     '</div>'+
     '<div class="grid3">'+
-      '<div class="field"><label>قيمة المشروع الإجمالية (قيمة الكراسة)</label><input id="f_value" type="number" value="'+esc(p.contract_value||'')+'"></div>'+
-      '<div class="field"><label>تاريخ الاستلام (البدء)</label><input id="f_start" type="date" value="'+esc(p.start_date||'')+'"></div>'+
-      '<div class="field"><label>تاريخ التسليم</label><input id="f_end" type="date" value="'+esc(p.end_date||'')+'"></div>'+
+      '<div class="field"><label>قيمة العقد (ج.م)</label><input id="f_value" type="number" min="0" step=".01" value="'+esc(p.contract_value||'')+'"></div>'+
+      '<div class="field"><label>التكلفة المتوقعة (ج.م)</label><input id="f_expected_cost" type="number" min="0" step=".01" value="'+esc(p.expected_cost||'')+'"></div>'+
+      '<div class="field"><label>مدة التنفيذ (بالشهور)</label><input id="f_duration" type="number" min="1" step="1" value="'+esc(p.duration_months||'')+'"></div>'+
     '</div>'+
+    '<div class="grid3">'+
+      '<div class="field"><label>تاريخ بدء التنفيذ</label><input id="f_start" type="date" value="'+esc(p.start_date||'')+'"></div>'+
+      '<div class="field"><label>الاستلام الابتدائي (محسوب)</label><input id="f_initial" type="date" value="'+esc(p.initial_handover_date||'')+'" readonly></div>'+
+      '<div class="field"><label>الاستلام النهائي (بعد سنة)</label><input id="f_end" type="date" value="'+esc(p.end_date||'')+'" readonly></div>'+
+    '</div>'+
+    '<p class="helptext">يُحسب الاستلام الابتدائي من تاريخ بدء التنفيذ + مدة التنفيذ، والاستلام النهائي بعد سنة كاملة من الاستلام الابتدائي.</p>'+
     '<div class="field"><label>الحالة</label><select id="f_status">'+
       ['جاري','متوقف','منتهى'].map(function(s){return '<option '+(p.status===s?'selected':'')+'>'+s+'</option>';}).join('')+
     '</select></div>'+
     '<div class="field"><label>ملاحظات</label><textarea id="f_notes">'+esc(p.notes||'')+'</textarea></div>';
+  var startEl=document.getElementById('f_start'), durationEl=document.getElementById('f_duration');
+  function addMonthsSafe(dateText, months){
+    if(!dateText || !(months>0)) return '';
+    var d=new Date(dateText+'T12:00:00'), day=d.getDate();
+    d.setDate(1); d.setMonth(d.getMonth()+months);
+    var last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+    d.setDate(Math.min(day,last));
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function updateProjectDates(){
+    var initial=addMonthsSafe(startEl.value, Number(durationEl.value)||0);
+    document.getElementById('f_initial').value=initial;
+    document.getElementById('f_end').value=initial ? addMonthsSafe(initial,12) : '';
+  }
+  startEl.addEventListener('change',updateProjectDates);
+  durationEl.addEventListener('input',updateProjectDates);
+  updateProjectDates();
   openModal(isNew?'مشروع جديد':'تعديل بيانات المشروع', html, async function(){
     p.name = document.getElementById('f_name').value.trim();
     if(!p.name){ toast('اسم المشروع مطلوب'); return false; }
     p.location = document.getElementById('f_location').value.trim();
     p.owner = document.getElementById('f_owner').value.trim();
     p.contract_value = Number(document.getElementById('f_value').value)||0;
+    p.expected_cost = Number(document.getElementById('f_expected_cost').value)||0;
+    p.duration_months = Math.max(0, Number(document.getElementById('f_duration').value)||0);
     p.start_date = document.getElementById('f_start').value;
+    p.initial_handover_date = document.getElementById('f_initial').value;
     p.end_date = document.getElementById('f_end').value;
     p.status = document.getElementById('f_status').value;
     p.notes = document.getElementById('f_notes').value.trim();
