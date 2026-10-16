@@ -1,0 +1,87 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14253d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg">
+<title>مقاول Pro | الإدارة المالية والهندسية للمشروعات</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&family=Tajawal:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f3f5f8;--surface:#fff;--s2:#eef1f5;--bd:#dbe0e8;--fg:#1a2331;--mut:#5a6577;--fnt:#8993a3;--ac:#c65d2e;--acf:#fff;--acs:#fbe9e0;--navy:#14253d;--navyf:#e8edf5;--good:#1f8a58;--gs:#e2f4ea;--bad:#c23b3b;--bs:#fbe6e6;--warn:#b4821e;--ws:#fbf0dc;--r:10px;--sh:0 1px 2px rgba(20,24,33,.06),0 4px 14px rgba(20,24,33,.05)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#10151e;--surface:#171e2a;--s2:#1e2630;--bd:#2a3341;--fg:#e7ebf1;--mut:#a3adbb;--fnt:#6b7585;--ac:#e07a46;--acf:#1b1208;--acs:#2c1f16;--navy:#0b121d;--good:#4cc98a;--gs:#142c22;--bad:#f08080;--bs:#2f1717;--warn:#e0b350;--ws:#2e2510;color-scheme:dark}}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--fg);font:15px/1.5 Tajawal,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+h1,h2,h3,.disp{font-family:Cairo,system-ui,sans-serif;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+.top{position:sticky;top:0;z-index:30;background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:52px}
+.top .logo{font:800 18px Cairo;letter-spacing:.2px}.top .logo i{color:var(--ac);font-style:normal}
+.top .sp{flex:1}.top .meta{font-size:12px;opacity:.85;display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:#888}.dot.on{background:#3ddc84}
+.ib{background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:13px}
+.burger{display:none}
+.layout{display:flex;min-height:calc(100vh - 52px)}
+.side{width:230px;flex:none;background:var(--surface);border-left:1px solid var(--bd);padding:10px 8px;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto}
+.side a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:var(--fg);text-decoration:none;cursor:pointer;margin-bottom:2px;font-weight:500}
+.side a .ic{width:22px;text-align:center;font-size:16px}.side a:hover{background:var(--s2)}
+.side a.on{background:var(--navy);color:#fff}.side a .bdg{margin-inline-start:auto;background:var(--ac);color:#fff;border-radius:10px;font-size:11px;padding:0 7px}
+.side .sep{height:1px;background:var(--bd);margin:8px 6px}
+main{flex:1;min-width:0;padding:16px;max-width:1500px}
+.pg-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.pg-h h2{font-size:21px}.pg-h .sp{flex:1}
+.card{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);padding:14px;margin-bottom:14px}
+.card h3{font-size:16px;margin-bottom:8px}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh)}
+.kpi .l{font-size:12px;color:var(--mut)}.kpi .v{font:800 21px Cairo;margin-top:2px}.kpi .s{font-size:12px;color:var(--fnt)}
+.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}.mut{color:var(--mut)}.fnt{color:var(--fnt)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--bd);background:var(--surface);border-radius:8px;padding:7px 13px;cursor:pointer;font-weight:600;font-size:14px}
+.btn:hover{background:var(--s2)}.btn.p{background:var(--ac);color:var(--acf);border-color:var(--ac)}.btn.p:hover{filter:brightness(1.07)}
+.btn.d{color:var(--bad);border-color:var(--bad)}.btn.sm{padding:3px 9px;font-size:13px}.btn[disabled]{opacity:.5;cursor:not-allowed}
+.tw{overflow:auto;border:1px solid var(--bd);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;white-space:nowrap;vertical-align:middle}
+th{background:var(--s2);font-weight:700;position:sticky;top:0;font-size:13px;color:var(--mut)}
+td.n,th.n{text-align:left;direction:ltr;font-variant-numeric:tabular-nums}
+tr.clk{cursor:pointer}tr.clk:hover td{background:var(--s2)}
+tfoot td{font-weight:800;background:var(--s2)}tr.sub td{background:var(--s2);font-weight:700}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;background:var(--s2);color:var(--mut)}
+.tag.g{background:var(--gs);color:var(--good)}.tag.b{background:var(--bs);color:var(--bad)}.tag.w{background:var(--ws);color:var(--warn)}.tag.a{background:var(--acs);color:var(--ac)}
+.bar{height:7px;background:var(--s2);border-radius:5px;overflow:hidden;min-width:70px}.bar i{display:block;height:100%;background:var(--good)}.bar i.w{background:var(--warn)}.bar i.b{background:var(--bad)}
+.flt{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:10px}
+.flt label,.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+input,select,textarea{background:var(--surface);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;min-width:0;font-size:15px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--ac);outline-offset:-1px}
+input[readonly]{background:var(--s2)}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--bd);margin-bottom:12px;overflow:auto}
+.tabs a{padding:8px 14px;cursor:pointer;font-weight:700;color:var(--mut);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}.tabs a.on{color:var(--ac);border-color:var(--ac)}
+#modal{position:fixed;inset:0;background:rgba(10,14,22,.55);z-index:60;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:20px 10px}
+#modal.show{display:flex}.mbox{background:var(--surface);border-radius:12px;width:100%;max-width:640px;box-shadow:0 20px 60px rgba(0,0,0,.35)}.mbox.w{max-width:1000px}
+.mhead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bd);font:700 17px Cairo}
+.mhead .x{background:none;border:0;font-size:18px;cursor:pointer;color:var(--mut)}
+.mbody{padding:14px 16px}.mfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--bd);position:sticky;bottom:0;background:var(--surface);border-radius:0 0 12px 12px}
+.fg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:10px}.fg .full{grid-column:1/-1}
+.ln{border:1px solid var(--bd);border-radius:9px;padding:10px;margin-bottom:8px;background:var(--s2);position:relative}
+.ln .fg{margin-bottom:4px}.ln .rm{position:absolute;top:6px;left:8px;background:none;border:0;color:var(--bad);cursor:pointer;font-size:16px}
+.hint{font-size:12.5px;padding:6px 9px;border-radius:7px;background:var(--navyf);color:var(--navy);margin-top:4px}
+:root[data-theme=dark] .hint,:root:not([data-theme=light]) .hint{}
+@media(prefers-color-scheme:dark){.hint{background:#1c2a40;color:#cfe0f7}}
+.hint.w{background:var(--ws);color:var(--warn)}.hint.b{background:var(--bs);color:var(--bad)}.hint.g{background:var(--gs);color:var(--good)}
+.tot{display:flex;gap:18px;flex-wrap:wrap;padding:10px 12px;background:var(--navy);color:#fff;border-radius:9px;margin:8px 0;font-size:14px}.tot b{font:800 17px Cairo}.tot div{display:flex;flex-direction:column}
+.login{position:fixed;inset:0;background:var(--navy);z-index:80;display:none;align-items:center;justify-content:center;padding:16px}.login.show{display:flex}
+.login form{background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:370px;display:grid;gap:12px}
+.err{color:var(--bad);font-size:13px;min-height:18px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:9px;z-index:99;display:none;max-width:90vw}
+.empty{text-align:center;color:var(--fnt);padding:28px 10px}
+.setw{display:grid;grid-template-columns:230px 1fr;gap:14px}.settree a{display:block;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}.settree a.on{background:var(--acs);color:var(--ac)}.settree .gr{font-size:12px;color:var(--fnt);padding:8px 12px 2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{background:var(--s2);border:1px solid var(--bd);border-radius:16px;padding:3px 6px 3px 12px;display:inline-flex;gap:6px;align-items:center}.chip button{border:0;background:none;color:var(--bad);cursor:pointer}
+.acc{border-inline-start:5px solid var(--ac)}.acc.bank{border-inline-start-color:#2d6cdf}
+@media(max-width:900px){.burger{display:inline-block}.side{position:fixed;right:0;top:52px;z-index:40;transform:translateX(105%);transition:.2s;width:78vw;max-width:290px;box-shadow:-8px 0 30px rgba(0,0,0,.3)}.side.open{transform:none}main{padding:10px}.setw{grid-template-columns:1fr}.top .meta .t{display:none}th,td{padding:7px 8px}}
+@media print{.top,.side,.flt,.btn,.tabs,#toast,.noprint{display:none!important}main{padding:0}.card,.tw{box-shadow:none;border:0}body{background:#fff;color:#000}.tw{overflow:visible}}
+</style></head><body>
+<div class="login" id="login"><form id="loginForm"><h2 class="disp">مقاول <span style="color:var(--ac)">Pro</span></h2><div class="mut">تسجيل الدخول لنظام الشركة</div>
+<label class="f">البريد الإلكتروني<input id="lEmail" type="email" dir="ltr" required autocomplete="username"></label>
+<label class="f">كلمة المرور<input id="lPass" type="password" dir="ltr" required autocomplete="current-password"></label>
+<div class="err" id="lErr"></div><button class="btn p" style="justify-content:center" id="lBtn">دخول</button></form></div>
+<div class="top"><button class="ib burger" data-a="menu">☰</button><div class="logo">مقاول <i>Pro</i></div><div class="sp"></div>
+<div class="meta"><span class="dot" id="dot"></span><span class="t" id="conn">…</span><span class="tag" id="roleTag" style="background:rgba(255,255,255,.15);color:#fff"></span></div>
+<button class="ib" data-a="refresh" title="تحديث البيانات">⟳</button><button class="ib" id="logout" style="display:none" data-a="logout">خروج</button></div>
+<div class="layout"><nav class="side" id="side"></nav><main id="main"></main></div>
+<div id="modal"></div><div id="toast"></div>
+<script>
