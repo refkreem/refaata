@@ -23,3 +23,11 @@
 
 ## الاختبار
 `node tests/cycle.test.js` (Playwright) — دورة كاملة بأرقام متحقق منها.
+
+## فصل نسخة Claude عن النسخ الأخرى (ChatGPT / Google Studio)
+
+- نسخة Claude تحفظ بياناتها في مجموعات Firebase خاصة بادئتها `claude_v4_` فقط: `claude_v4_projects` و`claude_v4_txs` و`claude_v4_accounts` وإعداداتها في `claude_v4_meta/config`.
+- نسخ ChatGPT تستخدم `projects` و`batches` و`pending` و`cashAccounts` و`chatgpt_v1_*`؛ لا تتقاطع مع مجموعات Claude.
+- عند أول دخول للمدير/المحاسب بعد هذا التحديث تُنسخ تلقائيًا بيانات Claude القديمة (`ns=v4`) من المجموعات المشتركة إلى المعزولة، دون حذف أي شيء. بعد التأكد من اكتمال البيانات: الإعدادات ← فصل البيانات عن النسخ الأخرى ← "حذف النسخ القديمة".
+- كل نسخة على رابط GitHub Pages مستقل (مستودع مستقل) فلا يتأثر كود أحدها بالآخر.
+- `node tests/isolation.test.js` يتحقق من النقل والعزل.

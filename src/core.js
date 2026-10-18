@@ -25,20 +25,34 @@ function cls(n){return n>0.004?'good':n<-0.004?'bad':''}
 
 /* ---------- local fallback db ---------- */
 function makeLocalDb(){var K='moqawel_pro_v4';function ld(){try{return JSON.parse(localStorage.getItem(K)||'{}')}catch(e){return{}}}function sv(d){try{localStorage.setItem(K,JSON.stringify(d))}catch(e){}}
-var db={collection:function(n){return{where:function(){return this},get:function(){var c=ld()[n]||{};return Promise.resolve({docs:Object.keys(c).map(function(id){return{id:id,data:function(){return c[id]}}})})},doc:function(id){return{set:function(o){var d=ld();d[n]=d[n]||{};d[n][id]=JSON.parse(JSON.stringify(o));sv(d);return Promise.resolve()},delete:function(){var d=ld();if(d[n])delete d[n][id];sv(d);return Promise.resolve()},get:function(){var c=ld()[n]||{};return Promise.resolve({exists:!!c[id],data:function(){return c[id]}})}}}}},doc:function(p){var a=p.split('/');return db.collection(a[0]).doc(a[1])}};return db}
+var db={collection:function(n){var flt=null;var api={where:function(f,op,v){flt=[f,v];return api},get:function(){var c=ld()[n]||{};var ids=Object.keys(c).filter(function(id){return!flt||c[id][flt[0]]===flt[1]});return Promise.resolve({docs:ids.map(function(id){return{id:id,data:function(){return c[id]}}})})},doc:function(id){return{set:function(o){var d=ld();d[n]=d[n]||{};d[n][id]=JSON.parse(JSON.stringify(o));sv(d);return Promise.resolve()},delete:function(){var d=ld();if(d[n])delete d[n][id];sv(d);return Promise.resolve()},get:function(){var c=ld()[n]||{};return Promise.resolve({exists:!!c[id],data:function(){return c[id]}})}}}};return api},doc:function(p){var a=p.split('/');return db.collection(a[0]).doc(a[1])}};return db}
 
-/* ---------- persistence ---------- */
+/* ---------- persistence ----------
+   كل بيانات نسخة Claude تُحفظ في مجموعات بادئتها claude_v4_ فقط، فلا تتشارك أي مجموعة مع نسخ ChatGPT / Google Studio
+   (التي تستخدم projects و batches و pending و cashAccounts و meta/config...). */
+var PFX='claude_v4_';
+var COL={projects:PFX+'projects',txs:PFX+'txs',accounts:PFX+'accounts'};
+var CFGDOC=PFX+'meta/config';
+var LEGACY={projects:'projects',txs:'txs',accounts:'accounts'};   // أماكن النسخة القديمة المشتركة (قبل العزل)
 function clean(o){var c=JSON.parse(JSON.stringify(o));c.ns=NS;return c}
-async function dbSet(col,o){try{await S.db.collection(col).doc(o.id).set(clean(o));return true}catch(e){console.error(e);toast('⚠ تعذر الحفظ — تحقق من الاتصال');return false}}
-async function dbDel(col,id){try{await S.db.collection(col).doc(id).delete();return true}catch(e){console.error(e);toast('⚠ تعذر الحذف');return false}}
-async function saveCfg(){try{await S.db.doc('meta/config_v4').set(clean(S.cfg));return true}catch(e){console.error(e);toast('⚠ تعذر حفظ الإعدادات');return false}}
+async function dbSet(col,o){try{await S.db.collection(COL[col]).doc(o.id).set(clean(o));return true}catch(e){console.error(e);toast('⚠ تعذر الحفظ — تحقق من الاتصال');return false}}
+async function dbDel(col,id){try{await S.db.collection(COL[col]).doc(id).delete();return true}catch(e){console.error(e);toast('⚠ تعذر الحذف');return false}}
+async function saveCfg(){try{await S.db.doc(CFGDOC).set(clean(S.cfg));return true}catch(e){console.error(e);toast('⚠ تعذر حفظ الإعدادات');return false}}
+function qNs(name){var r=S.db.collection(name);return r.where?r.where('ns','==',NS).get():r.get()}
+/* نقل لمرة واحدة: ينسخ بيانات v4 من المجموعات المشتركة القديمة إلى المجموعات المعزولة (لا يحذف شيئًا من القديم) */
+async function migrateLegacy(){var counts={},had=0;
+ try{var lc=await S.db.doc('meta/config_v4').get();if(lc.exists){var ex=await S.db.doc(CFGDOC).get();if(!ex.exists){var d=Object.assign(defaultCfg(),lc.data());delete d.ns;S.cfg=Object.assign(S.cfg,d);counts.config=1}}}catch(e){console.error('mig cfg',e)}
+ for(var k of Object.keys(LEGACY)){counts[k]=0;try{var old=await qNs(LEGACY[k]);var cur={};(await qNs(COL[k])).docs.forEach(function(d){cur[d.id]=1});
+  for(var d of old.docs){if(cur[d.id])continue;var v=d.data();v.id=d.id;await S.db.collection(COL[k]).doc(d.id).set(clean(v));counts[k]++;had++}}catch(e){console.error('mig '+k,e);counts[k]='خطأ'}}
+ S.cfg.migrated_v4={at:new Date().toISOString(),counts:counts};await saveCfg();return counts}
+async function legacyCounts(){var r={};for(var k of Object.keys(LEGACY)){try{r[k]=(await qNs(LEGACY[k])).docs.length}catch(e){r[k]='؟'}}return r}
 async function loadAll(){
- var q=function(c){var r=S.db.collection(c);return r.where?r.where('ns','==',NS).get():r.get()};
- try{var c=await S.db.doc('meta/config_v4').get();if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data())}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e)}
+ try{var c=await S.db.doc(CFGDOC).get();if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data())}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e)}
  S.role=roleOf(S.user);
- try{S.projects=(await q('projects')).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
- try{S.txs=(await q('txs')).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
- if(isFin()){try{S.accounts=(await q('accounts')).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await q('accounts')).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}
+ if(!S.cfg.migrated_v4&&isFin()){try{var m=await migrateLegacy();S.role=roleOf(S.user);var n=sum(Object.keys(m),function(k){return typeof m[k]==='number'?m[k]:0});if(n)toast('تم نقل '+n+' سجل إلى المجموعات المعزولة لنسخة Claude')}catch(e){console.error('migrate',e)}}
+ try{S.projects=(await qNs(COL.projects)).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
+ try{S.txs=(await qNs(COL.txs)).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
+ if(isFin()){try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}
 }
 /* ---------- roles ---------- */
 function roleOf(email){var r=S.cfg.roles||{};var keys=Object.keys(r);if(!keys.length)return'admin';return r[(email||'').toLowerCase()]||'engineer'}
