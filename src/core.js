@@ -1,7 +1,8 @@
 'use strict';
 var NS='v4';
 var FIREBASE_CONFIG={apiKey:"AIzaSyBLIawlu2kJ3EAxcL8aYoCl4TwXlRAhu7Q",authDomain:"moqawel-pro.firebaseapp.com",projectId:"moqawel-pro",storageBucket:"moqawel-pro.firebasestorage.app",messagingSenderId:"636925561424",appId:"1:636925561424:web:4d5b0bc24ee43e445adf55"};
-function defaultCfg(){return{company:{name:'',phone:'',address:''},pcats:['كهرباء','صحي','أعمال دهانات','أخرى'],units:['م','م2','م3','عدد','طن','كجم','متر طولي','لفة','مقطوعية','يوم'],
+var PCATS_DEFAULT=['صحية','كهربائية','معمارية','إنذار','غازات','تكييف','أخرى'];var PCATS_OLD=['كهرباء','صحي','أعمال دهانات','أخرى'];
+function defaultCfg(){return{company:{name:'',phone:'',address:''},pcats:PCATS_DEFAULT.slice(),units:['م','م2','م3','عدد','طن','كجم','متر طولي','لفة','مقطوعية','يوم'],
 ecats:['نقل وانتقالات','إكراميات','ضرائب وتأمينات','إيجارات','رواتب إدارية','مرافق (كهرباء/مياه/اتصالات)','عدد وأدوات','أخرى'],
 rcats:['دفعة مقدمة','مستخلص جاري','مستخلص ختامي','محتجز / ضمان أعمال','أخرى'],
 catalog:[],contractors:[],suppliers:[],workers:[],roles:{}};}
@@ -47,7 +48,7 @@ async function migrateLegacy(){var counts={},had=0;
  S.cfg.migrated_v4={at:new Date().toISOString(),counts:counts};await saveCfg();return counts}
 async function legacyCounts(){var r={};for(var k of Object.keys(LEGACY)){try{r[k]=(await qNs(LEGACY[k])).docs.length}catch(e){r[k]='؟'}}return r}
 async function loadAll(){
- try{var c=await S.db.doc(CFGDOC).get();if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data())}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e)}
+ try{var c=await S.db.doc(CFGDOC).get();if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data());var pc=S.cfg.pcats||[];if(!S.cfg.pcats_v5){S.cfg.pcats=PCATS_DEFAULT.concat(pc.filter(function(x){return PCATS_DEFAULT.indexOf(x)<0&&PCATS_OLD.indexOf(x)<0}));S.cfg.pcats_v5=true;if(typeof saveCfg==='function')saveCfg()}}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e)}
  S.role=roleOf(S.user);
  if(!S.cfg.migrated_v4&&isFin()){try{var m=await migrateLegacy();S.role=roleOf(S.user);var n=sum(Object.keys(m),function(k){return typeof m[k]==='number'?m[k]:0});if(n)toast('تم نقل '+n+' سجل إلى المجموعات المعزولة لنسخة Claude')}catch(e){console.error('migrate',e)}}
  try{S.projects=(await qNs(COL.projects)).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
@@ -84,7 +85,7 @@ function projTotals(pid){var r={purchase:0,sub:0,labor:0,expense:0,cost:0,revenu
 function itemUse(pid,bid,excl){var r={purchase:0,sub:0,labor:0,expense:0,pqty:{},subQty:0,progQty:0,total:0};TX().forEach(function(t){if(t.project_id!==pid||t.id===excl)return;
  if(t.type==='purchase')(t.lines||[]).forEach(function(l){if(l.boq_id===bid){r.purchase+=lineVal(l);var u=l.unit||'';r.pqty[u]=(r.pqty[u]||0)+num(l.qty)}});
  else if(t.type==='sub')(t.lines||[]).forEach(function(l){if(l.boq_id===bid){var q=num(l.qty)-num(l.qty_prev);r.sub+=q*num(l.price);r.subQty+=q}});
- else if(t.type==='labor'){if(t.boq_id===bid)r.labor+=num(t.total)}
+ else if(t.type==='labor'){if(t.rows&&t.rows.length)t.rows.forEach(function(w){if((w.boq_id||t.boq_id)===bid)r.labor+=num(w.total)});else if(t.boq_id===bid)r.labor+=num(t.total)}
  else if(t.type==='expense'){if(t.boq_id===bid&&t.project_id)r.expense+=num(t.amount)}
  else if(t.type==='progress'){if(t.boq_id===bid)r.progQty+=num(t.qty)}});
  r.total=r.purchase+r.sub+r.labor+r.expense;return r}
