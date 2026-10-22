@@ -47,11 +47,12 @@ async function migrateLegacy(){var counts={},had=0;
   for(var d of old.docs){if(cur[d.id])continue;var v=d.data();v.id=d.id;await S.db.collection(COL[k]).doc(d.id).set(clean(v));counts[k]++;had++}}catch(e){console.error('mig '+k,e);counts[k]='خطأ'}}
  S.cfg.migrated_v4={at:new Date().toISOString(),counts:counts};await saveCfg();return counts}
 async function legacyCounts(){var r={};for(var k of Object.keys(LEGACY)){try{r[k]=(await qNs(LEGACY[k])).docs.length}catch(e){r[k]='؟'}}return r}
-function withTO(pr,ms){return Promise.race([pr,new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'))},ms||12000)})])}
+function withTO(pr,ms){return Promise.race([pr,new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'))},ms||10000)})])}
 async function loadAll(){S.loadErr=null;
  try{var c=await withTO(S.db.doc(CFGDOC).get());if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data());var pc=S.cfg.pcats||[];if(!S.cfg.pcats_v5){S.cfg.pcats=PCATS_DEFAULT.concat(pc.filter(function(x){return PCATS_DEFAULT.indexOf(x)<0&&PCATS_OLD.indexOf(x)<0}));S.cfg.pcats_v5=true;if(typeof saveCfg==='function')saveCfg()}}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e);S.loadErr=e&&e.code?e.code:(e&&e.message)||'error'}
  S.role=roleOf(S.user);
  if(!S.cfg.migrated_v4&&isFin()&&!S.loadErr){try{var m=await migrateLegacy();S.role=roleOf(S.user);var n=sum(Object.keys(m),function(k){return typeof m[k]==='number'?m[k]:0});if(n)toast('تم نقل '+n+' سجل إلى المجموعات المعزولة لنسخة Claude')}catch(e){console.error('migrate',e)}}
+ if(S.loadErr){S.projects=[];S.txs=[];S.accounts=[];return}
  try{S.projects=(await withTO(qNs(COL.projects))).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
  try{S.txs=(await withTO(qNs(COL.txs))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
  if(isFin()){try{S.accounts=(await withTO(qNs(COL.accounts))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}

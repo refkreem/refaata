@@ -6,7 +6,7 @@ ACT.logout=function(){if(window.firebase&&firebase.auth)firebase.auth().signOut(
 document.addEventListener('click',function(ev){var el=ev.target.closest('[data-a]');if(!el)return;if(el.tagName==='SELECT'||el.tagName==='INPUT')return;var f=ACT[el.dataset.a];if(f){ev.preventDefault();f(el.dataset.p,el)}});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
 function loginMsg(c){return{'auth/invalid-credential':'البريد أو كلمة المرور غير صحيحة','auth/wrong-password':'البريد أو كلمة المرور غير صحيحة','auth/user-not-found':'البريد أو كلمة المرور غير صحيحة','auth/invalid-email':'صيغة البريد غير صحيحة','auth/too-many-requests':'محاولات كثيرة، انتظر قليلًا','auth/network-request-failed':'لا يوجد اتصال بالإنترنت','auth/operation-not-allowed':'تسجيل الدخول بالبريد غير مفعّل'}[c]||('تعذر تسجيل الدخول ('+c+')')}
-async function start(db,label,email){S.db=db;S.user=(email||'').toLowerCase();$('dot').classList.add('on');$('conn').textContent=label;await loadAll();render()}
+async function start(db,label,email){S.db=db;S.user=(email||'').toLowerCase();$('dot').classList.add('on');$('conn').textContent=label;$('main').innerHTML='<div class="card empty">جارٍ تحميل البيانات…</div>';await loadAll();render()}
 async function boot(){
  if(window.firebase&&FIREBASE_CONFIG.apiKey){try{firebase.initializeApp(FIREBASE_CONFIG);var au=firebase.auth();
   $('loginForm').addEventListener('submit',function(e){e.preventDefault();$('lErr').textContent='';$('lBtn').disabled=true;au.signInWithEmailAndPassword($('lEmail').value.trim(),$('lPass').value).catch(function(er){$('lErr').textContent=loginMsg(er.code||'')}).then(function(){$('lBtn').disabled=false})});
