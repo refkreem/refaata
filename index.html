@@ -134,13 +134,14 @@ async function migrateLegacy(){var counts={},had=0;
   for(var d of old.docs){if(cur[d.id])continue;var v=d.data();v.id=d.id;await S.db.collection(COL[k]).doc(d.id).set(clean(v));counts[k]++;had++}}catch(e){console.error('mig '+k,e);counts[k]='خطأ'}}
  S.cfg.migrated_v4={at:new Date().toISOString(),counts:counts};await saveCfg();return counts}
 async function legacyCounts(){var r={};for(var k of Object.keys(LEGACY)){try{r[k]=(await qNs(LEGACY[k])).docs.length}catch(e){r[k]='؟'}}return r}
-async function loadAll(){
- try{var c=await S.db.doc(CFGDOC).get();if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data());var pc=S.cfg.pcats||[];if(!S.cfg.pcats_v5){S.cfg.pcats=PCATS_DEFAULT.concat(pc.filter(function(x){return PCATS_DEFAULT.indexOf(x)<0&&PCATS_OLD.indexOf(x)<0}));S.cfg.pcats_v5=true;if(typeof saveCfg==='function')saveCfg()}}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e)}
+function withTO(pr,ms){return Promise.race([pr,new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'))},ms||12000)})])}
+async function loadAll(){S.loadErr=null;
+ try{var c=await withTO(S.db.doc(CFGDOC).get());if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data());var pc=S.cfg.pcats||[];if(!S.cfg.pcats_v5){S.cfg.pcats=PCATS_DEFAULT.concat(pc.filter(function(x){return PCATS_DEFAULT.indexOf(x)<0&&PCATS_OLD.indexOf(x)<0}));S.cfg.pcats_v5=true;if(typeof saveCfg==='function')saveCfg()}}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e);S.loadErr=e&&e.code?e.code:(e&&e.message)||'error'}
  S.role=roleOf(S.user);
- if(!S.cfg.migrated_v4&&isFin()){try{var m=await migrateLegacy();S.role=roleOf(S.user);var n=sum(Object.keys(m),function(k){return typeof m[k]==='number'?m[k]:0});if(n)toast('تم نقل '+n+' سجل إلى المجموعات المعزولة لنسخة Claude')}catch(e){console.error('migrate',e)}}
- try{S.projects=(await qNs(COL.projects)).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
- try{S.txs=(await qNs(COL.txs)).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
- if(isFin()){try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}
+ if(!S.cfg.migrated_v4&&isFin()&&!S.loadErr){try{var m=await migrateLegacy();S.role=roleOf(S.user);var n=sum(Object.keys(m),function(k){return typeof m[k]==='number'?m[k]:0});if(n)toast('تم نقل '+n+' سجل إلى المجموعات المعزولة لنسخة Claude')}catch(e){console.error('migrate',e)}}
+ try{S.projects=(await withTO(qNs(COL.projects))).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
+ try{S.txs=(await withTO(qNs(COL.txs))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
+ if(isFin()){try{S.accounts=(await withTO(qNs(COL.accounts))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}
 }
 /* ---------- roles ---------- */
 function roleOf(email){var r=S.cfg.roles||{};var keys=Object.keys(r);if(!keys.length)return'admin';return r[(email||'').toLowerCase()]||'engineer'}
@@ -226,7 +227,7 @@ function go(view,vp,tab){S.view=view;S.vp=vp||null;if(tab)S.tab=tab;$('side').cl
 function pendingCount(){return S.txs.filter(function(t){return t.status==='pending'}).length}
 function renderNav(){var n=pendingCount();$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){return'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
  $('roleTag').textContent=ROLE_NAMES[S.role]||''}
-function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=f?f():'';if(AFTER[S.view])AFTER[S.view]()}
+function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=(S.loadErr?'<div class="hint b" style="margin-bottom:12px"><b>تعذر الاتصال بقاعدة البيانات</b> ('+h(S.loadErr)+'). غالبًا لم تُنشأ قاعدة Firestore بعد في مشروع Firebase، أو قواعد الأمان تمنع القراءة. أنشئ Firestore Database ثم اضغط زر التحديث ⟳.</div>':'')+(f?f():'');if(AFTER[S.view])AFTER[S.view]()}
 var VIEWS={},AFTER={};
 
 /* ---------- accounts (treasuries & banks) ---------- */

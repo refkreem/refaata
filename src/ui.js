@@ -28,7 +28,7 @@ function go(view,vp,tab){S.view=view;S.vp=vp||null;if(tab)S.tab=tab;$('side').cl
 function pendingCount(){return S.txs.filter(function(t){return t.status==='pending'}).length}
 function renderNav(){var n=pendingCount();$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){return'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
  $('roleTag').textContent=ROLE_NAMES[S.role]||''}
-function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=f?f():'';if(AFTER[S.view])AFTER[S.view]()}
+function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=(S.loadErr?'<div class="hint b" style="margin-bottom:12px"><b>تعذر الاتصال بقاعدة البيانات</b> ('+h(S.loadErr)+'). غالبًا لم تُنشأ قاعدة Firestore بعد في مشروع Firebase، أو قواعد الأمان تمنع القراءة. أنشئ Firestore Database ثم اضغط زر التحديث ⟳.</div>':'')+(f?f():'');if(AFTER[S.view])AFTER[S.view]()}
 var VIEWS={},AFTER={};
 
 /* ---------- accounts (treasuries & banks) ---------- */
