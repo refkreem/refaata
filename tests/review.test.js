@@ -46,6 +46,15 @@ function ck(n, c, x) { if (c) { passes++; console.log('  ✔', n); } else { fail
   const L = await ev(() => S.txs.find(t => t.type === 'labor'));
   ck('بند الأعمال محفوظ على صف العامل', L && L.rows[0].boq_id === 'b1' && L.rows[0].work === 'تركيب دكت', L);
   ck('تكلفة العمالة تظهر على بند المقايسة', (await ev(id => itemUse(id, 'b1').labor, pid)) === 1000);
+  console.log('لصق شيت الأجور');
+  await pg.click('#side a[data-p=labor]'); await pg.click('[data-a=newTx][data-p="labor|"]');
+  await pg.selectOption('#t_proj', pid); await pg.click('[data-a=pasteToggle]');
+  await pg.fill('#paste_ta', '1\tعم صلاح النقاش\t350\t7\t2450\t200\t\t0\t350\t\t0\t2450\n2\tمحمد علي\t300\t1\t300\t150\t1\t150\t300\t\t0\t450\t100\nاجمالي\t\t\t\t\t');
+  await pg.click('[data-a=pasteApply]'); await pg.waitForTimeout(150);
+  ck('لصق صفين فقط (دون صف الإجمالي)', (await ev(() => document.querySelectorAll('#lines .ln').length)) === 2);
+  ck('إجمالي الكشف 2450 + 450 = 2900', (await ev(() => $('s_total').textContent)) === '2,900');
+  ck('السلف الملصقة 100', (await ev(() => document.querySelectorAll('#lines .w_adv')[1].value)) === '100');
+  await pg.click('#mclose, [data-a=mclose]');
   console.log('التصفير الشامل');
   await ev(() => ACT.wipeAll()); await pg.waitForTimeout(800);
   ck('بعد التصفير: لا مشاريع ولا حركات ولا حسابات', await ev(() => S.projects.length === 0 && S.txs.length === 0 && S.accounts.length === 0));

@@ -42,7 +42,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   ck('الاستلام النهائي بعد سنة', await ev(() => document.getElementById('p_fin').value) === '2027-07-31');
   await save();
   ck('مشروع محفوظ', await ev(() => S.projects.length === 1 && S.projects[0].months === 6));
-  await pg.click('tr.clk td'); await pg.waitForTimeout(100);
+  ck('بعد حفظ مشروع جديد تُفتح مقايسته مباشرة', await ev(() => S.vp === S.projects[0].id && S.tab === 'boq')); await pg.waitForTimeout(100);
   const pid = await ev(() => S.projects[0].id);
   for (const [code, name, unit, qty, price, cp] of [['1', 'دكت مجلفن', 'م2', 100, 1000, 700], ['2', 'فلتر HEPA', 'عدد', 10, 20000, 15000]]) {
     await click('[data-a=boqAdd]'); await set('#b_code', code); await set('#b_name', name); await set('#b_unit', unit); await set('#b_qty', qty); await set('#b_price', price); await set('#b_cost', cp); await save();
@@ -93,7 +93,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   await click('[data-a=newTx][data-p="labor|"]'); await pg.selectOption('#t_proj', pid);
   await set('#lines .w_name', 'محمود'); await set('#lines .w_rate', 400); await set('#lines .w_days', 6); await set('#lines .w_otn', 2); await set('#lines .w_shn', 1); await pg.waitForTimeout(100);
   ck('إجمالي: 2400 + 2×200 − 1×200 = 2600', await ev(() => document.getElementById('s_total').textContent) === '2,600');
-  ck('يقترح خصم السلفة 300', (await ev(() => document.querySelector('#lines .l_hint').textContent)).includes('300'));
+  ck('يقترح خصم السلفة 300', (await ev(() => document.querySelector('#lines .w_hint').textContent)).includes('300'));
   console.log('   dup ids:', await ev(() => document.querySelectorAll('#wr0').length), await ev(() => document.querySelector('[data-a=useWAdv]').closest('.ln').id)); await pg.click('[data-a=useWAdv]'); console.log('   adv:', await ev(() => document.querySelector('#lines .w_adv').value)); await pg.selectOption('#f_acc', cash); await pg.waitForTimeout(50);
   const sn = await ev(() => [document.getElementById('s_net').textContent, document.querySelector('#lines .w_adv').value]); ck('الصافي 2300', sn[0] === '2,300', sn); await save();
   ck('تكلفة العمالة 2600 ونقد 2300 وسلف قائمة 0', await ev(() => { const t = S.txs.filter(x => x.type === 'labor')[0]; return costOf(t) === 2600 && t.net === 2300 && workerAdv('محمود') === 0; }));
