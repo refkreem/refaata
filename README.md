@@ -1,6 +1,6 @@
 # مقاول Pro — النظام المالي والهندسي والإداري لشركة المقاولات
 
-صفحة واحدة `index.html` على GitHub Pages، وقاعدة بيانات Firebase (مشروع `moqawel-pro`).
+صفحة واحدة `index.html` على GitHub Pages، وقاعدة بيانات Firebase (مشروع `moqawel-claude`).
 الكود المصدري في `src/` ويُجمع بالأمر `./build.sh` في `index.html`.
 
 ## ترتيب القائمة
