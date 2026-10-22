@@ -74,6 +74,23 @@ input[readonly]{background:var(--s2)}
 .acc{border-inline-start:5px solid var(--ac)}.acc.bank{border-inline-start-color:#2d6cdf}
 @media(max-width:900px){.burger{display:inline-block}.side{position:fixed;right:0;top:52px;z-index:40;transform:translateX(105%);transition:.2s;width:78vw;max-width:290px;box-shadow:-8px 0 30px rgba(0,0,0,.3)}.side.open{transform:none}main{padding:10px}.setw{grid-template-columns:1fr}.top .meta .t{display:none}th,td{padding:7px 8px}}
 @media print{.top,.side,.flt,.btn,.tabs,#toast,.noprint{display:none!important}main{padding:0}.card,.tw{box-shadow:none;border:0}body{background:#fff;color:#000}.tw{overflow:visible}}
+
+/* UI refresh: clearer sky-blue navigation and high-contrast actions */
+:root{--navy:#168fca;--navyf:#e1f5fd;--ac:#1769d2;--acf:#fff;--acs:#e8f1ff}
+.side{background:#dff4ff;border-left:1px solid #a8dff5}
+.side a{color:#173b54}
+.side a:hover{background:#c7ebfb;color:#10364f}
+.side a.on{background:#168fca;color:#fff;box-shadow:inset -3px 0 0 #075f91}
+.side .sep{background:#a9dcec}
+.btn{border-color:#9bb8d7;background:#fff;color:#16446d;font-weight:700}
+.btn:hover{background:#eaf5ff;border-color:#5e9bd8}
+.btn.p{background:#1769d2;color:#fff;border-color:#1769d2;box-shadow:0 2px 5px rgba(23,105,210,.18)}
+.btn.p:hover{background:#0f56b4;border-color:#0f56b4}
+.btn.d{background:#fff1f1;color:#b4232d;border-color:#e7a2a6}
+.btn.d:hover{background:#ffe0e2}
+.top{background:#123b5b}
+.top .logo i{color:#8edcff}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--navy:#123b5b;--ac:#4b9bff;--acf:#071a30;--acs:#142b45}.side{background:#162b3b;border-left-color:#2c4e63}.side a{color:#dcecf7}.side a:hover{background:#24465d}.side a.on{background:#168fca;color:#fff}.btn{background:#1d2b3a;color:#e5f1fb;border-color:#49637a}.btn.p{background:#4b9bff;color:#071a30;border-color:#4b9bff}.btn.d{background:#351b21;color:#ff9da5;border-color:#85434a}}
 </style></head><body>
 <div class="login" id="login"><form id="loginForm"><h2 class="disp">مقاول <span style="color:var(--ac)">Pro</span></h2><div class="mut">تسجيل الدخول لنظام الشركة</div>
 <label class="f">البريد الإلكتروني<input id="lEmail" type="email" dir="ltr" required autocomplete="username"></label>
