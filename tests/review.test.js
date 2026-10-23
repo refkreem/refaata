@@ -46,6 +46,31 @@ function ck(n, c, x) { if (c) { passes++; console.log('  ✔', n); } else { fail
   const L = await ev(() => S.txs.find(t => t.type === 'labor'));
   ck('بند الأعمال محفوظ على صف العامل', L && L.rows[0].boq_id === 'b1' && L.rows[0].work === 'تركيب دكت', L);
   ck('تكلفة العمالة تظهر على بند المقايسة', (await ev(id => itemUse(id, 'b1').labor, pid)) === 1000);
+  console.log('استيراد المقايسة الذكي');
+  const bp = await ev(() => boqSmartParse([
+    ['شركة الأمة للمقاولات'], ['مقايسة أعمال العناية المركزة'], [],
+    ['م', 'بيان الأعمال', 'الوحدة', 'الكمية', 'سعر الوحدة', 'الإجمالي'],
+    ['', 'أعمال التكييف'],
+    ['1', 'توريد وتركيب دكت مجلفن', 'م2', '1,200', '850', ''],
+    ['2', 'فلتر هيبا', 'عدد', 6, 4500, 27000],
+    ['', 'أعمال الكهرباء'],
+    ['3', 'كابل 3×4', 'م.ط', 300, 95, ''],
+    ['', 'الإجمالي', '', '', '', 1],
+  ]));
+  ck('عدد البنود 3 دون العناوين والإجمالي', bp.length === 3, bp);
+  ck('الباب مأخوذ من صف العنوان', bp[0][1] === 'أعمال التكييف' && bp[2][1] === 'أعمال الكهرباء', bp);
+  ck('الكمية بفاصلة آلاف 1,200', bp[0][4] === 1200 && bp[0][5] === 850, bp[0]);
+  const bp2 = await ev(() => boqSmartParse([['1', 'تكييف', 'دكت', 'م2', '10', '100'], ['2', 'كهرباء', 'كابل', 'م', '5', '20']]));
+  ck('بدون عناوين: الترتيب الافتراضي', bp2.length === 2 && bp2[0][2] === 'دكت' && bp2[1][5] === 20, bp2);
+  console.log('التأمين التلقائي');
+  await pg.click('#side a[data-p=projects]'); await pg.click('[data-a=projAdd]');
+  await set('#p_name', 'مشروع ب'); await set('#p_months', 3); await set('#p_val', 2000000); await pg.waitForTimeout(80);
+  ck('التأمين الابتدائي 1% والنهائي 5% تلقائيًا', (await ev(() => $('p_bi').value)) === '20000' && (await ev(() => $('p_bf').value)) === '100000');
+  await set('#p_bf', 80000); await set('#p_val', 3000000); await pg.waitForTimeout(80);
+  ck('التعديل اليدوي يُحفظ والآخر يتبع القيمة', (await ev(() => $('p_bf').value)) === '80000' && (await ev(() => $('p_bi').value)) === '30000');
+  await save();
+  const pb = await ev(() => S.projects.find(x => x.name === 'مشروع ب'));
+  ck('حفظ التأمينات', pb.bond_init === 30000 && pb.bond_final === 80000, pb);
   console.log('لصق شيت الأجور');
   await pg.click('#side a[data-p=labor]'); await pg.click('[data-a=newTx][data-p="labor|"]');
   await pg.selectOption('#t_proj', pid); await pg.click('[data-a=pasteToggle]');

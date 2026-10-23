@@ -2,6 +2,8 @@
 var NS='v4';
 var FIREBASE_CONFIG={apiKey:"AIzaSyBb80zFyo-kaykUD58wttrpCGsHDdqCTfw",authDomain:"moqawel-claude.firebaseapp.com",projectId:"moqawel-claude",storageBucket:"moqawel-claude.firebasestorage.app",messagingSenderId:"949127912931",appId:"1:949127912931:web:b80df53ddbc36549e114d6"};
 var PCATS_DEFAULT=['صحية','كهربائية','معمارية','إنذار','غازات','تكييف','أخرى'];var PCATS_OLD=['كهرباء','صحي','أعمال دهانات','أخرى'];
+function bondInit(p){return(p.bond_init!=null&&p.bond_init!=='')?num(p.bond_init):r2(num(p.value)*0.01)}
+function bondFinal(p){return(p.bond_final!=null&&p.bond_final!=='')?num(p.bond_final):r2(num(p.value)*0.05)}
 function defaultCfg(){return{company:{name:'',phone:'',address:''},pcats:PCATS_DEFAULT.slice(),units:['م','م2','م3','عدد','طن','كجم','متر طولي','لفة','مقطوعية','يوم'],
 ecats:['نقل وانتقالات','إكراميات','ضرائب وتأمينات','إيجارات','رواتب إدارية','مرافق (كهرباء/مياه/اتصالات)','عدد وأدوات','أخرى'],
 rcats:['دفعة مقدمة','مستخلص جاري','مستخلص ختامي','محتجز / ضمان أعمال','أخرى'],
