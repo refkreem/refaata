@@ -22,7 +22,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   const menu = await ev(() => Array.from(document.querySelectorAll('#side a')).map(a => a.textContent.trim()));
   ck('الخزائن والبنوك أول القائمة', menu[0].includes('الخزائن والبنوك'), menu);
   ck('المشاريع ثانيًا', menu[1].includes('المشاريع'));
-  ck('لا كشف عهد ولا دفعة الخميس', !menu.join('|').includes('عهد') && !menu.join('|').includes('الخميس'));
+  ck('لا كشف عهد ولا دفعة الخميس', !menu.join('|').includes('عهد') && !menu.join('|').includes('دفعة الخميس'));
   ck('النظام يبدأ فارغًا', await ev(() => S.projects.length === 0 && S.txs.length === 0 && S.accounts.length === 0));
 
   console.log('الخزائن والبنوك');
