@@ -20,7 +20,7 @@ function ck(n, c, x) { if (c) { passes++; console.log('  ✔', n); } else { fail
   await pg.click('#side a[data-p=accounts]'); await pg.click('[data-a=accAdd][data-p=cash]'); await set('#a_name', 'الخزينة'); await set('#a_open', 500000); await save();
   await pg.click('#side a[data-p=projects]'); await pg.click('[data-a=projAdd]');
   await set('#p_name', 'ICU تجريبي'); await set('#p_months', 6); await set('#p_val', 1000000);
-  await set('#p_bi', 50000); await set('#p_bf', 100000); await set('#p_adv', 200000); await save();
+  await set('#p_bi', 50000); await set('#p_bf', 100000); await set('#p_adv', 200000); await pg.selectOption('#f_acc', await ev(() => S.accounts[0].id)); await save();
   const P = await ev(() => S.projects[0]); const pid = P.id;
   ck('حفظ التأمين الابتدائي والنهائي والدفعة', P.bond_init === 50000 && P.bond_final === 100000 && P.advance === 200000, P);
   await ev(id => { S.vp = id; S.tab = 'boq'; render(); }, pid);
@@ -35,7 +35,7 @@ function ck(n, c, x) { if (c) { passes++; console.log('  ✔', n); } else { fail
   await pg.selectOption('#t_boq', 'b1'); await pg.waitForTimeout(100);
   ck('الوحدة والسعر يُملآن من المقايسة', (await ev(() => $('t_unit').value)) === 'م2' && (await ev(() => $('t_price').value)) === '300');
   await set('#t_qty', 10); await pg.waitForTimeout(100);
-  ck('الإجمالي = كمية × سعر', (await ev(() => $('t_amt').value)) === '3000');
+  ck('الإجمالي = كمية × سعر', (await ev(() => $('t_amt').value)) === '3,000');
   await pg.selectOption('#f_acc', await ev(() => S.accounts[0].id)); await save();
   const T = await ev(() => S.txs.find(t => t.type === 'payment'));
   ck('حفظ بند وكمية ووحدة وسعر السداد', T && T.boq_id === 'b1' && T.qty === 10 && T.unit === 'م2' && T.price === 300 && T.amount === 3000, T);
@@ -67,9 +67,9 @@ function ck(n, c, x) { if (c) { passes++; console.log('  ✔', n); } else { fail
   console.log('التأمين التلقائي');
   await pg.click('#side a[data-p=projects]'); await pg.click('[data-a=projAdd]');
   await set('#p_name', 'مشروع ب'); await set('#p_months', 3); await set('#p_val', 2000000); await pg.waitForTimeout(80);
-  ck('التأمين الابتدائي 1% والنهائي 5% تلقائيًا', (await ev(() => $('p_bi').value)) === '20000' && (await ev(() => $('p_bf').value)) === '100000');
+  ck('التأمين الابتدائي 1% والنهائي 5% تلقائيًا', (await ev(() => $('p_bi').value)) === '20,000' && (await ev(() => $('p_bf').value)) === '100,000');
   await set('#p_bf', 80000); await set('#p_val', 3000000); await pg.waitForTimeout(80);
-  ck('التعديل اليدوي يُحفظ والآخر يتبع القيمة', (await ev(() => $('p_bf').value)) === '80000' && (await ev(() => $('p_bi').value)) === '30000');
+  ck('التعديل اليدوي يُحفظ والآخر يتبع القيمة', (await ev(() => $('p_bf').value)) === '80,000' && (await ev(() => $('p_bi').value)) === '30,000');
   await save();
   const pb = await ev(() => S.projects.find(x => x.name === 'مشروع ب'));
   ck('حفظ التأمينات', pb.bond_init === 30000 && pb.bond_final === 80000, pb);

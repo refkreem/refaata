@@ -104,7 +104,7 @@ function contractorLedger(id,pid){var r={extracts:0,work:0,net:0,paid:0,payments
  else if(t.type==='payment'&&t.kind==='contractor'&&t.party_id===id)r.payments+=num(t.amount);
  else if(t.type==='adv'&&t.kind==='contractor'&&t.party_id===id)r.adv+=num(t.amount)});
  r.owed=r.net-r.paid-r.payments;r.advOut=r.adv-r.recov;return r}
-function supplierLedger(name){var r={total:0,paid:0,payments:0,bal:0};TX().forEach(function(t){if(t.type==='purchase'&&t.supplier===name){r.total+=num(t.total);r.paid+=num(t.paid)}else if(t.type==='payment'&&t.kind==='supplier'&&t.party===name)r.payments+=num(t.amount)});r.bal=r.total-r.paid-r.payments;return r}
+function supplierLedger(name,excl){var r={total:0,paid:0,payments:0,bal:0};TX().forEach(function(t){if(excl&&t.id===excl)return;if(t.type==='purchase'&&String(t.supplier||'').trim()===String(name||'').trim()){r.total+=num(t.total);r.paid+=num(t.paid)}else if(t.type==='payment'&&t.kind==='supplier'&&String(t.party||'').trim()===String(name||'').trim())r.payments+=num(t.amount)});r.bal=r.total-r.paid-r.payments;return r}
 function workerAdv(name){var a=0,rc=0;TX().forEach(function(t){if(t.type==='adv'&&t.kind==='worker'&&t.party===name)a+=num(t.amount);if(t.type==='labor')(t.rows||[]).forEach(function(w){if(w.name===name)rc+=num(w.adv)})});return a-rc}
 function itemState(pid,bid){var b=boqItem(pid,bid);if(!b)return null;var u=itemUse(pid,bid);return{b:b,u:u,val:boqValue(b),bud:boqBudget(b),rest:boqBudget(b)-u.total}}
 function costTxIds(){return TX().filter(function(t){return costOf(t)!==0})}

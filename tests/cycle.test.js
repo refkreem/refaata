@@ -69,7 +69,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   await pg.selectOption('#lines .l_boq', b1); await pg.waitForTimeout(100);
   ck('الكمية السابقة تُسترجع تلقائيًا (40)', await ev(() => document.querySelector('#lines .l_prev').value) === '40');
   await set('#lines .l_qty', 100); await pg.waitForTimeout(100);
-  ck('ما سبق صرفه = 28000 وإجمالي تراكمي 70000', await ev(() => document.getElementById('t_prior').value) === '28000' && await ev(() => document.getElementById('s_gross').value) === '70,000');
+  ck('ما سبق صرفه = 28000 وإجمالي تراكمي 70000', await ev(() => document.getElementById('t_prior').value) === '28,000' && await ev(() => document.getElementById('s_gross').value) === '70,000');
   await acct('تحويل بنكي', nbe); await set('#t_paid', 20000); await save();
   ck('تكلفة المستخلص 2 = 42000', await ev(() => costOf(S.txs.filter(x => x.type === 'sub')[1])) === 42000);
   ck('مستحق للمقاول 22000 (صافي 42000 - 20000)', Math.abs(await ev(() => contractorLedger(S.cfg.contractors[0].id).owed) - 22000) < 0.01);
