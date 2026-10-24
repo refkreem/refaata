@@ -29,6 +29,8 @@ function ck(n, c, x) { if (c) { passes++; console.log('  ✔', n); } else { fail
   await ev(() => { S.cfg.contractors.push({ id: 'c1', name: 'م. أحمد', trade: 'تكييف' }); });
   console.log('سداد المقاول');
   await pg.click('#side a[data-p=subs]'); await pg.click('[data-a=newTx][data-p="payment|contractor"]');
+  await pg.waitForTimeout(100);
+  ck('مشروع واحد فقط: يُختار تلقائيًا وتظهر بنود مقايسته', (await ev(() => $('t_proj').value)) && (await ev(() => $('t_boq').options.length)) === 2);
   await pg.selectOption('#t_con', 'c1'); await pg.selectOption('#t_proj', pid); await pg.waitForTimeout(100);
   await pg.selectOption('#t_boq', 'b1'); await pg.waitForTimeout(100);
   ck('الوحدة والسعر يُملآن من المقايسة', (await ev(() => $('t_unit').value)) === 'م2' && (await ev(() => $('t_price').value)) === '300');
