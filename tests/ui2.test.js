@@ -61,5 +61,18 @@ function ck(n, c, x) { if (c) { passes++; console.log('  ✔', n); } else { fail
   await pg.selectOption('#t_sup', 'مورد س'); await set('#t_amt', 4000); await pg.waitForTimeout(100);
   const hint = await ev(() => $('itemhint').innerText);
   ck('متبقي المورد في السداد وبعده', hint.includes('10,000') && hint.includes('6,000'), hint);
+  console.log('التخصص وفحص الترابط'); await ev(() => closeModal());
+  await pg.click('#side a[data-p=settings]'); await pg.click('[data-a=setSec][data-p=suppliers]');
+  await pg.click('[data-a=supEdit][data-p="0"]'); await set('#sp_t', 'كهرباء'); await set('#sp_p', '0100'); await save();
+  ck('تخصص المورد يُحفظ ويظهر', (await ev(() => S.cfg.supInfo['مورد س'].trade)) === 'كهرباء' && (await ev(() => document.querySelector('#main').innerText)).includes('كهرباء'));
+  await pg.click('[data-a=setSec][data-p=workers]'); await pg.click('[data-a=wAdd]'); await set('#w_n', 'أشرف'); await set('#w_t', 'فني تكييف'); await set('#w_r', 400); await save();
+  ck('تخصص العامل يُحفظ', (await ev(() => S.cfg.workers.find(w => w.name === 'أشرف').trade)) === 'فني تكييف');
+  await ev(id => { proj(id).boq = [{ id: 'bq', code: '1', name: 'بند', unit: 'م', qty: 10, price: 100 }]; }, P.id);
+  const rep = await ev(() => REPS.links.run({}));
+  ck('فحص الترابط يكشف صنف المورد غير المرتبط ببند', rep.rows.some(r => r[5].includes('غير مرتبط ببند')), rep.rows);
+  await ev(id => { S.vp = id; S.tab = 'boq'; S.view = 'projects'; render(); }, P.id);
+  ck('شريط ترابط التكلفة يظهر في المشروع', (await ev(() => document.querySelector('#main').innerText)).includes('ترابط التكلفة'));
+  const pr = await ev(() => REPS.profit.run({}));
+  ck('تقرير الربحية يتضمن حصة المصروفات العامة', pr.cols.some(c => c.h.includes('المصروفات العامة')));
   console.log(passes + ' نجح، ' + fails + ' فشل'); await b.close(); process.exit(fails ? 1 : 0);
 })();

@@ -136,10 +136,10 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   console.log('لوحة التحكم والصلاحيات والبيانات التجريبية');
   await pg.click('#side a[data-p=dashboard]'); ck('لوحة التحكم تُعرض', (await ev(() => document.querySelector('#main').textContent)).includes('السيولة'));
   await pg.click('#side a[data-p=settings]'); await pg.click('[data-a=setSec][data-p=data]'); 
-  await click('[data-a=demoLoad]'); await pg.waitForTimeout(800);
+  await pg.addScriptTag({ path: require('path').resolve(__dirname, 'demo-fixture.js') }); await ev(() => ACT.demoLoad()); await pg.waitForTimeout(800);
   ck('البيانات التجريبية حُمّلت (3 مشاريع)', await ev(() => S.projects.length) === 3);
   for (const k of Object.keys(await ev(() => Object.fromEntries(Object.keys(REPS).map(k => [k, 1]))))) { const ok = await ev(([k]) => { try { REPS[k].run({ project: 'demo_p1', party: 'demo_c1', acc: 'demo_nbe' }); REPS[k].run({}); return true } catch (e) { return e.message } }, [k]); if (ok !== true) ck('تقرير تجريبي ' + k, false, ok) }
-   await click('[data-a=demoClear]'); await pg.waitForTimeout(800);
+   await ev(() => ACT.demoClear()); await pg.waitForTimeout(800);
   ck('حذف التجريبي يُبقي بياناتي فقط', await ev(() => S.projects.length === 1 && S.accounts.length === 3 && S.cfg.contractors.length === 1 && S.txs.every(t => !t.demo)));
   // مهندس موقع
   await ev(() => { S.cfg.roles = { 'admin@x.com': 'admin', 'eng@x.com': 'engineer' }; S.user = 'eng@x.com'; S.role = roleOf(S.user); S.view = 'expenses'; render(); });

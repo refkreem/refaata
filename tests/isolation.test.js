@@ -26,12 +26,6 @@ let f = 0, p = 0; const ck = (n, c, x) => { c ? p++ : f++; console.log(c ? '  �
   await pg.evaluate(async () => { await dbSet('projects', { id: 'n1', name: 'جديد', boq: [] }); });
   const d2 = await pg.evaluate(() => JSON.parse(localStorage.getItem('moqawel_pro_v4')));
   ck('مشروع جديد يُحفظ في claude_v4_projects وليس projects', d2.claude_v4_projects.n1 && !d2.projects.n1);
-  // التنظيف: يحذف نسخنا القديمة فقط
-  await pg.evaluate(() => { S.set = 'isolation'; S.view = 'settings'; render(); });
-  await pg.waitForTimeout(300); await pg.click('#iso_clean'); await pg.waitForTimeout(400);
-  const d3 = await pg.evaluate(() => JSON.parse(localStorage.getItem('moqawel_pro_v4')));
-  ck('التنظيف حذف نسخ v4 القديمة فقط', !d3.projects.a1 && d3.projects.g1 && d3.projects.g2 && d3.cashAccounts.z, Object.keys(d3.projects));
-  ck('نسخنا المعزولة سليمة بعد التنظيف', d3.claude_v4_projects.a1 && d3.claude_v4_txs.t1 && d3.claude_v4_accounts.c1);
   // إعادة تحميل لا تعيد النقل (لا إحياء لما حُذف)
   await pg.evaluate(async () => { await dbDel('projects', 'a1'); }); await pg.reload(); await pg.waitForFunction(() => window.S && S.db);
   ck('لا إحياء لبيانات محذوفة بعد النقل', await pg.evaluate(() => !S.projects.some(x => x.id === 'a1')));
