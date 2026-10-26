@@ -1,4 +1,4 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14253d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg">
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14253d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg">
 <title>مقاول Pro | الإدارة المالية والهندسية للمشروعات</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -89,7 +89,7 @@ input[readonly]{background:var(--s2)}
 .btn.d{background:#fff1f1;color:#b4232d;border-color:#e7a2a6}
 .btn.d:hover{background:#ffe0e2}
 .top{background:#123b5b}
-.top .logo i{color:#8edcff}
+.top .logo i{color:#8edcff}.ver{font-size:11px;font-weight:700;color:#bfe6fb;background:rgba(255,255,255,.12);border-radius:8px;padding:2px 8px;direction:ltr}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--navy:#123b5b;--ac:#4b9bff;--acf:#071a30;--acs:#142b45}.side{background:#162b3b;border-left-color:#2c4e63}.side a{color:#dcecf7}.side a:hover{background:#24465d}.side a.on{background:#168fca;color:#fff}.btn{background:#1d2b3a;color:#e5f1fb;border-color:#49637a}.btn.p{background:#4b9bff;color:#071a30;border-color:#4b9bff}.btn.d{background:#351b21;color:#ff9da5;border-color:#85434a}}
 /* مراجعة الألوان: لا أصفر — سماوي أعمق، بيانات سوداء بارزة */
 :root{--fg:#000;--inbg:#fff;--inbd:#6f9cc4;--ac:#0b5c94;--ttl:#064a78;--ttlbg:#e0f0fb;--lbl:#0a68a6;--navy:#0b6fa8;--navyf:#dbeefa;--acs:#e0f0fb;--warn:#c2410c;--ws:#fde9e1;--mut:#3e4b5c}
@@ -109,7 +109,7 @@ td{color:#000;font-weight:700}
 <label class="f">البريد الإلكتروني<input id="lEmail" type="email" dir="ltr" required autocomplete="username"></label>
 <label class="f">كلمة المرور<input id="lPass" type="password" dir="ltr" required autocomplete="current-password"></label>
 <div class="err" id="lErr"></div><button class="btn p" style="justify-content:center" id="lBtn">دخول</button></form></div>
-<div class="top"><button class="ib burger" data-a="menu">☰</button><div class="logo">مقاول <i>Pro</i></div><div class="sp"></div>
+<div class="top"><button class="ib burger" data-a="menu">☰</button><div class="logo">مقاول <i>Pro</i></div><span class="ver" id="ver" data-a="upd" style="cursor:pointer" title="رقم الإصدار — يتحدث تلقائيًا"></span><div class="sp"></div>
 <div class="meta"><span class="dot" id="dot"></span><span class="t" id="conn">…</span><span class="tag" id="roleTag" style="background:rgba(255,255,255,.15);color:#fff"></span></div>
 <button class="ib" data-a="refresh" title="تحديث البيانات">⟳</button><button class="ib" id="logout" style="display:none" data-a="logout">خروج</button></div>
 <div class="layout"><nav class="side" id="side"></nav><main id="main"></main></div>
@@ -649,6 +649,15 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
+var BUILD='20261026-2207';
+(function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
+async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
+ if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
+ if($('modal').classList.contains('show')){toast('يوجد إصدار جديد — سيُحمَّل بعد إغلاق النافذة');setTimeout(function(){checkUpdate()},15000);return}
+ try{sessionStorage.setItem(k,'1')}catch(e){}toast('تحديث إلى الإصدار الجديد…');setTimeout(function(){location.reload()},700)}catch(e){}}
+ACT.upd=function(){checkUpdate(true)};
+document.addEventListener('visibilitychange',function(){if(!document.hidden)checkUpdate()});
+setTimeout(checkUpdate,2500);setInterval(checkUpdate,600000);
 boot();
 
 </script></body></html>

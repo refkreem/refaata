@@ -16,4 +16,13 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
+var BUILD='__BUILD__';
+(function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
+async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
+ if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
+ if($('modal').classList.contains('show')){toast('يوجد إصدار جديد — سيُحمَّل بعد إغلاق النافذة');setTimeout(function(){checkUpdate()},15000);return}
+ try{sessionStorage.setItem(k,'1')}catch(e){}toast('تحديث إلى الإصدار الجديد…');setTimeout(function(){location.reload()},700)}catch(e){}}
+ACT.upd=function(){checkUpdate(true)};
+document.addEventListener('visibilitychange',function(){if(!document.hidden)checkUpdate()});
+setTimeout(checkUpdate,2500);setInterval(checkUpdate,600000);
 boot();
