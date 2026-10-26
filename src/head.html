@@ -103,6 +103,8 @@ input,select,textarea{color:#000;font-weight:800;background:#fff;border:1.5px so
 td{color:#000;font-weight:700}
 .hint.w,.tag.w{background:var(--ws);color:var(--warn)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--fg:#eef3f9;--inbg:#0f1520;--inbd:#3a475a;--ttl:#8fd0ff;--ttlbg:#14324a;--lbl:#7cc4f5;--ac:#4b9bff;--warn:#f0a070;--ws:#2e1c14;--mut:#a3adbb}.side{background:#162b3b}.side a{color:#dcecf7}.side a:hover{background:#24465d}.mhead{background:var(--ttlbg)}input,select,textarea{color:#eef3f9;background:#0f1520}td{color:inherit}.btn{color:#e5f1fb}.btn.p{color:#071a30;background:#4b9bff}.top{background:#0b2a43}}
+/* حماية: لا خلفية خلف نصوص العناوين والأرقام (تتغلب على تظليل الإضافات المحقونة بملف CSS) */
+.pg-h h2,.card h3,.kpi .l,.kpi .v,.kpi .s,.f>span,.mut,td,th,.mhead span{background:transparent!important;background-image:none!important;text-shadow:none!important}
 @media(max-width:600px){.bsheet th{font-size:12.5px;padding:6px 3px;white-space:normal}.bsheet td{padding:6px 3px;font-size:13.5px}.bsheet td.nm{min-width:0}.bsheet td.n{white-space:nowrap}.bsheet td.n .un{white-space:normal;display:block}}
 </style></head><body>
 <div class="login" id="login"><form id="loginForm"><h2 class="disp">مقاول <span style="color:var(--ac)">Pro</span></h2><div class="mut">تسجيل الدخول لنظام الشركة</div>

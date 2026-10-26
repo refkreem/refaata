@@ -103,6 +103,8 @@ input,select,textarea{color:#000;font-weight:800;background:#fff;border:1.5px so
 td{color:#000;font-weight:700}
 .hint.w,.tag.w{background:var(--ws);color:var(--warn)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--fg:#eef3f9;--inbg:#0f1520;--inbd:#3a475a;--ttl:#8fd0ff;--ttlbg:#14324a;--lbl:#7cc4f5;--ac:#4b9bff;--warn:#f0a070;--ws:#2e1c14;--mut:#a3adbb}.side{background:#162b3b}.side a{color:#dcecf7}.side a:hover{background:#24465d}.mhead{background:var(--ttlbg)}input,select,textarea{color:#eef3f9;background:#0f1520}td{color:inherit}.btn{color:#e5f1fb}.btn.p{color:#071a30;background:#4b9bff}.top{background:#0b2a43}}
+/* حماية: لا خلفية خلف نصوص العناوين والأرقام (تتغلب على تظليل الإضافات المحقونة بملف CSS) */
+.pg-h h2,.card h3,.kpi .l,.kpi .v,.kpi .s,.f>span,.mut,td,th,.mhead span{background:transparent!important;background-image:none!important;text-shadow:none!important}
 @media(max-width:600px){.bsheet th{font-size:12.5px;padding:6px 3px;white-space:normal}.bsheet td{padding:6px 3px;font-size:13.5px}.bsheet td.nm{min-width:0}.bsheet td.n{white-space:nowrap}.bsheet td.n .un{white-space:normal;display:block}}
 </style></head><body>
 <div class="login" id="login"><form id="loginForm"><h2 class="disp">مقاول <span style="color:var(--ac)">Pro</span></h2><div class="mut">تسجيل الدخول لنظام الشركة</div>
@@ -649,7 +651,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261026-2207';
+var BUILD='20261026-2213';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
