@@ -102,8 +102,8 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
 
   console.log('الإيرادات والمصروفات والإنجاز');
   await pg.click('#side a[data-p=revenues]'); await click('[data-a=newTx][data-p="revenue|"]'); await pg.selectOption('#t_proj', pid); await set('#t_amt', 300000); await pg.selectOption('#f_acc', nbe); await save();
-  await pg.click('#side a[data-p=expenses]'); await click('[data-a=newTx][data-p="expense|"]'); await pg.selectOption('#t_proj', pid); await pg.selectOption('#t_boq', b1); await set('#t_amt', 1500); await pg.selectOption('#f_acc', cash); await save();
-  await click('[data-a=newTx][data-p="expense|"]'); await set('#t_amt', 700); await pg.selectOption('#f_acc', cash); await save();
+  await pg.click('#side a[data-p=expenses]'); await click('[data-a=newExp]'); await click('[data-a=expType][data-p=expense]'); await pg.selectOption('#t_proj', pid); await pg.selectOption('#t_boq', b1); await set('#t_amt', 1500); await pg.selectOption('#f_acc', cash); await save();
+  await click('[data-a=newExp]'); await click('[data-a=expType][data-p=expense]'); await set('#t_amt', 700); await pg.selectOption('#f_acc', cash); await save();
   await pg.click('#side a[data-p=progress]'); await click('[data-a=newTx][data-p="progress|"]'); await pg.selectOption('#t_proj', pid); await pg.selectOption('#t_boq', b1); await set('#t_qty', 100); await save();
   const T = await ev(() => { const p = S.projects[0]; return { t: projTotals(p.id), it: itemUse(p.id, p.boq[0].id) }; });
   ck('تكلفة المشروع = 42000+28000+64000+2600+4500+1500 = 142600', T.t.cost === 142600, T.t);
@@ -145,7 +145,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   await ev(() => { S.cfg.roles = { 'admin@x.com': 'admin', 'eng@x.com': 'engineer' }; S.user = 'eng@x.com'; S.role = roleOf(S.user); S.view = 'expenses'; render(); });
   const m2 = await ev(() => Array.from(document.querySelectorAll('#side a')).map(a => a.textContent.trim()));
   ck('المهندس لا يرى الخزائن/الإيرادات/التقارير/الإعدادات', !m2.join('|').match(/الخزائن|الإيرادات|التقارير|الإعدادات|لوحة/), m2);
-  await click('[data-a=newTx][data-p="expense|"]'); await set('#t_amt', 250); await pg.selectOption('#t_proj', pid); await save();
+  await click('[data-a=newExp]'); await click('[data-a=expType][data-p=expense]'); await set('#t_amt', 250); await pg.selectOption('#t_proj', pid); await save();
   const pend = await ev(() => S.txs.filter(t => t.status === 'pending').length);
   ck('إدخال المهندس ينتظر الاعتماد', pend === 1);
   ck('لا يؤثر على الأرصدة قبل الاعتماد', await ev((id) => projTotals(id).expense, pid) === 1500);

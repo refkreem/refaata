@@ -4,10 +4,11 @@ var FIREBASE_CONFIG={apiKey:"AIzaSyBb80zFyo-kaykUD58wttrpCGsHDdqCTfw",authDomain
 var PCATS_DEFAULT=['صحية','كهربائية','معمارية','إنذار','غازات','تكييف','أخرى'];var PCATS_OLD=['كهرباء','صحي','أعمال دهانات','أخرى'];
 function bondInit(p){return(p.bond_init!=null&&p.bond_init!=='')?num(p.bond_init):r2(num(p.value)*0.01)}
 function bondFinal(p){return(p.bond_final!=null&&p.bond_final!=='')?num(p.bond_final):r2(num(p.value)*0.05)}
+var ECATS_DEFAULT=['تأمينات','ضرائب','إكراميات','ضيافة وبوفيه','نقل وانتقالات','وقود','تراخيص ورسوم','عمولات بنكية','سلامة مهنية','إيجارات','مرافق (كهرباء/مياه/اتصالات)','عدد وأدوات','صيانة معدات','رواتب إدارية','أخرى'];
 function defaultCfg(){return{company:{name:'',phone:'',address:''},pcats:PCATS_DEFAULT.slice(),units:['م','م2','م3','عدد','طن','كجم','متر طولي','لفة','مقطوعية','يوم'],
-ecats:['نقل وانتقالات','إكراميات','ضرائب وتأمينات','إيجارات','رواتب إدارية','مرافق (كهرباء/مياه/اتصالات)','عدد وأدوات','أخرى'],
+ecats:ECATS_DEFAULT.slice(),
 rcats:['دفعة مقدمة','مستخلص جاري','مستخلص ختامي','محتجز / ضمان أعمال','أخرى'],
-catalog:[],contractors:[],suppliers:[],workers:[],roles:{}};}
+catalog:[],contractors:[],suppliers:[],workers:[],customers:[],staff:[],supInfo:{},costFactors:{tax:0,ins:0,other:0},roles:{}};}
 var S={db:null,user:'',role:'admin',view:'accounts',vp:null,tab:'boq',accounts:[],projects:[],txs:[],cfg:defaultCfg(),rf:{},lf:{},modalSave:null};
 var $=function(id){return document.getElementById(id)};
 function h(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -51,7 +52,7 @@ async function migrateLegacy(){var counts={},had=0;
 async function legacyCounts(){var r={};for(var k of Object.keys(LEGACY)){try{r[k]=(await qNs(LEGACY[k])).docs.length}catch(e){r[k]='؟'}}return r}
 function withTO(pr,ms){return Promise.race([pr,new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'))},ms||10000)})])}
 async function loadAll(){S.loadErr=null;
- try{var c=await withTO(S.db.doc(CFGDOC).get());if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data());var pc=S.cfg.pcats||[];if(!S.cfg.pcats_v5){S.cfg.pcats=PCATS_DEFAULT.concat(pc.filter(function(x){return PCATS_DEFAULT.indexOf(x)<0&&PCATS_OLD.indexOf(x)<0}));S.cfg.pcats_v5=true;if(typeof saveCfg==='function')saveCfg()}}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e);S.loadErr=e&&e.code?e.code:(e&&e.message)||'error'}
+ try{var c=await withTO(S.db.doc(CFGDOC).get());if(c.exists){S.cfg=Object.assign(defaultCfg(),c.data());var pc=S.cfg.pcats||[];if(!S.cfg.pcats_v5){S.cfg.pcats=PCATS_DEFAULT.concat(pc.filter(function(x){return PCATS_DEFAULT.indexOf(x)<0&&PCATS_OLD.indexOf(x)<0}));S.cfg.pcats_v5=true;if(typeof saveCfg==='function')saveCfg()}if(!S.cfg.ecats_v6){S.cfg.ecats=(S.cfg.ecats||[]).concat(ECATS_DEFAULT.filter(function(x){return(S.cfg.ecats||[]).indexOf(x)<0}));S.cfg.ecats_v6=true;if(typeof saveCfg==='function')saveCfg()}}else S.cfg=defaultCfg()}catch(e){console.error('cfg',e);S.loadErr=e&&e.code?e.code:(e&&e.message)||'error'}
  S.role=roleOf(S.user);
  if(!S.cfg.migrated_v4&&isFin()&&!S.loadErr){try{var m=await migrateLegacy();S.role=roleOf(S.user);var n=sum(Object.keys(m),function(k){return typeof m[k]==='number'?m[k]:0});if(n)toast('تم نقل '+n+' سجل إلى المجموعات المعزولة لنسخة Claude')}catch(e){console.error('migrate',e)}}
  if(S.loadErr){S.projects=[];S.txs=[];S.accounts=[];return}
@@ -64,7 +65,7 @@ function roleOf(email){var r=S.cfg.roles||{};var keys=Object.keys(r);if(!keys.le
 function isFin(){return S.role==='admin'||S.role==='accountant'}
 function isAdmin(){return S.role==='admin'}
 var ROLE_NAMES={admin:'مدير النظام',accountant:'محاسب',engineer:'مهندس موقع',supervisor:'إشراف فني'};
-var MENU=[['accounts','🏦','الخزائن والبنوك','fin'],['projects','🏗️','المشاريع','all'],['subs','🤝','مقاولو الباطن','op'],['labor','👷','العمالة اليومية','op'],['purchases','🧱','المشتريات','op'],['revenues','💰','الإيرادات','fin'],['expenses','🧾','مصروفات أخرى','op'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech'],['dashboard','📊','لوحة التحكم','fin'],['reports','📑','التقارير','rep'],['review','✅','المراجعة والاعتماد','op'],['settings','⚙️','الإعدادات','adm']];
+var MENU=[['accounts','🏦','الخزائن والبنوك','fin'],['projects','🏗️','المشاريع','all'],['subs','🤝','مقاولو الباطن','op'],['labor','👷','العمالة اليومية','op'],['purchases','🧱','المشتريات','op'],['revenues','💰','الإيرادات','fin'],['expenses','🧾','المصروفات','op'],['costs','📈','التكاليف','fin'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech'],['dashboard','📊','لوحة التحكم','fin'],['reports','📑','التقارير','rep'],['review','✅','المراجعة والاعتماد','op'],['settings','⚙️','الإعدادات','adm']];
 function menuAllowed(m){var k=m[3],r=S.role;if(r==='admin')return true;if(k==='adm')return false;if(r==='accountant')return true;if(k==='all')return true;if(k==='op')return r==='engineer';if(k==='tech')return true;if(k==='rep')return r==='supervisor';return false}
 
 /* ---------- calc engine ---------- */
@@ -103,8 +104,8 @@ function contractorLedger(id,pid){var r={extracts:0,work:0,net:0,paid:0,payments
  if(t.type==='sub'&&t.party_id===id){r.extracts++;r.work+=costOf(t);r.net+=num(t.net);r.paid+=num(t.paid);r.recov+=num(t.adv_recov)}
  else if(t.type==='payment'&&t.kind==='contractor'&&t.party_id===id)r.payments+=num(t.amount);
  else if(t.type==='adv'&&t.kind==='contractor'&&t.party_id===id)r.adv+=num(t.amount)});
- r.owed=r.net-r.paid-r.payments;r.advOut=r.adv-r.recov;return r}
-function supplierLedger(name,excl){var r={total:0,paid:0,payments:0,bal:0};TX().forEach(function(t){if(excl&&t.id===excl)return;if(t.type==='purchase'&&String(t.supplier||'').trim()===String(name||'').trim()){r.total+=num(t.total);r.paid+=num(t.paid)}else if(t.type==='payment'&&t.kind==='supplier'&&String(t.party||'').trim()===String(name||'').trim())r.payments+=num(t.amount)});r.bal=r.total-r.paid-r.payments;return r}
+ var cc=S.cfg.contractors.filter(function(x){return x.id===id})[0];r.open=(!pid&&cc)?num(cc.open):0;r.owed=r.open+r.net-r.paid-r.payments;r.advOut=r.adv-r.recov;return r}
+function supplierLedger(name,excl){var r={total:0,paid:0,payments:0,bal:0};TX().forEach(function(t){if(excl&&t.id===excl)return;if(t.type==='purchase'&&String(t.supplier||'').trim()===String(name||'').trim()){r.total+=num(t.total);r.paid+=num(t.paid)}else if(t.type==='payment'&&t.kind==='supplier'&&String(t.party||'').trim()===String(name||'').trim())r.payments+=num(t.amount)});r.open=(typeof supInfo==='function')?num(supInfo(name).open):0;r.bal=r.open+r.total-r.paid-r.payments;return r}
 function workerAdv(name){var a=0,rc=0;TX().forEach(function(t){if(t.type==='adv'&&t.kind==='worker'&&t.party===name)a+=num(t.amount);if(t.type==='labor')(t.rows||[]).forEach(function(w){if(w.name===name)rc+=num(w.adv)})});return a-rc}
 function itemState(pid,bid){var b=boqItem(pid,bid);if(!b)return null;var u=itemUse(pid,bid);return{b:b,u:u,val:boqValue(b),bud:boqBudget(b),rest:boqBudget(b)-u.total}}
 function costTxIds(){return TX().filter(function(t){return costOf(t)!==0})}
