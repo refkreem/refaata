@@ -23,7 +23,7 @@ VIEWS.labor=opScreen('labor','العمالة اليومية',['labor','adv:worke
 VIEWS.purchases=opScreen('purchases','المشتريات',['purchase','payment:supplier'],[['payment','supplier','سداد مورد'],['purchase','','+ فاتورة مشتريات','p']],function(){
  var rows=S.cfg.suppliers.map(function(n){var l=supplierLedger(n);return{c:[h(n),h(supInfo(n).trade||''),fmt(l.total),fmt(l.paid+l.payments),'<span class="'+(l.bal>0.5?'bad':'')+'">'+fmt(l.bal)+'</span>']}}).filter(function(r){return true});
  return rows.length?'<div class="card"><h3>الموردون</h3>'+tbl([{h:'المورد'},{h:'التخصص'},{h:'إجمالي المشتريات',n:1},{h:'المسدد',n:1},{h:'المتبقي (آجل)',n:1}],rows)+'</div>':''});
-VIEWS.revenues=opScreen('revenues','الإيرادات والتحصيلات',['revenue'],[['revenue','','+ إيراد / دفعة مستلمة','p']]);
+VIEWS.revenues=opScreen('revenues','الإيرادات والمستخلصات',['revenue','ipc'],[['ipc','','+ مستخلص عميل (مطالبة)'],['revenue','','+ تحصيل / دفعة مستلمة','p']],function(){var rows=S.projects.map(function(p){var I=projIpc(p.id);return[h(p.name),fmt(pval(p)),String(I.n),fmt(I.net),fmt(I.coll),'<span class="'+(I.due>0.5?'warn':'')+'">'+fmt(I.due)+'</span>',fmt(I.retHeld)]});return rows.length?'<div class="card"><h3>مستحقات العملاء حسب المشروع</h3>'+tbl([{h:'المشروع'},{h:'قيمة العقد',n:1},{h:'مستخلصات',n:1},{h:'صافي المستخلصات',n:1},{h:'المحصّل عليها',n:1},{h:'المستحق تحصيله',n:1},{h:'محتجز لدى العميل',n:1}],rows)+'</div>':''});
 VIEWS.expenses=opScreen('expenses','مصروفات أخرى (نثريات وعامة)',['expense'],[['expense','','+ مصروف','p']]);
 VIEWS.progress=opScreen('progress','الأعمال المنفذة (الإنجاز الفعلي بالموقع)',['progress'],[['progress','','+ تسجيل أعمال منفذة','p']],function(){return'<div class="hint" style="margin-bottom:10px">يسجّل مهندس الموقع / الإشراف الفني الكميات المنفذة فعليًا لكل بند؛ وتُقارن تلقائيًا بالمقايسة وبالتكلفة في تقرير المستخلص الختامي وتحليل القيمة المكتسبة.</div>'});
 function progTable(){}
@@ -47,7 +47,7 @@ function itemHint(pid,bid,addVal,addQty,unit,excl){if(!pid||!bid||bid==='__free'
  return'<div class="hint '+(rest<0?'b':rest<s.bud*0.15?'w':'')+'">'+t+(rest<0?'<br>⚠ تجاوز التكلفة المقدرة للبند':'')+'</div>'}
 
 /* ---------- forms ---------- */
-function openForm(type,t,kind){var F={purchase:fPurchase,payroll:fPayroll,sub:function(t,k){(t&&t.quick)?fSubQuick(t):fSub(t,k)},labor:fLabor,expense:fExpense,revenue:fRevenue,adv:fAdv,payment:fPayment,progress:fProgress,contractor:function(){conForm(null)}}[type];if(F)F(t,kind||(t&&t.kind))}
+function openForm(type,t,kind){var F={purchase:fPurchase,payroll:fPayroll,ipc:fIpc,sub:function(t,k){(t&&t.quick)?fSubQuick(t):fSub(t,k)},labor:fLabor,expense:fExpense,revenue:fRevenue,adv:fAdv,payment:fPayment,progress:fProgress,contractor:function(){conForm(null)}}[type];if(F)F(t,kind||(t&&t.kind))}
 function lineBox(id,inner,removable){return'<div class="ln" id="'+id+'">'+(removable?'<button class="rm" data-a="rmLine" data-p="'+id+'" title="حذف السطر">✕</button>':'')+inner+'</div>'}
 ACT.rmLine=function(id){var e=$(id);if(e){e.remove();if(S.recalc)S.recalc()}};
 function dlist(id,arr){return'<datalist id="'+id+'">'+arr.map(function(x){return'<option value="'+h(x)+'">'}).join('')+'</datalist>'}
