@@ -65,7 +65,7 @@ function roleOf(email){var r=S.cfg.roles||{};var keys=Object.keys(r);if(!keys.le
 function isFin(){return S.role==='admin'||S.role==='accountant'}
 function isAdmin(){return S.role==='admin'}
 var ROLE_NAMES={admin:'مدير النظام',accountant:'محاسب',engineer:'مهندس موقع',supervisor:'إشراف فني'};
-var MENU=[['accounts','🏦','الخزائن والبنوك','fin'],['projects','🏗️','المشاريع','all'],['subs','🤝','مقاولو الباطن','op'],['labor','👷','العمالة اليومية','op'],['purchases','🧱','المشتريات','op'],['revenues','💰','الإيرادات','fin'],['expenses','🧾','المصروفات','op'],['costs','📈','التكاليف','fin'],['acct','📒','المحاسبة','fin'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech'],['dashboard','📊','لوحة التحكم','fin'],['reports','📑','التقارير','rep'],['review','✅','المراجعة والاعتماد','op'],['settings','⚙️','الإعدادات','adm']];
+var MENU=[['accounts','🏦','الخزائن والبنوك','fin'],['projects','🏗️','المشاريع','all'],['subs','🤝','مقاولو الباطن','op'],['labor','👷','العمالة اليومية','op'],['purchases','🧱','المشتريات','op'],['revenues','💰','الإيرادات','fin'],['expenses','🧾','المصروفات','op'],['costs','📈','التكاليف','fin'],['acct','📒','المحاسبة','fin'],['import','📥','استيراد كشوف الخميس','fin'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech'],['dashboard','📊','لوحة التحكم','fin'],['reports','📑','التقارير','rep'],['review','✅','المراجعة والاعتماد','op'],['settings','⚙️','الإعدادات','adm']];
 function menuAllowed(m){var k=m[3],r=S.role;if(r==='admin')return true;if(k==='adm')return false;if(r==='accountant')return true;if(k==='all')return true;if(k==='op')return r==='engineer';if(k==='tech')return true;if(k==='rep')return r==='supervisor';return false}
 
 /* ---------- calc engine ---------- */
