@@ -11,6 +11,7 @@ let f = 0, p = 0; const ck = (n, c, x) => { if (c) { p++; console.log('  ✔', n
   await pg.evaluate(() => { S.accounts.push({ id: 'bank', name: 'البنك', kind: 'bank', opening: 1000000 }); S.projects.push({ id: 'p9', name: 'مبني عميد كلية الطب قصر العيني', value: 1, boq: [] }); S.cfg.contractors.push({ id: 'c9', name: 'حمدي ستاير', trade: 'ستائر', open: 0 }); render(); });
   const files = fs.readdirSync(DIR).filter(x => /\.xlsx$/.test(x)).map(x => ({ name: x, mimeType: 'application/octet-stream', buffer: fs.readFileSync(path.join(DIR, x)) }));
   await pg.click('#side a[data-p=import]'); await pg.setInputFiles('#imp_files', files); await pg.waitForFunction(() => S.imp && S.imp.files.length > 20, null, { timeout: 60000 });
+  await pg.evaluate(() => { S.imp.hist = false; });
   const st = await pg.evaluate(() => ({ f: S.imp.files.length, l: S.imp.lines.length, w: S.imp.wages.length, e: S.imp.exp.length, from: S.imp.from, to: S.imp.to }));
   ck('قراءة 22 ملفًا', st.f === 22, st); ck('68 حركة مصروفات', st.e === 68, st); ck('الفترة 22→28 أكتوبر', st.from === '2026-10-22' && st.to === '2026-10-28', st); ck('كشوف أجور 8 أوراق', st.w >= 8, st);
   const B = await pg.evaluate(() => { const B = impBuild(S.imp); const ib = B.groups.filter(g => g.con.indexOf('ابراهيم') >= 0).map(g => [g.site, Math.round(g.due)]); return { n: B.groups.length, tot: Math.round(B.groups.reduce((s, g) => s + g.due, 0)), ib }; });
