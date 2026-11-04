@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
   T('ألومنيوم', cats[5] === 'أعمال ألومنيوم', cats[5]); T('تكييف', cats[6] === 'أعمال تكييف', cats[6]); T('صحية', cats[7] === 'أعمال صحية', cats[7]); T('أسقف ثانوية', cats[8] === 'أعمال أسقف ثانوية', cats[8]); T('فينيل', cats[9] === 'أرضيات فينيل', cats[9]); T('نجارة', cats[10] === 'أعمال نجارة', cats[10]); T('مصاعد', cats[11] === 'أعمال مصاعد', cats[11]); T('إنذار حريق', cats[12] === 'أعمال إنذار حريق', cats[12]); T('غازات طبية', cats[13] === 'أعمال غازات طبية', cats[13]); T('بورسلين', cats[14] === 'أرضيات بورسلين', cats[14]);
   await ev(() => { const p = S.projects[0]; p.boq = [{ id: 'b1', code: '1', name: 'تكسير بلاط', unit: 'م2', qty: 100, price: 10 }, { id: 'b2', code: '2', name: 'سيراميك ارضيات', unit: 'م2', qty: 100, price: 10 }]; S.vp = 'p1'; S.page = 'projects'; });
   const gap = await ev(() => { const p = S.projects[0]; return { g: boqGap(p), h: boqGapHtml(p) } });
-  T('تنبيه: المقايسة 2000 ≠ العقد 1000', gap.g && gap.g.bv === 2000 && gap.g.cv === 1000 && gap.h.includes('تنبيه'), gap);
+  T('تنبيه: المقايسة 2000 ≠ العقد 1000', gap.g && gap.g.bv === 2000 && gap.g.cv === 1000 && gap.h.includes('غير معتمد'), gap);
   await ev(() => { S.projects[0].boq.forEach(b => b.group = ''); return ACT.boqAutoCat() }); await pg.waitForTimeout(150);
   T('تصنيف تلقائي للبنود', await ev(() => S.projects[0].boq.map(b => b.group).join('|')) === 'أعمال تعديل وتكسير|أرضيات سيراميك');
   console.log('رقم مستخلص المقاول تلقائيًا');
