@@ -92,11 +92,11 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   await pg.click('#side a[data-p=labor]'); await click('[data-a=newTx][data-p="adv|worker"]'); await set('#t_party', 'محمود'); await set('#t_amt', 300); await pg.selectOption('#f_acc', cash); await save();
   await click('[data-a=newTx][data-p="labor|"]'); await pg.selectOption('#t_proj', pid);
   await set('#lines .w_name', 'محمود'); await set('#lines .w_rate', 400); await set('#lines .w_days', 6); await set('#lines .w_otn', 2); await set('#lines .w_shn', 1); await pg.waitForTimeout(100);
-  ck('إجمالي: 2400 + 2×200 − 1×200 = 2600', await ev(() => document.getElementById('s_total').textContent) === '2,600');
+  ck('إجمالي: 2400 + 2×200 + 1×400 = 3200', await ev(() => document.getElementById('s_total').textContent) === '3,200');
   ck('يقترح خصم السلفة 300', (await ev(() => document.querySelector('#lines .w_hint').textContent)).includes('300'));
   console.log('   dup ids:', await ev(() => document.querySelectorAll('#wr0').length), await ev(() => document.querySelector('[data-a=useWAdv]').closest('.ln').id)); await pg.click('[data-a=useWAdv]'); console.log('   adv:', await ev(() => document.querySelector('#lines .w_adv').value)); await pg.selectOption('#f_acc', cash); await pg.waitForTimeout(50);
-  const sn = await ev(() => [document.getElementById('s_net').textContent, document.querySelector('#lines .w_adv').value]); ck('الصافي 2300', sn[0] === '2,300', sn); await save();
-  ck('تكلفة العمالة 2600 ونقد 2300 وسلف قائمة 0', await ev(() => { const t = S.txs.filter(x => x.type === 'labor')[0]; return costOf(t) === 2600 && t.net === 2300 && workerAdv('محمود') === 0; }));
+  const sn = await ev(() => [document.getElementById('s_net').textContent, document.querySelector('#lines .w_adv').value]); ck('الصافي 2900', sn[0] === '2,900', sn); await save();
+  ck('تكلفة العمالة 3200 ونقد 2900 وسلف قائمة 0', await ev(() => { const t = S.txs.filter(x => x.type === 'labor')[0]; return costOf(t) === 3200 && t.net === 2900 && workerAdv('محمود') === 0; }));
   await click('[data-a=newTx][data-p="labor|"]'); await pg.selectOption('#t_proj', pid); await set('#lines .w_name', 'عم حسن'); await pg.selectOption('#lines .w_mode', 'month'); await set('#lines .w_rate', 9000); await set('#lines .w_days', 15); await pg.waitForTimeout(80);
   ck('شهري: 9000÷30×15 = 4500', await ev(() => document.getElementById('s_total').textContent) === '4,500'); await pg.selectOption('#f_acc', cash); await save();
 
@@ -106,7 +106,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   await click('[data-a=newExp]'); await click('[data-a=expType][data-p=expense]'); await set('#t_amt', 700); await pg.selectOption('#f_acc', cash); await save();
   await pg.click('#side a[data-p=progress]'); await click('[data-a=newTx][data-p="progress|"]'); await pg.selectOption('#t_proj', pid); await pg.selectOption('#t_boq', b1); await set('#t_qty', 100); await save();
   const T = await ev(() => { const p = S.projects[0]; return { t: projTotals(p.id), it: itemUse(p.id, p.boq[0].id) }; });
-  ck('تكلفة المشروع = 42000+28000+64000+2600+4500+1500 = 142600', T.t.cost === 142600, T.t);
+  ck('تكلفة المشروع = 42000+28000+64000+3200+4500+1500 = 143200', T.t.cost === 143200, T.t);
   ck('إيراد 300000', T.t.revenue === 300000);
   ck('مصروف عام غير موزع لا يدخل تكلفة المشروع', await ev(() => TX().some(t => t.type === 'expense' && !t.project_id) && projTotals(S.projects[0].id).expense === 1500));
   ck('تكلفة البند 1 = 70000 مقاول + 1500 مصروف', T.it.sub === 70000 && T.it.expense === 1500 && T.it.total === 71500, T.it);
@@ -116,11 +116,11 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
 
   console.log('الأرصدة النهائية');
   const bal = await ev(() => S.accounts.map(a => accStats(a).bal));
-  // الخزينة: 100000+50000-10000(دفعة)-300(سلفة)-2300-4500-1500-700 = 130700
-  ck('رصيد الخزينة 130700', bal[0] === 130700, bal);
+  // الخزينة: 100000+50000-10000(دفعة)-300(سلفة)-2900-4500-1500-700 = 130100
+  ck('رصيد الخزينة 130100', bal[0] === 130100, bal);
   // الأهلي: 1000000-50000-18000-20000-24000+300000 = 1188000
   ck('رصيد الأهلي 1188000', bal[1] === 1188000, bal);
-  ck('إجمالي مستخلص الأرصدة = 130700+1188000-40000', bal.reduce((a, c) => a + c, 0) === 1278700);
+  ck('إجمالي مستخلص الأرصدة = 130100+1188000-40000', bal.reduce((a, c) => a + c, 0) === 1278100);
 
   console.log('التقارير');
   await pg.click('#side a[data-p=reports]');
