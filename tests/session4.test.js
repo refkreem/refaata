@@ -19,10 +19,10 @@ const { chromium } = require('playwright');
   T('تصنيف تلقائي للبنود', await ev(() => S.projects[0].boq.map(b => b.group).join('|')) === 'أعمال تعديل وتكسير|أرضيات سيراميك');
   console.log('رقم مستخلص المقاول تلقائيًا');
   await ev(() => openForm('sub', null, 'sub')); await pg.waitForTimeout(100);
-  const hasNo = await ev(() => !!document.getElementById('t_no'));
+  const hasNo = await ev(() => !!document.getElementById('c_no'));
   if (hasNo) {
     await pg.selectOption('#t_proj', 'p1'); await pg.selectOption('#t_con', 'c1'); await pg.waitForTimeout(150);
-    T('رقم المستخلص 1 تلقائي', await pg.inputValue('#t_no') === '1', await pg.inputValue('#t_no'));
+    T('رقم المستخلص 1 تلقائي', await pg.inputValue('#c_no') === '1', await pg.inputValue('#c_no'));
   } else T('حقل رقم المستخلص موجود', false);
   await ev(() => { closeModal(); S.txs.push({ id: 's1', type: 'sub', status: 'approved', project_id: 'p1', party_id: 'c1', no: '1', date: '2026-10-01', gross: 5000, net: 5000, prior_paid: 0, lines: [{ name: 'أعمال معدنية', boq_id: 'b1', qty: 1, price: 5000 }] }); });
   T('nextSubNo = 2', await ev(() => nextSubNo('p1', 'c1')) === '2');

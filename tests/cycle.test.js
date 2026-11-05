@@ -56,7 +56,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   const cid = await ev(() => S.cfg.contractors[0].id);
   await click('[data-a=newTx][data-p="adv|contractor"]'); await pg.selectOption('#t_con', cid); await set('#t_amt', 10000); await pg.selectOption('#f_acc', cash); await save();
   ck('دفعة مقدمة خرجت من الخزينة', await ev(() => accStats(S.accounts[0]).bal) === 140000);
-  await click('[data-a=newTx][data-p="sub|"]'); await pg.selectOption('#t_proj', pid); await pg.selectOption('#t_con', cid);
+  await ev(() => fSub(null)); await pg.selectOption('#t_proj', pid); await pg.selectOption('#t_con', cid);
   await pg.selectOption('#lines .l_boq', b1); await set('#lines .l_qty', 40); await pg.waitForTimeout(100);
   ck('سعر الفئة يُملأ بالتكلفة المقدرة', await ev(() => document.querySelector('#lines .l_price').value) === '700');
   const hint = await ev(() => document.querySelector('#lines .l_hint').textContent);
@@ -65,7 +65,7 @@ function ck(name, cond, extra) { if (cond) { passes++; console.log('  ✔', name
   ck('الصافي = 28000 - 10000', await ev(() => document.getElementById('s_net').textContent) === '18,000');
   await save();
   ck('مستخلص 1: تكلفة 28000 ونقد 18000 من البنك', await ev(() => { const t = S.txs.filter(x => x.type === 'sub')[0]; return costOf(t) === 28000 && t.paid === 18000 && accStats(S.accounts[1]).bal === 1000000 - 50000 - 18000; }));
-  await click('[data-a=newTx][data-p="sub|"]'); await pg.selectOption('#t_proj', pid); await pg.selectOption('#t_con', cid);
+  await ev(() => fSub(null)); await pg.selectOption('#t_proj', pid); await pg.selectOption('#t_con', cid);
   await pg.selectOption('#lines .l_boq', b1); await pg.waitForTimeout(100);
   ck('الكمية السابقة تُسترجع تلقائيًا (40)', await ev(() => document.querySelector('#lines .l_prev').value) === '40');
   await set('#lines .l_qty', 100); await pg.waitForTimeout(100);

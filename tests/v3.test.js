@@ -27,7 +27,7 @@ const n1=await pg.evaluate(()=>nextSubNo('p1','c1'));T('أول مستخلص رق
 await pg.evaluate(()=>{S.txs.push({id:'s1',type:'sub',status:'approved',project_id:'p1',party_id:'c1',no:'1',date:'2026-10-01',lines:[{name:'أعمال معدنية',qty:1,price:100}],gross:100,net:100,paid:0,paid_set:true})});
 T('المستخلص التالي رقم 2',await pg.evaluate(()=>nextSubNo('p1','c1'))==='2');
 await pg.evaluate(()=>openForm('sub'));await pg.selectOption('#t_proj','p1');await pg.selectOption('#t_con','c1');await pg.waitForTimeout(200);
-T('الرقم يُملأ تلقائيًا في نموذج المستخلص',await V('#t_no')==='2');
+T('الرقم يُملأ تلقائيًا في نموذج المستخلص',await V('#c_no')==='2');
 await pg.click('[data-a=mclose]');
 /* سداد: البند تلقائي */
 await pg.evaluate(()=>{S.projects[0].boq=[{id:'b1',code:'1',name:'أعمال حديد',qty:1,price:100,group:'أعمال معدنية'}];S.txs[0].lines=[{boq_id:'b1',qty:1,price:100}]});

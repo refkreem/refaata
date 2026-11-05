@@ -24,7 +24,7 @@ function ck(n, c, x) { if (c) { passes++; console.log('  ✔', n); } else { fail
   ck('رصيد المقاول الافتتاحي يظهر مستحقًا', (await ev(() => contractorLedger('c1').owed)) === 10000);
   ck('رصيد المورد الافتتاحي يظهر مستحقًا', (await ev(() => supplierLedger('مورد س').bal)) === 5000);
   console.log('مصروف مقاول سريع');
-  await pg.click('#side a[data-p=expenses]'); await pg.click('[data-a=newExp]'); await pg.click('[data-a=expType][data-p=sub]');
+  await pg.click('#side a[data-p=expenses]'); await pg.evaluate(() => fSubQuick(null));
   await pg.selectOption('#t_proj', 'p1'); await pg.selectOption('#t_con', 'c1'); await pg.waitForTimeout(100);
   ck('التخصص يظهر تلقائيًا', (await ev(() => $('q_trade').value)) === 'تكييف وتهوية');
   await pg.selectOption('#t_boq', 'b1'); await pg.waitForTimeout(100);

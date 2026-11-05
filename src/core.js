@@ -71,7 +71,7 @@ var MENU=[['accounts','🏦','الخزائن والبنوك','fin'],['projects',
 function menuAllowed(m){var k=m[3],r=S.role;if(r==='admin')return true;if(k==='adm')return false;if(r==='accountant')return true;if(k==='all')return true;if(k==='op')return r==='engineer';if(k==='tech')return true;if(k==='rep')return r==='supervisor';return false}
 
 /* ---------- calc engine ---------- */
-function apr(t){return t.status!=='pending'&&t.status!=='rejected'}
+function apr(t){return t.status!=='pending'&&t.status!=='rejected'&&t.status!=='cancelled'}
 function TX(){return S.txs.filter(apr)}
 function proj(id){return S.projects.filter(function(p){return p.id===id})[0]}
 function acc(id){return S.accounts.filter(function(a){return a.id===id})[0]}
