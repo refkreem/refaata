@@ -1056,8 +1056,8 @@ function impParseCon(aoa,sheet,file){var hi=-1;for(var i=0;i<Math.min(aoa.length
  out.tot=tot;return out}
 function impParseWages(aoa,sheet){var head=impText(aoa,6);if(!/كشف صرف يوميات|يوميات العماله|يوميات العمالة/.test(nrm(head)+' '+head))return null;var siteTxt=head.indexOf('الموقع')>=0?head.split('الموقع').pop():'';var site=impCanon(sheet,siteTxt)||impS(sheet);var rows=[],advSheet=0,gt=0;
  for(var i=0;i<aoa.length;i++){var r=aoa[i]||[];if(typeof r[0]==='string'&&/^\s*اجمال/.test(nrm(r[0]))){gt=impN(r[11]);var nx=aoa[i+1]||[];if(impN(nx[12])&&!impN(r[12]))advSheet=impN(nx[12]);else advSheet=impN(r[12]);continue}
-  if(typeof r[0]!=='number'||typeof r[1]!=='string')continue;var rate=impN(r[2]),days=impN(r[3]),nn=impN(r[6]),an=impN(r[9]),grand=r[11]==null?null:impN(r[11]);var nv=r2(rate/2),av=rate;var total=days*rate+nn*nv+an*av;var adv=impN(r[12])+impN(r[13]);var sheetTot=grand;if(!total&&!adv)continue;
-  rows.push({name:impS(r[1]),mode:'day',rate:rate,days:days,ot_n:nn,ot_v:nv,sh_n:an,sh_v:av,sheet_total:sheetTot,adv:adv,boq_id:null,work:'',total:r2(total),net:r2(total-adv)})}
+  if(typeof r[0]!=='number'||typeof r[1]!=='string')continue;var rate=impN(r[2]),days=impN(r[3]),nn=impN(r[6]),an=impN(r[9]),grand=r[11]==null?null:impN(r[11]);var nv=impN(r[5])>0?impN(r[5]):r2(rate/2),av=impN(r[8])>0?impN(r[8]):rate;var total=days*rate+nn*nv+an*av;var ruleTot=r2(days*rate+nn*rate/2+an*rate);var adv=impN(r[12])+impN(r[13]);var sheetTot=grand;if(!total&&!adv)continue;
+  rows.push({name:impS(r[1]),mode:'day',rate:rate,days:days,ot_n:nn,ot_v:nv,sh_n:an,sh_v:av,sheet_total:sheetTot,adv:adv,boq_id:null,work:'',total:r2(total),rule_total:ruleTot,net:r2(total-adv)})}
  return{site:site,sheet:impS(sheet),rows:rows,gt:gt,sheetAdv:advSheet,sheetTot:rows.length?sum(rows,function(r){return r.sheet_total==null?r.total:r.sheet_total}):null}}
 function impParseExp(aoa,sheet){var hi=-1,m=null;for(var i=0;i<Math.min(aoa.length,15);i++){var r=(aoa[i]||[]).map(nrm);var col={no:0,date:-1,bayan:-1,site:-1,band:-1,out:-1,inn:-1};r.forEach(function(x,j){if(x==='تاريخ')col.date=j;else if(x.indexOf('بيان')===0)col.bayan=j;else if(x==='الموقع')col.site=j;else if(x.indexOf('بند')===0)col.band=j;else if(x==='المنصرف')col.out=j;else if(x==='العهده')col.inn=j});if(col.date>=0&&col.bayan>=0&&col.out>=0){hi=i;m=col;break}}
  if(hi<0)return null;var out=[];for(var k=hi+1;k<aoa.length;k++){var r=aoa[k]||[];var d=impD(r[m.date]);if(!d||typeof r[0]!=='number')continue;out.push({no:r[0],date:d,bayan:impS(r[m.bayan]),site:impS(r[m.site]),band:impS(r[m.band]),out:impN(r[m.out]),inn:impN(r[m.inn])})}return out}
@@ -1229,7 +1229,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261105-0203';
+var BUILD='20261105-0218';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}

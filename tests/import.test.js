@@ -20,7 +20,7 @@ let f = 0, p = 0; const ck = (n, c, x) => { if (c) { p++; console.log('  ✔', n
   await pg.click('[data-a=impGo]', { force: true }); await pg.waitForFunction(() => S.impDone, null, { timeout: 60000 });
   const r = await pg.evaluate(() => { const T = S.txs; return { n: T.length, sub: T.filter(t => t.type === 'sub').length, lab: T.filter(t => t.type === 'labor').length, pend: T.filter(t => t.status === 'pending').length, approved: T.filter(t => t.status === 'approved').length, subTot: Math.round(sum(T.filter(t => t.type === 'sub'), t => t.net)), laborTot: Math.round(sum(T.filter(t => t.type === 'labor'), t => t.total)), cons: S.cfg.contractors.length, projs: S.projects.length, jeOk: jeAll().every(e => e.ok), cust: accStats(S.accounts.find(a => a.name === 'عهدة المحاسب')).bal, hamdi: contractorLedger('c9').owed, ibr: S.cfg.contractors.filter(c => c.name.indexOf('ابراهيم') >= 0).map(c => c.id).map(id => contractorLedger(id).owed) }; });
   console.log(r);
-  ck('مستخلصات المقاولين = إجمالي المستحق', Math.abs(r.subTot - 565125) < 5, r); ck('الأجور حسب القاعدة (السهرة نصف يومية والتطبيقة يومية)', r.laborTot === 116850, r.laborTot); ck('كل القيود متزنة', r.jeOk);
+  ck('مستخلصات المقاولين = إجمالي المستحق', Math.abs(r.subTot - 565125) < 5, r); ck('الأجور بمعدلات الكشف نفسها = 116450 + عيادة 3400', r.laborTot === 119850, r.laborTot); ck('كل القيود متزنة', r.jeOk);
   ck('حمدي ستاير مطابق للمقاول الموجود ورصيده صفر بعد سداد 100,000', r.hamdi === 0 || Math.abs(r.hamdi) < 1, r.hamdi);
   const again = await pg.evaluate(async () => { const before = S.txs.length; await ACT.impGo(); return S.txs.length - before; });
   ck('إعادة التحميل لا تكرر الحركات', again === 0, again);
