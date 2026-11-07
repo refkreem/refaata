@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();let ok=0,bad=0;const T=(n,c)=>{c?ok++:bad++;console.log(c?'  ✔':'  ✘',n)};
 let dlg=[];pg.on('pageerror',e=>{bad++;console.log('PAGEERR',e.message)});pg.on('dialog',async d=>{dlg.push(d.message());d.type()==='prompt'?await d.accept('سبب اختبار'):await d.accept()});
-await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata2/index.html');await pg.waitForFunction(()=>window.S&&S.db);
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata/index.html');await pg.waitForFunction(()=>window.S&&S.db);
 // --- BOQ gap
 await pg.evaluate(()=>{S.projects=[{id:'p1',name:'م1',value:1000,boq:[]}];S.accounts=[{id:'a1',name:'خزينة',kind:'cash',opening:1000},{id:'a2',name:'بنك',kind:'bank',opening:5000}];S.txs=[];S.vp='p1'});
 await pg.evaluate(()=>{const p=proj('p1');p.boq=[{id:'b1',code:'1',group:'قسم أصلي',name:'توريد وتركيب مواسير صرف صحي',unit:'م',qty:10,price:100,cost_price:0},{id:'b2',code:'2',group:'',name:'تكسير بلاط قديم',unit:'م2',qty:10,price:100},{id:'b3',code:'3',group:'',name:'بند غريب xyz',unit:'م',qty:1,price:0}]});

@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:bad++;console.log(c?'  ✔':'  ✘',n,c?'':JSON.stringify(x))};
 pg.on('pageerror',e=>{bad++;console.log('PAGEERR',e.message)});pg.on('dialog',async d=>{d.type()==='prompt'?await d.accept('تصحيح'):await d.accept()});
-await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata2/index.html');await pg.waitForFunction(()=>window.S&&S.db);
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata/index.html');await pg.waitForFunction(()=>window.S&&S.db);
 await pg.evaluate(()=>{S.projects=[{id:'p1',name:'الدور الخامس',value:900000,boq:[{id:'b1',code:'1',name:'حديد',unit:'م',qty:1,price:1}]},{id:'p2',name:'عيادة',value:50000,boq:[]}];S.accounts=[{id:'a1',name:'خزينة',kind:'cash',opening:500000}];S.cfg.contractors=[{id:'c1',name:'ابراهيم الحداد',trade:'أعمال معدنية',open:0}];S.txs=[]});
 async function cert(date,proj,cum,adv,paid){await pg.evaluate(()=>openForm('sub'));await pg.fill('#t_date',date);await pg.selectOption('#t_proj',proj);await pg.selectOption('#t_con','c1');await pg.fill('#c_cum',String(cum));if(adv!=null)await pg.fill('#c_adv',String(adv));if(paid)await pg.fill('#c_paid',String(paid));await pg.selectOption('#f_acc','a1').catch(()=>{});await pg.waitForTimeout(100);
  const calc=await pg.evaluate(()=>{const c=S.certCalc();return{delta:c.delta,due:c.due,net:c.net,P:c.P,prevC:c.prevC,advOut:c.advOut}});await pg.click('[data-a=msave]');await pg.waitForTimeout(250);return calc}

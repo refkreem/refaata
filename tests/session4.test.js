@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] }); const pg = await (await b.newContext()).newPage(); let ok = 0, bad = 0;
   const T = (n, c, x) => { c ? ok++ : bad++; console.log(c ? '  ✔' : '  ✘', n, c ? '' : JSON.stringify(x || '')) };
   pg.on('pageerror', e => { bad++; console.log('PAGEERR', e.message) }); pg.on('dialog', d => d.type() === 'prompt' ? d.accept('مسح') : d.accept());
-  await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/, r => r.abort()); await pg.goto('file:///home/claude/refaata2/index.html'); await pg.waitForFunction(() => window.S && S.db);
+  await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/, r => r.abort()); await pg.goto('file:///home/claude/refaata/index.html'); await pg.waitForFunction(() => window.S && S.db);
   await pg.addScriptTag({ path: '/tmp/claude-0/xl/node_modules/xlsx/dist/xlsx.full.min.js' });
   const ev = f => pg.evaluate(f);
   await ev(() => { S.projects = [{ id: 'p1', name: 'مشروع أ', value: 1000, boq: [] }]; S.accounts = [{ id: 'a1', name: 'الخزينة', kind: 'cash', opening: 5000 }, { id: 'a2', name: 'بنك', kind: 'bank', opening: 0 }]; S.cfg.contractors = [{ id: 'c1', name: 'ابراهيم الحداد', trade: 'أعمال معدنية' }]; S.txs = []; });

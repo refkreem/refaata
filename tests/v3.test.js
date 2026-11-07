@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();let ok=0,bad=0;const T=(n,c)=>{c?ok++:bad++;console.log(c?'  ✔':'  ✘',n)};
 pg.on('pageerror',e=>{bad++;console.log('PAGEERR',e.message)});pg.on('dialog',d=>d.type()==='prompt'?d.accept(d.message().includes('مسح')?'مسح':'تصفير'):d.accept());
-await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata2/index.html');await pg.waitForFunction(()=>window.S&&S.db);
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata/index.html');await pg.waitForFunction(()=>window.S&&S.db);
 await pg.evaluate(()=>{S.projects=[{id:'p1',name:'م1',value:1000,boq:[]},{id:'p2',name:'م2',value:5,boq:[]}];S.accounts=[{id:'a1',name:'خزينة',kind:'cash',opening:100000}];S.cfg.contractors=[{id:'c1',name:'ابراهيم',trade:'أعمال معدنية'}];S.cfg.workers=[]});
 const V=async id=>(await pg.inputValue(id)).replace(/,/g,'');
 /* الأجور */

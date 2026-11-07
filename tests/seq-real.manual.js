@@ -1,7 +1,7 @@
 const { chromium } = require('playwright'); const fs=require('fs');
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();
 pg.on('pageerror',e=>console.log('PAGEERR',e.message));pg.on('dialog',d=>{d.type()==='prompt'?d.accept('تصفير'):d.accept()});
-await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata2/index.html');await pg.waitForFunction(()=>window.S&&S.db);
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata/index.html');await pg.waitForFunction(()=>window.S&&S.db);
 await pg.addScriptTag({path:'/tmp/claude-0/xl/node_modules/xlsx/dist/xlsx.full.min.js'});await pg.addScriptTag({path:'/tmp/claude-0/xl/node_modules/jszip/dist/jszip.min.js'});
 const A='/mnt/user-data/attachments/d5e711fb-0cee-506f-8b45-996e9faaf23a/';
 const Z={'14':'09e3244b-1793843935465_14-10-2026_______.zip','21':'45ebf9e3-1793842721467_21-10-2026_______.zip','28':'a964418d-1793842525729_28-10-2026.zip'};

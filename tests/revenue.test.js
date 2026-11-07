@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();let ok=0,bad=0;const V=async id=>(await pg.inputValue(id)).replace(/,/g,'');const T=(n,c)=>{c?ok++:bad++;console.log(c?'  ✔':'  ✘',n)};
 pg.on('pageerror',e=>{bad++;console.log('PAGEERR',e.message)});pg.on('dialog',d=>d.accept());
-await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata2/index.html');await pg.waitForFunction(()=>window.S&&S.db);
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata/index.html');await pg.waitForFunction(()=>window.S&&S.db);
 await pg.evaluate(()=>{S.projects=[{id:'p1',name:'م1',value:1000000,boq:[]},{id:'p2',name:'م2',value:5,boq:[]}];S.accounts=[{id:'a1',name:'بنك',kind:'bank',opening:0}];S.txs=[{id:'i1',type:'ipc',status:'approved',project_id:'p1',date:'2026-10-01',no:'3',gross:100000,adv_recov:0,ret_pct:5,ret_amt:5000,tax_pct:0,tax_amt:0,other_ded:0,net:95000}]});
 await pg.evaluate(()=>openForm('revenue'));
 await pg.selectOption('#t_proj','p1');await pg.waitForTimeout(200);
