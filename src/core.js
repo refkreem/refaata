@@ -67,7 +67,7 @@ function roleOf(email){var r=S.cfg.roles||{};var keys=Object.keys(r);if(!keys.le
 function isFin(){return S.role==='admin'||S.role==='accountant'}
 function isAdmin(){return S.role==='admin'}
 var ROLE_NAMES={admin:'مدير النظام',accountant:'محاسب',engineer:'مهندس موقع',supervisor:'إشراف فني'};
-var MENU=[['accounts','🏦','الخزائن والبنوك','fin'],['projects','🏗️','المشاريع','all'],['subs','🤝','مقاولو الباطن','op'],['labor','👷','العمالة اليومية','op'],['purchases','🧱','المشتريات','op'],['revenues','💰','الإيرادات','fin'],['expenses','🧾','المصروفات','op'],['costs','📈','التكاليف','fin'],['acct','📒','المحاسبة','fin'],['import','📥','استيراد كشوف الخميس','fin'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin'],['dashboard','📊','لوحة التحكم','fin'],['reports','📑','التقارير','rep'],['review','✅','المراجعة والاعتماد','op'],['settings','⚙️','الإعدادات','adm']];
+var MENU=[['accounts','🏦','الخزائن والبنوك','fin'],['projects','🏗️','المشاريع','all'],['subs','🤝','مقاولو الباطن','op'],['labor','👷','العمالة اليومية','op'],['purchases','🧱','المشتريات','op'],['revenues','💰','الإيرادات','fin'],['expenses','🧾','المصروفات','op'],['costs','📈','التكاليف','fin'],['acct','📒','المحاسبة','fin'],['import','📥','استيراد كشوف الخميس','fin'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin'],['mpay','👔','مرتبات الموظفين الشهرية','fin'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin'],['dashboard','📊','لوحة التحكم','fin'],['reports','📑','التقارير','rep'],['review','✅','المراجعة والاعتماد','op'],['settings','⚙️','الإعدادات','adm']];
 function menuAllowed(m){var k=m[3],r=S.role;if(r==='admin')return true;if(k==='adm')return false;if(r==='accountant')return true;if(k==='all')return true;if(k==='op')return r==='engineer';if(k==='tech')return true;if(k==='rep')return r==='supervisor';return false}
 
 /* ---------- calc engine ---------- */
@@ -83,7 +83,7 @@ function boqLabel(b){return(b.code?b.code+' - ':'')+b.name}
 function lineVal(l){return num(l.qty)*num(l.price)}
 function costOf(t){switch(t.type){case'purchase':return num(t.total)-num(t.vat);case'sub':return num(t.gross)-num(t.prior_paid);case'labor':return num(t.total);case'expense':return t.project_id&&!isVatSettle(t)?num(t.amount):0}return 0}
 function cashMoves(t){var m=[];function o(a,v){if(num(v)&&a)m.push({acc:a,amt:-num(v)})}
- switch(t.type){case'purchase':o(t.account_id,t.paid);break;case'sub':o(t.account_id,t.paid);break;case'labor':o(t.account_id,t.net);break;case'expense':case'adv':case'payment':o(t.account_id,t.amount);break;
+ switch(t.type){case'purchase':o(t.account_id,t.paid);break;case'sub':o(t.account_id,t.paid);break;case'labor':o(t.account_id,t.net);break;case'expense':o(t.account_id,num(t.amount)-num(t.liab)-num(t.advrec));break;case'adv':case'payment':o(t.account_id,t.amount);break;
  case'revenue':if(t.account_id&&num(revNet(t)))m.push({acc:t.account_id,amt:revNet(t)});break;
  case'transfer':o(t.from,t.amount);if(t.to&&num(t.amount))m.push({acc:t.to,amt:num(t.amount)});break}
  return m}
@@ -108,7 +108,7 @@ function contractorLedger(id,pid){var r={extracts:0,work:0,net:0,paid:0,payments
  else if(t.type==='adv'&&t.kind==='contractor'&&t.party_id===id)r.adv+=num(t.amount)});
  var cc=S.cfg.contractors.filter(function(x){return x.id===id})[0];r.open=(!pid&&cc)?num(cc.open):0;r.owed=r.open+r.net-r.paid-r.payments;r.advOut=r.adv-r.recov;return r}
 function supplierLedger(name,excl){var r={total:0,paid:0,payments:0,bal:0};TX().forEach(function(t){if(excl&&t.id===excl)return;if(t.type==='purchase'&&String(t.supplier||'').trim()===String(name||'').trim()){r.total+=num(t.total);r.paid+=num(t.paid)}else if(t.type==='payment'&&t.kind==='supplier'&&String(t.party||'').trim()===String(name||'').trim())r.payments+=num(t.amount)});r.open=(typeof supInfo==='function')?num(supInfo(name).open):0;r.bal=r.open+r.total-r.paid-r.payments;return r}
-function workerAdv(name){var a=0,rc=0;TX().forEach(function(t){if(t.type==='adv'&&t.kind==='worker'&&t.party===name)a+=num(t.amount);if(t.type==='labor')(t.rows||[]).forEach(function(w){if(w.name===name)rc+=num(w.adv)})});return a-rc}
+function workerAdv(name){var a=0,rc=0;TX().forEach(function(t){if(t.type==='adv'&&t.kind==='worker'&&t.party===name)a+=num(t.amount);if(t.type==='labor'||(t.type==='payroll'&&t.mp&&t.mst&&t.mst!=='draft'))(t.rows||[]).forEach(function(w){if(w.name===name)rc+=num(w.adv)})});return a-rc}
 function itemState(pid,bid){var b=boqItem(pid,bid);if(!b)return null;var u=itemUse(pid,bid);return{b:b,u:u,val:boqValue(b),bud:boqBudget(b),rest:boqBudget(b)-u.total}}
 function costTxIds(){return TX().filter(function(t){return costOf(t)!==0})}
 function ensureReg(t){var c=S.cfg,ch=false;function add(arr,n){if(n&&arr.indexOf(n)<0){arr.push(n);ch=true}}

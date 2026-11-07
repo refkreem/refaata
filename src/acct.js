@@ -24,7 +24,7 @@ function jeLines(t,rm){var L=[];function P(a,x,p,w){x=r2(x);if(!x)return;L.push(
  case'purchase':{var tot=num(t.total),v=num(t.vat),pd=num(t.paid);P('5101',tot-v);P('1402',v);P(cash,-pd);P('2101',-(tot-pd),undefined,t.supplier);break}
  case'sub':{if(t.hist)cash='3101';var work=costOf(t),net=num(t.net),pd2=num(t.paid),ad=num(t.adv_recov);P('5102',work);P(cash,-pd2);P('2102',-(net-pd2),undefined,cname(t.party_id));P('1301',-ad,undefined,cname(t.party_id));P('2103',-(work-net-ad),undefined,cname(t.party_id));break}
  case'labor':{var tl=num(t.total),nt=num(t.net),av=num(t.adv);P('5103',tl);P(cash,-nt);P('1302',-av);P('2104',-(tl-nt-av));break}
- case'expense':{var cat=t.category||'أخرى';if(t.payroll_id)P(t.project_id?'5104':'6101',a);else if(isVatSettle(t))P('2301',a);else P((t.project_id?'D:':'X:')+cat,a);P(cash,-a);break}
+ case'expense':{var cat=t.category||'أخرى';if(t.payroll_id)P(t.project_id?'5104':'6101',a);else if(isVatSettle(t))P('2301',a);else P((t.project_id?'D:':'X:')+cat,a);var lb=num(t.liab),ar=num(t.advrec);P(cash,-(a-lb-ar));if(lb)P('2103',-lb);if(ar)P('1302',-ar);break}
  case'adv':P(t.kind==='worker'?'1302':'1301',a,undefined,t.party||cname(t.party_id));P(cash,-a);break;
  case'payment':P(t.kind==='supplier'?'2101':'2102',a,undefined,t.party||cname(t.party_id));P(cash,-a);break;
  case'revenue':{var w=whOf(t),vo=num(t.vat_out),rel=(rm||retRelMap())[t.id]||0;P(cash,a-w.sum);WH_TYPES.forEach(function(x){if(w[x.k])P(x.a,w[x.k])});if(rel)P('1305',-rel);P('4101',-(a-rel-vo));P('2301',-vo);break}

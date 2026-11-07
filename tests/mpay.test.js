@@ -1,0 +1,28 @@
+const { chromium } = require('playwright');
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:bad++;console.log(c?'  ✔':'  ✘',n,c?'':JSON.stringify(x))};
+pg.on('pageerror',e=>{bad++;console.log('PAGEERR',e.message)});pg.on('dialog',async d=>{d.type()==='prompt'?await d.accept('سبب'):await d.accept()});
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata/index.html');await pg.waitForFunction(()=>window.S&&S.db);
+await pg.evaluate(async()=>{S.projects=[{id:'p1',name:'أ',value:600000,boq:[]},{id:'p2',name:'ب',value:400000,boq:[]}];S.accounts=[{id:'a1',name:'بنك',kind:'bank',opening:200000}];S.cfg.staff=[{id:'s1',name:'مهندس 1',job:'مهندس',salary:10000,allow:1000,active:true},{id:'s2',name:'سائق',job:'سائق',salary:5000,active:true,project_id:'p2'}];S.cfg.mp={ins_pct:10,tax_pct:0};
+ await saveTx({type:'adv',kind:'worker',party:'سائق',date:'2026-10-01',amount:1000,account_id:'a1',desc:'سلفة'},null);S.mp.month='2026-10';go('mpay')});
+T('المسودة تُقترح من السجل (تأمينات 10%)',await pg.evaluate(()=>{const r=mpFinish(mpRows());return r.length===2&&r[0].gross===11000&&r[0].ins===1000&&r[0].net===10000}));
+T('زر لوحة التحكم',await pg.evaluate(()=>{go('dashboard');const ok=document.getElementById('main').innerHTML.includes('GENERATE MONTHLY PAYROLL');go('mpay');return ok}));
+// سلفة السائق 1000 تُخصم
+await pg.evaluate(()=>{const tr=[...document.querySelectorAll('#mp_tbl tbody tr')][1];const i=tr.querySelector('[data-k=adv]');i.value=1000;i.dispatchEvent(new Event('input',{bubbles:true}))});
+T('الصافي يتحدث حيًا',await pg.evaluate(()=>[...document.querySelectorAll('.mp_n')].map(x=>x.textContent.replace(/,/g,'')).join()==='10000,3500'));
+await pg.evaluate(()=>ACT.mpSave());await pg.waitForTimeout(250);
+T('مسودة محفوظة بلا أثر محاسبي',await pg.evaluate(()=>{const t=mpOf('2026-10');return t&&t.mst==='draft'&&S.txs.filter(x=>x.payroll_id===t.id).length===0}));
+const bal0=await pg.evaluate(()=>accStats(S.accounts[0]).bal);
+await pg.evaluate(()=>ACT.mpApprove());await pg.waitForTimeout(500);
+const c=await pg.evaluate(()=>{const t=mpOf('2026-10');const k=S.txs.filter(x=>x.payroll_id===t.id);return{st:t.mst,n:k.length,cost:k.reduce((s,x)=>s+x.amount,0),liab:k.reduce((s,x)=>s+(x.liab||0),0),adv:k.reduce((s,x)=>s+(x.advrec||0),0),adv2:workerAdv('سائق'),bal:accStats(S.accounts[0]).bal}});
+T('الاعتماد: تكلفة 16000 وتأمينات 1500 وسلفة 1000 ولا يتحرك النقد',c.st==='approved'&&c.cost===16000&&c.liab===1500&&c.adv===1000&&c.bal===bal0&&c.adv2===0,[c,bal0]);
+T('منع كشف ثانٍ والتعديل بعد القفل',await pg.evaluate(async()=>{const n=S.txs.length;await ACT.mpApprove();await ACT.mpSave();return S.txs.length===n&&mpAll().length===1}));
+await pg.evaluate(()=>ACT.mpPay());await pg.waitForTimeout(150);await pg.selectOption('#f_acc','a1');await pg.click('[data-a=msave]');await pg.waitForTimeout(400);
+const d=await pg.evaluate(()=>({st:mpOf('2026-10').mst,bal:accStats(S.accounts[0]).bal}));
+T('الصرف يخصم الصافي 13500 فقط',d.st==='paid'&&bal0-d.bal===13500,[d,bal0]);
+T('ميزان المراجعة متزن',await pg.evaluate(()=>{const L=jeAll().reduce((a,e)=>{(e.lines||[]).forEach(l=>{a.d+=l.d;a.c+=l.c});return a},{d:0,c:0});return Math.abs(L.d-L.c)<0.01}));
+await pg.evaluate(()=>ACT.mpRev());await pg.waitForTimeout(500);
+const e=await pg.evaluate(()=>({n:mpAll().length,all:S.txs.filter(x=>x.type==='payroll').length,bal:accStats(S.accounts[0]).bal,adv:workerAdv('سائق'),kids:S.txs.filter(x=>x.payroll_id&&x.status!=='cancelled').length}));
+T('العكس يعيد الرصيد والسلفة ويحفظ السجل',e.n===0&&e.all===1&&e.bal===bal0&&e.adv===1000&&e.kids===0,e);
+T('كشف جديد للشهر ممكن بعد العكس',await pg.evaluate(()=>mpOf('2026-10')===null));
+T('تصدير',await pg.evaluate(()=>mpRes(null).rows.length===2));
+T('لا أخطاء',bad===0);console.log(ok+' pass, '+bad+' fail');await b.close();process.exit(bad?1:0)})();
