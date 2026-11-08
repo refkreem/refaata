@@ -27,7 +27,7 @@ main{flex:1;min-width:0;padding:16px;max-width:1500px}
 .pg-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.pg-h h2{font-size:25px;color:var(--ac)}.pg-h .sp{flex:1}
 .card{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);padding:14px;margin-bottom:14px}
 .card h3{font-size:18.5px;color:var(--ac);margin-bottom:8px}
-.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
 .kpi{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh)}
 .kpi .l{font-size:14px;font-weight:700;color:var(--mut)}.kpi .v{font:800 21px Cairo;margin-top:2px}.kpi .s{font-size:13.5px;font-weight:600;color:var(--fnt)}
 .good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}.mut{color:var(--mut)}.fnt{color:var(--fnt)}
@@ -56,7 +56,7 @@ input[readonly]{background:var(--s2)}
 .mhead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:2px solid var(--ac);font:800 21px Cairo;color:var(--ac)}
 .mhead .x{background:none;border:0;font-size:18px;cursor:pointer;color:var(--mut)}
 .mbody{padding:14px 16px}.mfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--bd);position:sticky;bottom:0;background:var(--surface);border-radius:0 0 12px 12px}
-.fg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:10px}.fg .full{grid-column:1/-1}
+.fg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:10px}.fg .full{grid-column:1/-1}
 .ln{border:1px solid var(--bd);border-radius:9px;padding:10px;margin-bottom:8px;background:var(--s2);position:relative}
 .lg{border-collapse:collapse;min-width:1350px}.lg th{font-size:14px;font-weight:800;padding:6px 4px;white-space:nowrap}.lg td{padding:3px;white-space:nowrap}.lg input,.lg select{width:100%;min-width:70px;font-size:16px;font-weight:700;padding:6px 7px;border:1.5px solid var(--inbd);border-radius:6px;background:var(--inbg)}.lg .w_name{min-width:150px}.lg .w_boq,.lg .w_work{min-width:150px;display:block;margin-bottom:2px}.lg td.c{text-align:center;color:var(--mut)}.lg td.b{font-weight:700;color:var(--fg)}.lg tbody{counter-reset:r}.lg tr.ln{counter-increment:r;border:0;padding:0;margin:0;background:none;position:static}.lg td.no:before{content:counter(r)}.bsheet{border-collapse:collapse;width:100%}.bsheet .un{color:var(--mut);font-size:.85em;font-weight:600}.bsheet th{background:var(--navy);color:#fff;font-size:14px;text-align:center}.bsheet td{border:1px solid var(--bd);font-size:15.5px}.bsheet tr.grp td{background:var(--acs);color:var(--ac);font-weight:800;font-size:16px}.bsheet tr.sub td{background:var(--s2);font-weight:800}.bsheet tr.gt td{background:var(--navy);color:#fff;font-weight:800;font-size:16px}.bsheet td.n{text-align:center;white-space:nowrap}.bsheet td.nm{white-space:normal;min-width:260px}.bsheet tr.clk:hover td{background:var(--navyf)}.bprev{max-height:260px;overflow:auto}.lg .rm2{background:none;border:0;color:var(--bad);cursor:pointer;font-size:16px}.ln .fg{margin-bottom:4px}.ln .rm{position:absolute;top:6px;left:8px;background:none;border:0;color:var(--bad);cursor:pointer;font-size:16px}
 .hint{font-size:12.5px;padding:6px 9px;border-radius:7px;background:var(--navyf);color:var(--navy);margin-top:4px}
@@ -107,6 +107,11 @@ td{color:#000;font-weight:700}
 .pg-h h2,.card h3,.kpi .l,.kpi .v,.kpi .s,.f>span,.mut,td,th,.mhead span{background:transparent!important;background-image:none!important;text-shadow:none!important}
 .etypes{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.etype{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:right;background:#fff;border:2px solid #9fc4e2;border-radius:12px;padding:12px;cursor:pointer;font-family:inherit}.etype:hover{background:#e8f4fd;border-color:#0b5c94}.etype .ic{font-size:26px}.etype b{font-size:16px;color:#064a78}.etype small{color:#3e4b5c;font-size:12.5px;font-weight:600}
 @media(max-width:600px){.bsheet th{font-size:12.5px;padding:6px 3px;white-space:normal}.bsheet td{padding:6px 3px;font-size:13.5px}.bsheet td.nm{min-width:0}.bsheet td.n{white-space:nowrap}.bsheet td.n .un{white-space:normal;display:block}}
+
+.navg{font-size:12px;font-weight:800;color:var(--mut);margin:12px 12px 4px;letter-spacing:.3px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.tile{position:relative;display:flex;flex-direction:column;gap:3px;padding:14px;border:1px solid var(--bd);border-radius:12px;background:var(--surface);cursor:pointer;text-decoration:none;color:var(--fg);box-shadow:var(--sh)}
+.tile:hover{border-color:var(--ac);background:var(--acs)}.tile .tic{font-size:24px}.tile b{font-size:15px}.tile small{color:var(--mut);font-size:12.5px}.tile .bdg{position:absolute;top:8px;left:8px;background:var(--ac);color:#fff;border-radius:10px;font-size:12px;padding:0 8px}
 </style></head><body>
 <div class="login" id="login"><form id="loginForm"><h2 class="disp">مقاول <span style="color:var(--ac)">Pro</span></h2><div class="mut">تسجيل الدخول لنظام الشركة</div>
 <label class="f">البريد الإلكتروني<input id="lEmail" type="email" dir="ltr" required autocomplete="username"></label>
@@ -187,7 +192,13 @@ function roleOf(email){var r=S.cfg.roles||{};var keys=Object.keys(r);if(!keys.le
 function isFin(){return S.role==='admin'||S.role==='accountant'}
 function isAdmin(){return S.role==='admin'}
 var ROLE_NAMES={admin:'مدير النظام',accountant:'محاسب',engineer:'مهندس موقع',supervisor:'إشراف فني'};
-var MENU=[['accounts','🏦','الخزائن والبنوك','fin'],['projects','🏗️','المشاريع','all'],['subs','🤝','مقاولو الباطن','op'],['labor','👷','العمالة اليومية','op'],['purchases','🧱','المشتريات','op'],['revenues','💰','الإيرادات','fin'],['expenses','🧾','المصروفات','op'],['costs','📈','التكاليف','fin'],['acct','📒','المحاسبة','fin'],['import','📥','استيراد كشوف الخميس','fin'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin'],['mpay','👔','مرتبات الموظفين الشهرية','fin'],['prcenter','🖨️','مركز التقارير والطباعة','fin'],['costctl','📐','ضبط التكلفة وتحليل المقايسة','fin'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin'],['dashboard','📊','لوحة التحكم','fin'],['reports','📑','التقارير','rep'],['review','✅','المراجعة والاعتماد','op'],['settings','⚙️','الإعدادات','adm']];
+var MENU=[['home','🏠','الرئيسية','all','الرئيسية'],
+['projects','🏗️','المشاريع','all','العمليات اليومية'],['subs','🤝','مقاولو الباطن','op','العمليات اليومية'],['labor','👷','العمالة اليومية','op','العمليات اليومية'],['purchases','🧱','المشتريات','op','العمليات اليومية'],['expenses','🧾','المصروفات','op','العمليات اليومية'],['revenues','💰','الإيرادات','fin','العمليات اليومية'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech','العمليات اليومية'],
+['import','📥','استيراد كشوف الخميس','fin','الأسبوعي'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin','الأسبوعي'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin','الأسبوعي'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin','الأسبوعي'],
+['mpay','👔','مرتبات الموظفين الشهرية','fin','الرواتب'],
+['accounts','🏦','الخزائن والبنوك','fin','المالية والمحاسبة'],['acct','📒','المحاسبة','fin','المالية والمحاسبة'],['costs','📈','التكاليف','fin','المالية والمحاسبة'],['costctl','📐','ضبط التكلفة وتحليل المقايسة','fin','المالية والمحاسبة'],
+['dashboard','📊','لوحة التحكم','fin','التقارير'],['prcenter','🖨️','مركز التقارير والطباعة','fin','التقارير'],['reports','📑','التقارير','rep','التقارير'],
+['review','✅','المراجعة والاعتماد','op','الإدارة'],['settings','⚙️','الإعدادات','adm','الإدارة']];
 function menuAllowed(m){var k=m[3],r=S.role;if(r==='admin')return true;if(k==='adm')return false;if(r==='accountant')return true;if(k==='all')return true;if(k==='op')return r==='engineer';if(k==='tech')return true;if(k==='rep')return r==='supervisor';return false}
 
 /* ---------- calc engine ---------- */
@@ -271,7 +282,7 @@ function ask(title,fields,cb,label){modal(title,'<div class="fg">'+fields+'</div
 /* ---------- router ---------- */
 function go(view,vp,tab){S.view=view;S.vp=vp||null;if(tab)S.tab=tab;$('side').classList.remove('open');render();window.scrollTo(0,0)}
 function pendingCount(){return S.txs.filter(function(t){return t.status==='pending'}).length}
-function renderNav(){var n=pendingCount();$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){return'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
+function renderNav(){var n=pendingCount(),lastG='';$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){var g=m[4]&&m[4]!==lastG&&m[4]!=='الرئيسية'?'<div class="navg">'+m[4]+'</div>':'';lastG=m[4]||lastG;return g+'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
  $('roleTag').textContent=ROLE_NAMES[S.role]||''}
 function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=(S.loadErr?'<div class="hint b" style="margin-bottom:12px"><b>تعذر الاتصال بقاعدة البيانات</b> ('+h(S.loadErr)+'). غالبًا لم تُنشأ قاعدة Firestore بعد في مشروع Firebase، أو قواعد الأمان تمنع القراءة. أنشئ Firestore Database ثم اضغط زر التحديث ⟳.</div>':'')+(f?f():'');if(AFTER[S.view])AFTER[S.view]()}
 var VIEWS={},AFTER={};
@@ -1111,6 +1122,28 @@ VIEWS.costctl=function(){var f=S.cc,r=ccRes(),body=ccTabs(f.tab),k='';
 document.addEventListener('change',function(ev){var e=ev.target,k=e.dataset&&e.dataset.ccf;if(k){S.cc[k]=e.value;render()}});
 ACT.ccTab=function(t){S.cc.tab=t;render()};
 ACT.ccXl=function(){var r=ccRes();xlExport('CostControl_'+S.cc.tab,[xlSheetFromRes({title:r.title,cols:r.cols,rows:r.rows},'تاريخ الإعداد: '+today()+'  |  أعدّه: '+(S.user||'')+'  |  راجعه: ……  |  اعتمده: ……')])};
+/* ===== الشاشة الرئيسية حسب الدور ===== */
+function hmTile(v,ic,t,d,badge){return'<a class="tile" data-a="go" data-p="'+v+'"><span class="tic">'+ic+'</span><b>'+t+'</b><small>'+d+'</small>'+(badge?'<span class="bdg">'+badge+'</span>':'')+'</a>'}
+function hmSec(t,tiles){return'<div class="card" style="margin-bottom:12px"><h3>'+t+'</h3><div class="tiles">'+tiles.join('')+'</div></div>'}
+function hmMine(){return S.txs.filter(function(t){return t.by===S.user&&t.status==='pending'}).length}
+VIEWS.home=function(){var r=S.role,name=h(ROLE_NAMES[r]||''),body='';
+ if(r==='admin'||r==='accountant'){
+  var liq=sum(S.accounts,function(a){return accStats(a).bal}),pend=pendingCount(),W=wkWeeks()[0],G=wgWeeks()[0],M=today().slice(0,7),mp=mpOf(M);
+  var cRem=W?sum(wkRows({week:W}),function(x){return x.rem>0?x.rem:0}):0,wRem=G?sum(wgSheets({week:G}),function(x){return x.rem}):0;
+  var neg=S.accounts.filter(function(a){return accStats(a).bal<0}),miss=S.txs.filter(function(t){return t.status==='pending'&&t.imp_missing&&t.imp_missing.length}).length;
+  var al=[];if(neg.length)al.push('رصيد سالب في: '+neg.map(function(a){return h(a.name)}).join('، '));if(miss)al.push(miss+' حركة مستوردة ناقصة البيانات');if(!mp)al.push('لم يُنشأ كشف مرتبات شهر '+M);else if(mp.mst==='approved')al.push('مرتبات '+M+' معتمدة وبانتظار الصرف');
+  body+='<div class="grid g4" style="margin-bottom:12px">'+kpi('السيولة (كل الحسابات)',fmt(liq),S.accounts.length+' حساب',liq<0?'bad':'')+kpi('بانتظار الاعتماد',pend,pend?'تحتاج مراجعة':'لا يوجد',pend?'warn':'good')+kpi('مستحق للمقاولين'+(W?' ('+W+')':''),fmt(cRem))+kpi('أجور غير مصروفة'+(G?' ('+G+')':''),fmt(wRem))+'</div>';
+  if(al.length)body+='<div class="hint b" style="margin-bottom:12px"><b>تنبيهات:</b><br>'+al.join('<br>')+'</div>';
+  body+=hmSec('الأسبوعي (كل خميس)',[hmTile('import','📥','استيراد كشوف الخميس','تحميل الملفات الأسبوعية'),hmTile('wkpay','💸','مدفوعات المقاولين','استحقاق الأسبوع والسندات'),hmTile('wkwages','👷','أجور العمال','كشف وصرف الأسبوع'),hmTile('cashreq','🧮','المتطلبات النقدية','كم نحتاج هذا الأسبوع')])+
+   hmSec('الشهري',[hmTile('mpay','👔','مرتبات الموظفين','مسودة، اعتماد، صرف'),hmTile('acct','📒','المحاسبة','قيود وميزان وقوائم'),hmTile('accounts','🏦','الخزائن والبنوك','أرصدة وتحويلات')])+
+   hmSec('المتابعة والتقارير',[hmTile('dashboard','📊','لوحة التحكم','مؤشرات الشركة'),hmTile('costctl','📐','ضبط التكلفة','ربحية المشاريع والبنود'),hmTile('prcenter','🖨️','مركز الطباعة','12 تقريرًا بالتواقيع'),hmTile('review','✅','المراجعة والاعتماد','الحركات المعلّقة',pend||'')])+
+   hmSec('تسجيل يومي',[hmTile('expenses','🧾','مصروف جديد','مصروفات ومشتريات'),hmTile('subs','🤝','مقاولو الباطن','مستخلصات ودفعات'),hmTile('labor','👷','العمالة','كشف عمالة'),hmTile('revenues','💰','تحصيل','إيرادات ومستخلصات العملاء')])}
+ else if(r==='engineer'){var mine=hmMine();
+  body+='<div class="grid g4" style="margin-bottom:12px">'+kpi('مشاريعي',S.projects.length)+kpi('حركاتي المعلّقة',mine,mine?'بانتظار الاعتماد':'لا يوجد',mine?'warn':'good')+'</div>'+
+   hmSec('عمل اليوم',[hmTile('progress','📐','الأعمال المنفذة','سجّل الكميات المنفذة'),hmTile('labor','👷','كشف العمالة','أجور اليومية'),hmTile('expenses','🧾','مصروف / عهدة','سجّل مصروفًا'),hmTile('purchases','🧱','مشتريات','فاتورة شراء'),hmTile('subs','🤝','مقاول باطن','مستخلص')])+
+   hmSec('متابعة',[hmTile('projects','🏗️','المشاريع','البنود والتفاصيل'),hmTile('review','✅','حالة طلباتي','المعلّق والمعتمد',mine||'')])}
+ else{body+=hmSec('الإشراف الفني',[hmTile('projects','🏗️','المشاريع','المقايسة والتقدم'),hmTile('progress','📐','الأعمال المنفذة','متابعة الإنجاز'),hmTile('reports','📑','التقارير','تكلفة وإنجاز')])}
+ return pg('الرئيسية — '+name,h(S.user||''),body)};
 /* ---------- مستخلصات العميل، أوامر التغيير، المستحقات، أعمار الديون ---------- */
 function pval(p){return num(p&&p.value)+sum((p&&p.variations)||[],function(v){return v.amount})}
 function projIpc(pid){var r={n:0,gross:0,net:0,adv:0,ret:0,tax:0,coll:0,retRel:0,advColl:0};TX().forEach(function(t){if(t.project_id!==pid)return;if(t.type==='ipc'){r.n++;r.gross+=num(t.gross);r.net+=num(t.net);r.adv+=num(t.adv_recov);r.ret+=num(t.ret_amt);r.tax+=num(t.tax_amt)}else if(t.type==='revenue'){if(t.kind==='محتجز / ضمان أعمال')r.retRel+=num(t.amount);else if(t.kind==='دفعة مقدمة')r.advColl+=num(t.amount);else r.coll+=num(t.amount)}});r.due=r.net-r.coll;r.retHeld=r.ret-r.retRel;return r}
@@ -1445,7 +1478,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261108-1531';
+var BUILD='20261108-2058';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}

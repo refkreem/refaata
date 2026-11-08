@@ -33,7 +33,7 @@ function ask(title,fields,cb,label){modal(title,'<div class="fg">'+fields+'</div
 /* ---------- router ---------- */
 function go(view,vp,tab){S.view=view;S.vp=vp||null;if(tab)S.tab=tab;$('side').classList.remove('open');render();window.scrollTo(0,0)}
 function pendingCount(){return S.txs.filter(function(t){return t.status==='pending'}).length}
-function renderNav(){var n=pendingCount();$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){return'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
+function renderNav(){var n=pendingCount(),lastG='';$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){var g=m[4]&&m[4]!==lastG&&m[4]!=='الرئيسية'?'<div class="navg">'+m[4]+'</div>':'';lastG=m[4]||lastG;return g+'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
  $('roleTag').textContent=ROLE_NAMES[S.role]||''}
 function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=(S.loadErr?'<div class="hint b" style="margin-bottom:12px"><b>تعذر الاتصال بقاعدة البيانات</b> ('+h(S.loadErr)+'). غالبًا لم تُنشأ قاعدة Firestore بعد في مشروع Firebase، أو قواعد الأمان تمنع القراءة. أنشئ Firestore Database ثم اضغط زر التحديث ⟳.</div>':'')+(f?f():'');if(AFTER[S.view])AFTER[S.view]()}
 var VIEWS={},AFTER={};
