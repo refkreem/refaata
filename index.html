@@ -186,6 +186,7 @@ async function loadAll(){S.loadErr=null;
  try{S.projects=(await withTO(qNs(COL.projects))).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
  try{S.txs=(await withTO(qNs(COL.txs))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
  if(isFin()){try{S.accounts=(await withTO(qNs(COL.accounts))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}
+ if(typeof applyScope==='function')applyScope();
 }
 /* ---------- roles ---------- */
 function roleOf(email){var r=S.cfg.roles||{};var keys=Object.keys(r);if(!keys.length)return'admin';return r[(email||'').toLowerCase()]||'engineer'}
@@ -1460,6 +1461,21 @@ SECT.suppliers=function(){return'<h3>الموردون</h3><div class="hint" styl
 ACT.supAdd=function(){supForm(-1)};ACT.supEdit=function(i){supForm(+i)};
 function supForm(i){var n0=i>=0?S.cfg.suppliers[i]:'',f=supInfo(n0);modal(i>=0?'تعديل مورد':'مورد جديد','<div class="fg">'+fld('اسم المورد',inp('sp_n',n0,'text',i>=0?'readonly':''),'full')+fld('التخصص (نوع التوريد)',inp('sp_t',f.trade||'','text','list="dl_sptr" placeholder="كهرباء / صحية / تكييف / دهانات…"'))+dlist('dl_sptr',S.cfg.pcats)+fld('الهاتف',inp('sp_p',f.phone||'','tel'))+fld('رصيد افتتاحي مستحق له (قبل بدء النظام)',inp('sp_o',f.open||'','number','step="any"'))+'</div>',{save:async function(){var n=v$('sp_n').trim();if(!n){toast('اكتب اسم المورد');return false}if(i<0&&S.cfg.suppliers.indexOf(n)>=0){toast('المورد موجود بالفعل');return false}if(i<0)S.cfg.suppliers.push(n);S.cfg.supInfo=S.cfg.supInfo||{};S.cfg.supInfo[n]={trade:v$('sp_t').trim(),phone:v$('sp_p').trim(),open:num(v$('sp_o'))};if(!await saveCfg())return false;render()}})}
 ACT.supDel=async function(i){var n=S.cfg.suppliers[i];var k=S.txs.filter(function(t){return(t.type==='purchase'&&t.supplier===n)||(t.type==='payment'&&t.kind==='supplier'&&t.party===n)}).length;if(k){toast('لا يمكن حذف مورد عليه '+k+' حركة');return}if(!confirm('حذف المورد "'+n+'"؟'))return;S.cfg.suppliers.splice(+i,1);if(S.cfg.supInfo)delete S.cfg.supInfo[n];await saveCfg();render()};
+/* تخصيص المهندسين على المشاريع: سجل بتواريخ، ونطاق الرؤية حسب التخصيص */
+function asgList(email){S.cfg.assign=S.cfg.assign||{};return S.cfg.assign[(email||'').toLowerCase()]||[]}
+function asgActive(email,pid,d){d=d||today();return asgList(email).some(function(a){return a.pid===pid&&a.from<=d&&(!a.to||a.to>=d)})}
+function asgScoped(){return S.role==='engineer'||S.role==='supervisor'}
+function asgPids(email){var d=today();return asgList(email).filter(function(a){return a.from<=d&&(!a.to||a.to>=d)}).map(function(a){return a.pid})}
+function applyScope(){S.allProjects=S.projects;if(!asgScoped())return;var ids=asgPids(S.user);S.projects=S.projects.filter(function(p){return ids.indexOf(p.id)>=0});S.txs=S.txs.filter(function(t){return !t.project_id||ids.indexOf(t.project_id)>=0})}
+SETS.splice(SETS.map(function(s){return s[0]}).indexOf('users')+1,0,['assign','تخصيص المهندسين للمشاريع']);
+SECT.assign=function(){var P=asgScoped()&&S.allProjects?S.allProjects:S.projects,users=Object.keys(S.cfg.roles||{}).filter(function(k){return S.cfg.roles[k]==='engineer'||S.cfg.roles[k]==='supervisor'});
+ var rows=[];users.forEach(function(u){asgList(u).forEach(function(a,i){var p=P.filter(function(x){return x.id===a.pid})[0];var on=asgActive(u,a.pid);rows.push(['<span dir="ltr">'+h(u)+'</span>',p?h(p.name):'—',a.from,a.to||'مفتوح','<span class="tag '+(on?'g':'')+'">'+(on?'ساري':'منتهٍ')+'</span>',(on?'<button class="btn sm" data-a="asgEnd" data-p="'+h(u)+'|'+i+'">إنهاء اليوم</button> ':'')+'<button class="btn sm d" data-a="asgDel" data-p="'+h(u)+'|'+i+'">حذف</button>'])})});
+ return'<h3>تخصيص المهندسين والإشراف على المشاريع</h3><div class="hint" style="margin-bottom:10px">المهندس والإشراف الفني يرون فقط المشاريع المخصصة لهم والسارية اليوم (وحركاتها). المحاسب والمدير يرون الكل. السجل محفوظ بالتواريخ لتتبع من عمل على أي مشروع ومتى.</div>'+(users.length?'':'<div class="hint w">أضف مستخدمًا بدور مهندس موقع أو إشراف فني من «المستخدمون والصلاحيات» أولًا.</div>')+tbl([{h:'المهندس'},{h:'المشروع'},{h:'من'},{h:'إلى'},{h:'الحالة'},{h:''}],rows,{empty:'لا توجد تخصيصات'})+'<div class="flt" style="margin-top:12px"><label>المهندس<select id="as_u">'+opts(users,'')+'</select></label><label>المشروع<select id="as_p">'+opts(P,'',function(p){return p.id},function(p){return p.name})+'</select></label><label>من<input id="as_f" type="date" value="'+today()+'"></label><label>إلى (اختياري)<input id="as_t" type="date"></label><button class="btn p" data-a="asgAdd">+ تخصيص</button></div>'};
+ACT.asgAdd=async function(){if(!isAdmin()){toast('للمدير فقط');return}var u=v$('as_u'),p=v$('as_p'),f=v$('as_f'),t=v$('as_t');if(!u||!p||!f){toast('اختر المهندس والمشروع والتاريخ');return}if(t&&t<f){toast('تاريخ النهاية قبل البداية');return}
+ var l=asgList(u);if(l.some(function(a){return a.pid===p&&(!a.to||a.to>=f)&&(!t||a.from<=t)})){toast('يوجد تخصيص متداخل لنفس المشروع');return}
+ l.push({pid:p,from:f,to:t||'',by:S.user,at:new Date().toISOString()});S.cfg.assign[u.toLowerCase()]=l;if(await saveCfg())render()};
+ACT.asgEnd=async function(k){var x=k.split('|');var a=asgList(x[0])[+x[1]];if(!a)return;a.to=today();if(await saveCfg())render()};
+ACT.asgDel=async function(k){if(!confirm('حذف سطر التخصيص؟'))return;var x=k.split('|');asgList(x[0]).splice(+x[1],1);if(await saveCfg())render()};
 /* ---------- events & boot ---------- */
 ACT.go=function(v){go(v)};ACT.menu=function(){$('side').classList.toggle('open')};ACT.mclose=closeModal;
 ACT.msave=async function(){if(!S.modalSave)return;var b=$('msaveBtn');b.disabled=true;try{var ok=await S.modalSave();if(ok!==false)closeModal()}catch(e){console.error(e);toast('حدث خطأ: '+e.message)}b.disabled=false};
@@ -1478,7 +1494,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261109-2050';
+var BUILD='20261109-2053';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
