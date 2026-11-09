@@ -6,7 +6,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&family=Tajawal:wght@400;500;700&display=swap">
 <style>
-:root{--bg:#f3f5f8;--surface:#fff;--s2:#eef1f5;--bd:#dbe0e8;--fg:#1a2331;--mut:#5a6577;--fnt:#8993a3;--ac:#b4501f;--lbl:#0b6fb3;--inbg:#fffef6;--inbd:#9fb3c8;--acf:#fff;--acs:#fbe9e0;--navy:#14253d;--navyf:#e8edf5;--good:#1f8a58;--gs:#e2f4ea;--bad:#c23b3b;--bs:#fbe6e6;--warn:#b4821e;--ws:#fbf0dc;--r:10px;--sh:0 1px 2px rgba(20,24,33,.06),0 4px 14px rgba(20,24,33,.05)}
+:root{--bg:#f3f5f8;--surface:#fff;--s2:#eef1f5;--bd:#dbe0e8;--fg:#1a2331;--mut:#5a6577;--fnt:#8993a3;--ac:#b4501f;--lbl:#0b6fb3;--inbg:#fff;--inbd:#9fb3c8;--acf:#fff;--acs:#fbe9e0;--navy:#14253d;--navyf:#e8edf5;--good:#1f8a58;--gs:#e2f4ea;--bad:#c23b3b;--bs:#fbe6e6;--warn:#c2410c;--ws:#fde9e1;--r:10px;--sh:0 1px 2px rgba(20,24,33,.06),0 4px 14px rgba(20,24,33,.05)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#10151e;--surface:#171e2a;--s2:#1e2630;--bd:#2a3341;--fg:#e7ebf1;--mut:#a3adbb;--fnt:#6b7585;--ac:#e07a46;--lbl:#7cc4f5;--inbg:#0f1520;--inbd:#3a475a;--navy2:#6d8fc4;--acf:#1b1208;--acs:#2c1f16;--navy:#0b121d;--good:#4cc98a;--gs:#142c22;--bad:#f08080;--bs:#2f1717;--warn:#e0b350;--ws:#2e2510;color-scheme:dark}}
 *{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--fg);font:15px/1.5 Tajawal,system-ui,sans-serif;-webkit-text-size-adjust:100%}
 h1,h2,h3,.disp{font-family:Cairo,system-ui,sans-serif;margin:0}
@@ -1478,7 +1478,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261108-2058';
+var BUILD='20261109-2050';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
