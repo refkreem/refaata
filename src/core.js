@@ -35,7 +35,7 @@ var db={collection:function(n){var flt=null;var api={where:function(f,op,v){flt=
    كل بيانات نسخة Claude تُحفظ في مجموعات بادئتها claude_v4_ فقط، فلا تتشارك أي مجموعة مع نسخ ChatGPT / Google Studio
    (التي تستخدم projects و batches و pending و cashAccounts و meta/config...). */
 var PFX='claude_v4_';
-var COL={projects:PFX+'projects',txs:PFX+'txs',accounts:PFX+'accounts'};
+var COL={projects:PFX+'projects',txs:PFX+'txs',accounts:PFX+'accounts',sitereps:PFX+'sitereps'};
 var CFGDOC=PFX+'meta/config';
 var LEGACY={projects:'projects',txs:'txs',accounts:'accounts'};   // أماكن النسخة القديمة المشتركة (قبل العزل)
 function clean(o){var c=JSON.parse(JSON.stringify(o));c.ns=NS;return c}
@@ -61,6 +61,7 @@ async function loadAll(){S.loadErr=null;
  try{S.projects=(await withTO(qNs(COL.projects))).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
  try{S.txs=(await withTO(qNs(COL.txs))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
  if(isFin()){try{S.accounts=(await withTO(qNs(COL.accounts))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}
+ try{S.sitereps=(await withTO(qNs(COL.sitereps))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.sitereps=[]}
  if(typeof applyScope==='function')applyScope();
 }
 /* ---------- roles ---------- */
@@ -70,7 +71,7 @@ function isAdmin(){return S.role==='admin'}
 var ROLE_NAMES={admin:'مدير النظام',accountant:'محاسب',engineer:'مهندس موقع',supervisor:'إشراف فني'};
 var MENU=[['home','🏠','الرئيسية','all','الرئيسية'],
 ['projects','🏗️','المشاريع','all','العمليات اليومية'],['subs','🤝','مقاولو الباطن','op','العمليات اليومية'],['labor','👷','العمالة اليومية','op','العمليات اليومية'],['purchases','🧱','المشتريات','op','العمليات اليومية'],['expenses','🧾','المصروفات','op','العمليات اليومية'],['revenues','💰','الإيرادات','fin','العمليات اليومية'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech','العمليات اليومية'],
-['import','📥','استيراد كشوف الخميس','fin','الأسبوعي'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin','الأسبوعي'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin','الأسبوعي'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin','الأسبوعي'],
+['sitereps','📝','التقرير اليومي للموقع','all','الموقع'],['sitemon','🛰️','متابعة المواقع','rep','الموقع'],['import','📥','استيراد كشوف الخميس','fin','الأسبوعي'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin','الأسبوعي'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin','الأسبوعي'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin','الأسبوعي'],
 ['mpay','👔','مرتبات الموظفين الشهرية','fin','الرواتب'],
 ['accounts','🏦','الخزائن والبنوك','fin','المالية والمحاسبة'],['acct','📒','المحاسبة','fin','المالية والمحاسبة'],['costs','📈','التكاليف','fin','المالية والمحاسبة'],['costctl','📐','ضبط التكلفة وتحليل المقايسة','fin','المالية والمحاسبة'],
 ['dashboard','📊','لوحة التحكم','fin','التقارير'],['prcenter','🖨️','مركز التقارير والطباعة','fin','التقارير'],['reports','📑','التقارير','rep','التقارير'],

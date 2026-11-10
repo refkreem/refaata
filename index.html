@@ -160,7 +160,7 @@ var db={collection:function(n){var flt=null;var api={where:function(f,op,v){flt=
    كل بيانات نسخة Claude تُحفظ في مجموعات بادئتها claude_v4_ فقط، فلا تتشارك أي مجموعة مع نسخ ChatGPT / Google Studio
    (التي تستخدم projects و batches و pending و cashAccounts و meta/config...). */
 var PFX='claude_v4_';
-var COL={projects:PFX+'projects',txs:PFX+'txs',accounts:PFX+'accounts'};
+var COL={projects:PFX+'projects',txs:PFX+'txs',accounts:PFX+'accounts',sitereps:PFX+'sitereps'};
 var CFGDOC=PFX+'meta/config';
 var LEGACY={projects:'projects',txs:'txs',accounts:'accounts'};   // أماكن النسخة القديمة المشتركة (قبل العزل)
 function clean(o){var c=JSON.parse(JSON.stringify(o));c.ns=NS;return c}
@@ -186,6 +186,7 @@ async function loadAll(){S.loadErr=null;
  try{S.projects=(await withTO(qNs(COL.projects))).docs.map(function(d){var v=d.data();v.id=d.id;v.boq=v.boq||[];return v})}catch(e){toast('⚠ تعذر تحميل المشاريع')}
  try{S.txs=(await withTO(qNs(COL.txs))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
  if(isFin()){try{S.accounts=(await withTO(qNs(COL.accounts))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}
+ try{S.sitereps=(await withTO(qNs(COL.sitereps))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.sitereps=[]}
  if(typeof applyScope==='function')applyScope();
 }
 /* ---------- roles ---------- */
@@ -195,7 +196,7 @@ function isAdmin(){return S.role==='admin'}
 var ROLE_NAMES={admin:'مدير النظام',accountant:'محاسب',engineer:'مهندس موقع',supervisor:'إشراف فني'};
 var MENU=[['home','🏠','الرئيسية','all','الرئيسية'],
 ['projects','🏗️','المشاريع','all','العمليات اليومية'],['subs','🤝','مقاولو الباطن','op','العمليات اليومية'],['labor','👷','العمالة اليومية','op','العمليات اليومية'],['purchases','🧱','المشتريات','op','العمليات اليومية'],['expenses','🧾','المصروفات','op','العمليات اليومية'],['revenues','💰','الإيرادات','fin','العمليات اليومية'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech','العمليات اليومية'],
-['import','📥','استيراد كشوف الخميس','fin','الأسبوعي'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin','الأسبوعي'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin','الأسبوعي'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin','الأسبوعي'],
+['sitereps','📝','التقرير اليومي للموقع','all','الموقع'],['sitemon','🛰️','متابعة المواقع','rep','الموقع'],['import','📥','استيراد كشوف الخميس','fin','الأسبوعي'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin','الأسبوعي'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin','الأسبوعي'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin','الأسبوعي'],
 ['mpay','👔','مرتبات الموظفين الشهرية','fin','الرواتب'],
 ['accounts','🏦','الخزائن والبنوك','fin','المالية والمحاسبة'],['acct','📒','المحاسبة','fin','المالية والمحاسبة'],['costs','📈','التكاليف','fin','المالية والمحاسبة'],['costctl','📐','ضبط التكلفة وتحليل المقايسة','fin','المالية والمحاسبة'],
 ['dashboard','📊','لوحة التحكم','fin','التقارير'],['prcenter','🖨️','مركز التقارير والطباعة','fin','التقارير'],['reports','📑','التقارير','rep','التقارير'],
@@ -1141,7 +1142,7 @@ VIEWS.home=function(){var r=S.role,name=h(ROLE_NAMES[r]||''),body='';
    hmSec('تسجيل يومي',[hmTile('expenses','🧾','مصروف جديد','مصروفات ومشتريات'),hmTile('subs','🤝','مقاولو الباطن','مستخلصات ودفعات'),hmTile('labor','👷','العمالة','كشف عمالة'),hmTile('revenues','💰','تحصيل','إيرادات ومستخلصات العملاء')])}
  else if(r==='engineer'){var mine=hmMine();
   body+='<div class="grid g4" style="margin-bottom:12px">'+kpi('مشاريعي',S.projects.length)+kpi('حركاتي المعلّقة',mine,mine?'بانتظار الاعتماد':'لا يوجد',mine?'warn':'good')+'</div>'+
-   hmSec('عمل اليوم',[hmTile('progress','📐','الأعمال المنفذة','سجّل الكميات المنفذة'),hmTile('labor','👷','كشف العمالة','أجور اليومية'),hmTile('expenses','🧾','مصروف / عهدة','سجّل مصروفًا'),hmTile('purchases','🧱','مشتريات','فاتورة شراء'),hmTile('subs','🤝','مقاول باطن','مستخلص')])+
+   hmSec('عمل اليوم',[hmTile('sitereps','📝','تقرير اليوم','تقرير الموقع اليومي'),hmTile('progress','📐','الأعمال المنفذة','سجّل الكميات المنفذة'),hmTile('labor','👷','كشف العمالة','أجور اليومية'),hmTile('expenses','🧾','مصروف / عهدة','سجّل مصروفًا'),hmTile('purchases','🧱','مشتريات','فاتورة شراء'),hmTile('subs','🤝','مقاول باطن','مستخلص')])+
    hmSec('متابعة',[hmTile('projects','🏗️','المشاريع','البنود والتفاصيل'),hmTile('review','✅','حالة طلباتي','المعلّق والمعتمد',mine||'')])}
  else{body+=hmSec('الإشراف الفني',[hmTile('projects','🏗️','المشاريع','المقايسة والتقدم'),hmTile('progress','📐','الأعمال المنفذة','متابعة الإنجاز'),hmTile('reports','📑','التقارير','تكلفة وإنجاز')])}
  return pg('الرئيسية — '+name,h(S.user||''),body)};
@@ -1466,7 +1467,7 @@ function asgList(email){S.cfg.assign=S.cfg.assign||{};return S.cfg.assign[(email
 function asgActive(email,pid,d){d=d||today();return asgList(email).some(function(a){return a.pid===pid&&a.from<=d&&(!a.to||a.to>=d)})}
 function asgScoped(){return S.role==='engineer'||S.role==='supervisor'}
 function asgPids(email){var d=today();return asgList(email).filter(function(a){return a.from<=d&&(!a.to||a.to>=d)}).map(function(a){return a.pid})}
-function applyScope(){S.allProjects=S.projects;if(!asgScoped())return;var ids=asgPids(S.user);S.projects=S.projects.filter(function(p){return ids.indexOf(p.id)>=0});S.txs=S.txs.filter(function(t){return !t.project_id||ids.indexOf(t.project_id)>=0})}
+function applyScope(){S.allProjects=S.projects;if(!asgScoped())return;var ids=asgPids(S.user);S.projects=S.projects.filter(function(p){return ids.indexOf(p.id)>=0});S.txs=S.txs.filter(function(t){return !t.project_id||ids.indexOf(t.project_id)>=0});S.sitereps=(S.sitereps||[]).filter(function(r){return ids.indexOf(r.pid)>=0})}
 SETS.splice(SETS.map(function(s){return s[0]}).indexOf('users')+1,0,['assign','تخصيص المهندسين للمشاريع']);
 SECT.assign=function(){var P=asgScoped()&&S.allProjects?S.allProjects:S.projects,users=Object.keys(S.cfg.roles||{}).filter(function(k){return S.cfg.roles[k]==='engineer'||S.cfg.roles[k]==='supervisor'});
  var rows=[];users.forEach(function(u){asgList(u).forEach(function(a,i){var p=P.filter(function(x){return x.id===a.pid})[0];var on=asgActive(u,a.pid);rows.push(['<span dir="ltr">'+h(u)+'</span>',p?h(p.name):'—',a.from,a.to||'مفتوح','<span class="tag '+(on?'g':'')+'">'+(on?'ساري':'منتهٍ')+'</span>',(on?'<button class="btn sm" data-a="asgEnd" data-p="'+h(u)+'|'+i+'">إنهاء اليوم</button> ':'')+'<button class="btn sm d" data-a="asgDel" data-p="'+h(u)+'|'+i+'">حذف</button>'])})});
@@ -1476,6 +1477,55 @@ ACT.asgAdd=async function(){if(!isAdmin()){toast('للمدير فقط');return}v
  l.push({pid:p,from:f,to:t||'',by:S.user,at:new Date().toISOString()});S.cfg.assign[u.toLowerCase()]=l;if(await saveCfg())render()};
 ACT.asgEnd=async function(k){var x=k.split('|');var a=asgList(x[0])[+x[1]];if(!a)return;a.to=today();if(await saveCfg())render()};
 ACT.asgDel=async function(k){if(!confirm('حذف سطر التخصيص؟'))return;var x=k.split('|');asgList(x[0]).splice(+x[1],1);if(await saveCfg())render()};
+/* التقرير اليومي للموقع + متابعة المواقع — لا يُنشئ أي قيد محاسبي */
+var SR_ST={draft:['مسودة',''],submitted:['مُرسل','a'],review:['قيد المراجعة','w'],approved:['معتمد','g'],rejected:['مرفوض','b']};
+function srAll(){return S.sitereps||[]}
+function srCanReview(){return S.role==='admin'||S.role==='accountant'||S.role==='supervisor'}
+function srLog(r,st,note){r.status=st;r.history=r.history||[];r.history.push({st:st,by:S.user,at:new Date().toISOString(),note:note||''})}
+function srEngs(pid){var o=[];var A=(S.cfg.assign||{});Object.keys(A).forEach(function(u){if(asgActive(u,pid))o.push(u)});return o}
+S.sr={project:'',status:'',from:'',to:''};S.srPh=[];
+VIEWS.sitereps=function(){var f=S.sr,P=S.projects;
+ var rows=srAll().filter(function(r){return(!f.project||r.pid===f.project)&&(!f.status||r.status===f.status)&&(!f.from||r.date>=f.from)&&(!f.to||r.date<=f.to)&&(srCanReview()||r.by===S.user)}).sort(function(a,b){return a.date<b.date?1:-1}).map(function(r){var p=proj(r.pid),st=SR_ST[r.status]||['',''];
+  var b='<button class="btn sm" data-a="srView" data-p="'+r.id+'">عرض</button>';
+  if((r.status==='draft'||r.status==='rejected')&&(r.by===S.user||S.role==='admin'))b+=' <button class="btn sm" data-a="srEdit" data-p="'+r.id+'">تعديل</button>';
+  return[r.date,p?h(p.name):'—',h((r.by||'').split('@')[0]),sum(r.manpower||[],function(m){return num(m.count)}),(r.works||[]).length,'<span class="tag '+st[1]+'">'+st[0]+'</span>',b]});
+ var flt='<div class="flt noprint"><label>المشروع<select data-a="srF" data-p="project">'+opts(P,f.project,function(p){return p.id},function(p){return p.name},'الكل')+'</select></label><label>الحالة<select data-a="srF" data-p="status">'+opts(Object.keys(SR_ST),f.status,null,function(k){return SR_ST[k][0]},'الكل')+'</select></label><label>من<input type="date" value="'+f.from+'" data-a="srF" data-p="from"></label><label>إلى<input type="date" value="'+f.to+'" data-a="srF" data-p="to"></label></div>';
+ var pend=srAll().filter(function(r){return r.status==='submitted'||r.status==='review'}).length;
+ return pg('التقرير اليومي للموقع',S.role==='supervisor'?'':'<button class="btn p" data-a="srNew">+ تقرير جديد</button>',(srCanReview()&&pend?'<div class="hint w">'+pend+' تقرير بانتظار المراجعة</div>':'')+flt+tbl([{h:'التاريخ'},{h:'المشروع'},{h:'المهندس'},{h:'عدد العمالة',n:1},{h:'بنود منفذة',n:1},{h:'الحالة'},{h:''}],rows,{empty:'لا توجد تقارير'}))};
+ACT.srF=function(k,el){S.sr[k]=el&&el.value!=null?el.value:'';render()};
+function srBoqOpts(pid,sel){var p=proj(pid);return opts((p&&p.boq)||[],sel||'',function(b){return b.id},boqLabel,'—')}
+function srForm(r){r=r||{};var P=S.projects;if(!P.length){toast('لا توجد مشاريع مخصصة لك');return}
+ S.srPh=(r.photos||[]).slice();var pid=r.pid||P[0].id,man=r.manpower||[],wk=r.works||[],R=[0,1,2,3,4];
+ var mh=R.map(function(i){var m=man[i]||{};return'<div class="fg" style="grid-template-columns:2fr 1fr 1fr">'+inp('sm_t'+i,m.trade||'','text','placeholder="التخصص / المهنة"')+inp('sm_c'+i,m.count||'','number','placeholder="العدد"')+inp('sm_h'+i,m.hours||'','number','placeholder="ساعات"')+'</div>'}).join('');
+ var wh=R.map(function(i){var w=wk[i]||{};return'<div class="fg" style="grid-template-columns:2fr 1fr 2fr"><select id="sw_b'+i+'">'+srBoqOpts(pid,w.boq_id)+'</select>'+inp('sw_q'+i,w.qty||'','number','step="any" placeholder="الكمية المنفذة"')+inp('sw_n'+i,w.note||'','text','placeholder="ملاحظة"')+'</div>'}).join('');
+ modal(r.id?'تعديل تقرير':'تقرير الموقع اليومي','<div class="fg">'+fld('المشروع','<select id="sr_p" data-a="srProj">'+opts(P,pid,function(p){return p.id},function(p){return p.name})+'</select>')+fld('التاريخ',inp('sr_d',r.date||today(),'date'))+fld('الطقس / ظروف الموقع',inp('sr_w',r.weather||''),'full')+'</div><h4>العمالة</h4>'+mh+'<h4>الأعمال المنفذة (مرتبطة بالمقايسة)</h4>'+wh+'<div class="fg">'+fld('المواد الواردة / المستهلكة','<textarea id="sr_m" rows="2">'+h(r.materials||'')+'</textarea>','full')+fld('المعدات','<textarea id="sr_e" rows="2">'+h(r.equipment||'')+'</textarea>','full')+fld('معوقات / تأخيرات / تعليمات','<textarea id="sr_x" rows="2">'+h(r.delays||'')+'</textarea>','full')+fld('ملاحظات','<textarea id="sr_o" rows="2">'+h(r.notes||'')+'</textarea>','full')+fld('صور (حتى 4)','<input id="sr_ph" type="file" accept="image/*" multiple data-a="srPhoto"><div id="sr_pc" class="hint">'+S.srPh.length+' صورة</div>','full')+'</div><div class="hint">التقرير لا يُنشئ أي قيد مالي. يُحفظ كمسودة ثم تُرسله للمراجعة.</div>',{extra:'<button class="btn" data-a="srSaveSub" data-p="'+(r.id||'')+'">حفظ وإرسال للمراجعة</button>',save:async function(){return srSave(r,false)}})}
+function srSave(r,send){var pid=v$('sr_p'),d=v$('sr_d');if(!pid||!d){toast('اختر المشروع والتاريخ');return false}
+ if(!asgScoped()||asgActive(S.user,pid,d)||S.role==='admin'){}else{toast('المشروع غير مخصص لك في هذا التاريخ');return false}
+ var man=[],wk=[];for(var i=0;i<5;i++){var t=v$('sm_t'+i).trim(),c=num(v$('sm_c'+i));if(t||c)man.push({trade:t,count:c,hours:num(v$('sm_h'+i))});var b=v$('sw_b'+i),q=num(v$('sw_q'+i));if(b&&q)wk.push({boq_id:b,qty:q,note:v$('sw_n'+i)})}
+ var dup=srAll().filter(function(x){return x.pid===pid&&x.date===d&&x.by===(r.by||S.user)&&x.id!==r.id&&x.status!=='rejected'})[0];if(dup){toast('يوجد تقرير لنفس المشروع واليوم');return false}
+ var o=r.id?r:{id:uid(),by:S.user,created:new Date().toISOString(),history:[]};
+ Object.assign(o,{pid:pid,date:d,weather:v$('sr_w'),manpower:man,works:wk,materials:v$('sr_m'),equipment:v$('sr_e'),delays:v$('sr_x'),notes:v$('sr_o'),photos:S.srPh.slice()});
+ if(!o.status)srLog(o,'draft');
+ o.__send=send;return srPersist(o,r)}
+async function srPersist(o,r){var send=o.__send;delete o.__send;if(send){if(o.status==='rejected'||o.status==='draft')srLog(o,'submitted')}
+ if(!(await dbSet('sitereps',o)))return false;if(!r.id){S.sitereps=S.sitereps||[];S.sitereps.push(o)}render();return true}
+ACT.srNew=function(){srForm()};
+ACT.srEdit=function(id){srForm(srAll().filter(function(r){return r.id===id})[0])};
+ACT.srProj=function(){var p=v$('sr_p');for(var i=0;i<5;i++){var e=$('sw_b'+i);if(e)e.innerHTML=srBoqOpts(p,'')}};
+ACT.srSaveSub=async function(id){var r=id?srAll().filter(function(x){return x.id===id})[0]:{};var ok=srSave(r,true);if(ok&&ok.then)ok=await ok;if(ok)closeModal&&closeModal()};
+ACT.srPhoto=async function(){var fs=Array.prototype.slice.call($('sr_ph').files||[]);for(var f of fs){if(S.srPh.length>=4){toast('الحد 4 صور');break}S.srPh.push(await srShrink(f))}$('sr_pc').textContent=S.srPh.length+' صورة'};
+function srShrink(f){return new Promise(function(ok){var im=new Image(),u=URL.createObjectURL(f);im.onload=function(){var k=Math.min(1,800/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.6))};im.onerror=function(){ok('')};im.src=u})}
+ACT.srView=function(id){var r=srAll().filter(function(x){return x.id===id})[0];if(!r)return;var p=proj(r.pid),st=SR_ST[r.status]||['',''];
+ var wk=(r.works||[]).map(function(w){var b=p&&p.boq.filter(function(x){return x.id===w.boq_id})[0];return[b?h(boqLabel(b)):'—',w.qty,b?h(b.unit||''):'',h(w.note||'')]});
+ var act='';if(srCanReview()){if(r.status==='submitted')act+='<button class="btn" data-a="srStep" data-p="'+id+'|review">بدء المراجعة</button> ';if(r.status==='submitted'||r.status==='review')act+='<button class="btn p" data-a="srStep" data-p="'+id+'|approved">اعتماد</button> <button class="btn d" data-a="srStep" data-p="'+id+'|rejected">رفض</button>'}
+ modal('تقرير '+r.date+' — '+(p?h(p.name):''),'<div class="hint">الحالة: <b>'+st[0]+'</b> — المهندس: '+h(r.by||'')+(r.weather?' — '+h(r.weather):'')+'</div><h4>العمالة</h4>'+tbl([{h:'التخصص'},{h:'العدد',n:1},{h:'ساعات',n:1}],(r.manpower||[]).map(function(m){return[h(m.trade),m.count,m.hours||'']}),{empty:'—'})+'<h4>الأعمال المنفذة</h4>'+tbl([{h:'بند المقايسة'},{h:'الكمية',n:1},{h:'الوحدة'},{h:'ملاحظة'}],wk,{empty:'—'})+[['المواد',r.materials],['المعدات',r.equipment],['معوقات',r.delays],['ملاحظات',r.notes]].map(function(x){return x[1]?'<p><b>'+x[0]+':</b> '+h(x[1])+'</p>':''}).join('')+(r.photos||[]).map(function(s){return'<img src="'+s+'" style="max-width:48%;margin:2px;border-radius:6px">'}).join('')+'<h4>السجل</h4>'+tbl([{h:'الحالة'},{h:'بواسطة'},{h:'الوقت'},{h:'ملاحظة'}],(r.history||[]).map(function(x){return[(SR_ST[x.st]||[x.st])[0],h((x.by||'').split('@')[0]),(x.at||'').slice(0,16).replace('T',' '),h(x.note||'')]}),{empty:'—'})+'<div style="margin-top:10px">'+act+'</div>',{})};
+ACT.srStep=async function(k){var x=k.split('|'),r=srAll().filter(function(y){return y.id===x[0]})[0];if(!r||!srCanReview())return;var note='';if(x[1]==='rejected'){note=prompt('سبب الرفض (إجباري)')||'';if(!note.trim()){toast('اكتب سبب الرفض');return}}
+ srLog(r,x[1],note);if(await dbSet('sitereps',r)){closeModal&&closeModal();render()}};
+VIEWS.sitemon=function(){var t=today(),w7=new Date(Date.now()-6*864e5).toISOString().slice(0,10);
+ var rows=S.projects.map(function(p){var rs=srAll().filter(function(r){return r.pid===p.id}),td=rs.filter(function(r){return r.date===t})[0],pend=rs.filter(function(r){return r.status==='submitted'||r.status==='review'}).length,wk=rs.filter(function(r){return r.date>=w7&&r.status!=='draft'}).length,last=rs.map(function(r){return r.date}).sort().pop();
+  var eng=srEngs(p.id);return[h(p.name),eng.length?eng.map(function(e){return h(e.split('@')[0])}).join('، '):'<span class="tag b">بلا مهندس</span>',last||'—',td?'<span class="tag '+(SR_ST[td.status][1])+'">'+SR_ST[td.status][0]+'</span>':'<span class="tag b">لا تقرير</span>',td?sum(td.manpower||[],function(m){return num(m.count)}):0,wk,pend?'<span class="tag w">'+pend+'</span>':0,'<button class="btn sm" data-a="srOpen" data-p="'+p.id+'">التقارير</button>']});
+ return pg('متابعة المواقع','',tbl([{h:'المشروع'},{h:'المهندسون'},{h:'آخر تقرير'},{h:'تقرير اليوم'},{h:'عمالة اليوم',n:1},{h:'تقارير 7 أيام',n:1},{h:'بانتظار المراجعة',n:1},{h:''}],rows,{empty:'لا توجد مشاريع'}))};
+ACT.srOpen=function(pid){S.sr.project=pid;S.sr.status='';go('sitereps')};
 /* ---------- events & boot ---------- */
 ACT.go=function(v){go(v)};ACT.menu=function(){$('side').classList.toggle('open')};ACT.mclose=closeModal;
 ACT.msave=async function(){if(!S.modalSave)return;var b=$('msaveBtn');b.disabled=true;try{var ok=await S.modalSave();if(ok!==false)closeModal()}catch(e){console.error(e);toast('حدث خطأ: '+e.message)}b.disabled=false};
@@ -1494,7 +1544,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261109-2053';
+var BUILD='20261110-0221';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
