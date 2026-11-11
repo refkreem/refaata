@@ -16,7 +16,7 @@ VIEWS.home=function(){var r=S.role,name=h(ROLE_NAMES[r]||''),body='';
    hmSec('تسجيل يومي',[hmTile('expenses','🧾','مصروف جديد','مصروفات ومشتريات'),hmTile('subs','🤝','مقاولو الباطن','مستخلصات ودفعات'),hmTile('labor','👷','العمالة','كشف عمالة'),hmTile('revenues','💰','تحصيل','إيرادات ومستخلصات العملاء')])}
  else if(r==='engineer'){var mine=hmMine();
   body+='<div class="grid g4" style="margin-bottom:12px">'+kpi('مشاريعي',S.projects.length)+kpi('حركاتي المعلّقة',mine,mine?'بانتظار الاعتماد':'لا يوجد',mine?'warn':'good')+'</div>'+
-   hmSec('عمل اليوم',[hmTile('sitereps','📝','تقرير اليوم','تقرير الموقع اليومي'),hmTile('progress','📐','الأعمال المنفذة','سجّل الكميات المنفذة'),hmTile('labor','👷','كشف العمالة','أجور اليومية'),hmTile('expenses','🧾','مصروف / عهدة','سجّل مصروفًا'),hmTile('purchases','🧱','مشتريات','فاتورة شراء'),hmTile('subs','🤝','مقاول باطن','مستخلص')])+
+   hmSec('عمل اليوم',[hmTile('dayexp','🧾','مصروف اليوم','سجّل من عهدتك'),hmTile('sitereps','📝','تقرير اليوم','تقرير الموقع اليومي'),hmTile('progress','📐','الأعمال المنفذة','سجّل الكميات المنفذة'),hmTile('labor','👷','كشف العمالة','أجور اليومية'),hmTile('expenses','🧾','مصروف / عهدة','سجّل مصروفًا'),hmTile('purchases','🧱','مشتريات','فاتورة شراء'),hmTile('subs','🤝','مقاول باطن','مستخلص')])+
    hmSec('متابعة',[hmTile('projects','🏗️','المشاريع','البنود والتفاصيل'),hmTile('review','✅','حالة طلباتي','المعلّق والمعتمد',mine||'')])}
  else{body+=hmSec('الإشراف الفني',[hmTile('projects','🏗️','المشاريع','المقايسة والتقدم'),hmTile('progress','📐','الأعمال المنفذة','متابعة الإنجاز'),hmTile('reports','📑','التقارير','تكلفة وإنجاز')])}
  return pg('الرئيسية — '+name,h(S.user||''),body)};
