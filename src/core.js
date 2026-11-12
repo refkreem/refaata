@@ -35,7 +35,7 @@ var db={collection:function(n){var flt=null;var api={where:function(f,op,v){flt=
    كل بيانات نسخة Claude تُحفظ في مجموعات بادئتها claude_v4_ فقط، فلا تتشارك أي مجموعة مع نسخ ChatGPT / Google Studio
    (التي تستخدم projects و batches و pending و cashAccounts و meta/config...). */
 var PFX='claude_v4_';
-var COL={projects:PFX+'projects',txs:PFX+'txs',accounts:PFX+'accounts',sitereps:PFX+'sitereps'};
+var COL={projects:PFX+'projects',txs:PFX+'txs',accounts:PFX+'accounts',sitereps:PFX+'sitereps',files:PFX+'files'};
 var CFGDOC=PFX+'meta/config';
 var LEGACY={projects:'projects',txs:'txs',accounts:'accounts'};   // أماكن النسخة القديمة المشتركة (قبل العزل)
 function clean(o){var c=JSON.parse(JSON.stringify(o));c.ns=NS;return c}
@@ -73,7 +73,7 @@ var MENU=[['home','🏠','الرئيسية','all','الرئيسية'],
 ['projects','🏗️','المشاريع','all','العمليات اليومية'],['subs','🤝','مقاولو الباطن','op','العمليات اليومية'],['labor','👷','العمالة اليومية','op','العمليات اليومية'],['purchases','🧱','المشتريات','op','العمليات اليومية'],['expenses','🧾','المصروفات','op','العمليات اليومية'],['revenues','💰','الإيرادات','fin','العمليات اليومية'],['progress','📐','الأعمال المنفذة (الإنجاز)','tech','العمليات اليومية'],
 ['dayexp','🧾','مصروفات الموقع اليومية','op','الموقع'],['sitereps','📝','التقرير اليومي للموقع','all','الموقع'],['custrec','🔁','تسوية العهد الأسبوعية','fin','الأسبوعي'],['sitemon','🛰️','متابعة المواقع','rep','الموقع'],['import','📥','استيراد كشوف الخميس','fin','الأسبوعي'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin','الأسبوعي'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin','الأسبوعي'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin','الأسبوعي'],
 ['mpay','👔','مرتبات الموظفين الشهرية','fin','الرواتب'],
-['accounts','🏦','الخزائن والبنوك','fin','المالية والمحاسبة'],['acct','📒','المحاسبة','fin','المالية والمحاسبة'],['costs','📈','التكاليف','fin','المالية والمحاسبة'],['costctl','📐','ضبط التكلفة وتحليل المقايسة','fin','المالية والمحاسبة'],
+['accounts','🏦','الخزائن والبنوك','fin','المالية والمحاسبة'],['acct','📒','المحاسبة','fin','المالية والمحاسبة'],['costs','📈','التكاليف','fin','المالية والمحاسبة'],['budget','🚦','ميزانية البنود والتنبيهات','op','المالية والمحاسبة'],['costctl','📐','ضبط التكلفة وتحليل المقايسة','fin','المالية والمحاسبة'],
 ['dashboard','📊','لوحة التحكم','fin','التقارير'],['prcenter','🖨️','مركز التقارير والطباعة','fin','التقارير'],['reports','📑','التقارير','rep','التقارير'],
 ['review','✅','المراجعة والاعتماد','op','الإدارة'],['settings','⚙️','الإعدادات','adm','الإدارة']];
 function menuAllowed(m){var k=m[3],r=S.role;if(r==='admin')return true;if(k==='adm')return false;if(r==='accountant')return true;if(k==='all')return true;if(k==='op')return r==='engineer';if(k==='tech')return true;if(k==='rep')return r==='supervisor';return false}
