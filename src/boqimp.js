@@ -6,8 +6,8 @@ var BQ_TOT=/^(اجمال|الاجمال|الإجمال|إجمال|المجموع
 function bqNum(v){if(typeof v==='number')return isNaN(v)?NaN:v;var s=String(v==null?'':v).replace(/[٠-٩]/g,function(d){return String.fromCharCode(d.charCodeAt(0)-1632)}).replace(/[,٬\s]/g,'');if(!/^-?\d+(\.\d+)?$/.test(s))return NaN;return parseFloat(s)}
 /* اختصار البند: أول عبارة مفيدة (≤ 9 كلمات) دون التوصيف الفني الطويل؛ النص الكامل يبقى محفوظًا */
 function bqShort(t){t=String(t||'').replace(/\s+/g,' ').trim();if(!t)return'';
- var seg=t.split(/\s(?:طبقا|طبقاً|وفقا|وفقاً|حسب|مطابق|بمواصفات|بحيث|على أن|علي ان|على ان|ويشمل|يشمل|شاملا|شاملاً|وذلك|كما هو|بالمواصفات)\s|\.(?=\s|$)|[؛;:\(\[]|\s[-–—]\s|،|,/)[0].trim();
- if(seg.length<6)seg=t;var w=seg.split(' ');if(w.length>9)w=w.slice(0,9);var s=w.join(' ');if(s.length>70)s=s.slice(0,70).replace(/\s\S*$/,'');return s||t.slice(0,70)}
+ var seg=t.split(/\s(?:طبقا|طبقاً|وفقا|وفقاً|حسب|مطابق|بمواصفات|بحيث|على أن|علي ان|على ان|ويشمل|يشمل|والفئة|الفئة|وتشمل|تشمل|ويتضمن|يتضمن|متضمنا|بما في ذلك|بما فى ذلك|شاملا|شاملاً|وذلك|كما هو|بالمواصفات)\s|\.(?=\s|$)|[؛;:\(\[]|\s[-–—]\s|،|,/)[0].trim();
+ if(seg.length<6)seg=t;var w=seg.split(' ');if(w.length>8)w=w.slice(0,8);var s=w.join(' ');if(s.length>70)s=s.slice(0,70).replace(/\s\S*$/,'');return s||t.slice(0,70)}
 function bqHdr(rows){for(var i=0;i<Math.min(rows.length,40);i++){var m=boqColMap(rows[i]);if(m.qty>=0&&(m.name>=0||m.code>=0)){var tot=-1;rows[i].forEach(function(c,ix){if(tot<0&&c&&/اجمال|إجمال|total|amount|القيم|المبلغ/i.test(c)&&[m.code,m.group,m.name,m.unit,m.qty,m.price].indexOf(ix)<0)tot=ix});m.total=tot;return{i:i,m:m}}}return null}
 function bqParse(aoa){var cl=function(c){return String(c==null?'':c).replace(/\s+/g,' ').trim()};var rows=aoa.map(function(r){return(r||[]).map(cl)});
  var H=bqHdr(rows),map,start=0;if(H){map=H.m;start=H.i+1;if(map.name<0){var used=[],w=0;Object.keys(map).forEach(function(k){if(map[k]>=0)used.push(map[k])});while(used.indexOf(w)>=0)w++;map.name=w}}else map={code:0,group:1,name:2,unit:3,qty:4,price:5,total:6};
@@ -69,3 +69,6 @@ ACT.boqImport=function(){modal('استيراد المقايسة','<div class="hi
    if(/\.pdf$/i.test(f.name)){$('bi_prev').textContent='جارٍ قراءة PDF…';try{bqShow(bqParse(await bqPdfRows(e.target.result.slice(0))))}catch(x){$('bi_prev').textContent='تعذر قراءة PDF: '+x.message+' — جرّب ملف Excel أو الصق الجدول'}return}
    if(!window.XLSX){toast('مكتبة Excel غير محملة — استخدم اللصق');return}
    wb=XLSX.read(e.target.result,{type:'array'});var sb=$('bi_sheetbox');if(wb.SheetNames.length>1){sb.style.display='';sb.innerHTML='<label class="f"><span>الورقة (Sheet)</span><select id="bi_sheet">'+wb.SheetNames.map(function(n){return'<option>'+h(n)+'</option>'}).join('')+'</select></label>';$('bi_sheet').onchange=function(){loadSheet(this.value)}}else sb.style.display='none';loadSheet(wb.SheetNames[0])};rd.readAsArrayBuffer(f)}}})};
+
+/* ترحيل لمرة واحدة: اختصار أسماء بنود المقايسة المحمّلة سابقًا مع حفظ الوصف الكامل في desc_full (رقم البند يبقى في code ويظهر قبل الاسم) */
+async function bqMigrate(){try{if(!isFin()||(S.cfg&&S.cfg.bq_short_v2))return;var n=0;for(var p of S.projects){var ch=false;(p.boq||[]).forEach(function(b){if(b.desc_full||!b.name)return;var sh=bqShort(b.name);if(sh&&sh!==b.name&&sh.length<b.name.length){b.desc_full=b.name;b.name=sh;ch=true;n++}});if(ch)await dbSet('projects',p)}S.cfg.bq_short_v2={at:new Date().toISOString(),n:n};if(typeof saveCfg==='function')await saveCfg();if(n)toast('اختُصر وصف '+n+' بندًا في المقايسة (الوصف الكامل محفوظ في كل بند)')}catch(e){}}

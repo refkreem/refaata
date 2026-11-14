@@ -24,6 +24,8 @@ fs.writeFileSync('/tmp/claude-0/real_dump.json',JSON.stringify(DUMP,null,1));
 await pg.evaluate(()=>{window.__x=1});
 global.PG=pg;
 
+const ids0=await pg.evaluate(()=>{window.__ids=S.txs.map(t=>t.id);return S.txs.length});await load('2026-11-11');
+console.log('REIMPORT NEW',JSON.stringify(await pg.evaluate(()=>S.txs.filter(t=>window.__ids.indexOf(t.id)<0).map(t=>[t.type,t.date,t.amount,t.gross,t.cum_value,String(t.desc||'').slice(0,40)]))));
 const st=await pg.evaluate(()=>localStorage.getItem('moqawel_pro_v4'));
 fs.writeFileSync('/tmp/claude-0/real_state.json',st||'{}');console.log('saved state',(st||'').length);
 await b.close()})();

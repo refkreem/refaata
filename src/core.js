@@ -62,7 +62,7 @@ async function loadAll(){S.loadErr=null;
  try{S.txs=(await withTO(qNs(COL.txs))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.txs=[];console.error('txs',e)}
  if(isFin()){try{S.accounts=(await withTO(qNs(COL.accounts))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.accounts=[]}}else{try{S.accounts=(await qNs(COL.accounts)).docs.map(function(d){var v=d.data();return{id:d.id,name:v.name,kind:v.kind,opening:0}})}catch(e){S.accounts=[]}}
  try{S.sitereps=(await withTO(qNs(COL.sitereps))).docs.map(function(d){var v=d.data();v.id=d.id;return v})}catch(e){S.sitereps=[]}
- if(typeof applyScope==='function')applyScope();
+ if(typeof applyScope==='function')applyScope();if(typeof bqMigrate==='function')setTimeout(bqMigrate,1500);
 }
 /* ---------- roles ---------- */
 function roleOf(email){var r=S.cfg.roles||{};var keys=Object.keys(r);if(!keys.length)return'admin';return r[(email||'').toLowerCase()]||'engineer'}

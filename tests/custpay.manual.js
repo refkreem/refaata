@@ -28,9 +28,9 @@ T('3 الزيادة 6,462.1 سلفة مقاول مرحّلة',Math.abs(A.adv-646
 T('4 العهدة صُرف منها 15,000 مرة واحدة (سداد + سلفة)',Math.abs(A.custOut-15000)<0.01&&Math.abs(A.pay+A.adv-15000)<0.01,A);
 T('5 رصيد المقاول: المتبقي للأسبوع صفر',Math.abs(A.rem)<0.01,A);
 // إعادة الاستيراد دون تكرار
-const cnt1=await pg.evaluate(()=>S.txs.length);await pg.click('#side a[data-p=import]');await pg.evaluate(()=>{S.imp=null;render()});await pg.setInputFiles('#imp_files',[await mk(15000)]);await pg.waitForTimeout(1500);
+const cnt1=await pg.evaluate(()=>{window.__ids=S.txs.map(t=>t.id);return S.txs.length});await pg.click('#side a[data-p=import]');await pg.evaluate(()=>{S.imp=null;render()});await pg.setInputFiles('#imp_files',[await mk(15000)]);await pg.waitForTimeout(1500);
 await pg.evaluate(()=>{S.imp.cust=S.accounts.filter(a=>/عهد/.test(a.name))[0].id;S.imp.src=S.accounts[0].id;S.imp.wacc=S.accounts[0].id});await pg.click('[data-a=impGo]');await pg.waitForFunction(()=>S.impDone&&S.impDone.indexOf('تم تحميل')===0,null,{timeout:120000});
-const cnt2=await pg.evaluate(()=>S.txs.length);T('6 إعادة الاستيراد لا تضيف حركات',cnt2===cnt1,{cnt1,cnt2});
+const cnt2=await pg.evaluate(()=>S.txs.length);console.log('NEW',JSON.stringify(await pg.evaluate(()=>S.txs.filter(t=>window.__ids.indexOf(t.id)<0).map(t=>[t.type,t.date,t.amount,t.gross,t.cum_value,t.paid,t.desc&&t.desc.slice(0,50)]))));T('6 إعادة الاستيراد لا تضيف حركات',cnt2===cnt1,{cnt1,cnt2});
 // ترحيل للأسبوع التالي: السلفة ما زالت قائمة وليست مخصومة تلقائيًا من مشروع آخر
 const nx=await pg.evaluate(a=>({same:certAdvOut(a.pid,a.con),other:certAdvOut('__other__',a.con)}),A);T('7 السلفة تظهر في حساب المقاول ولا تُقاصّ تلقائيًا مع مشروع آخر',Math.abs(nx.same-6462.1)<0.01&&nx.other===0,nx);
 const B=await run(3000,'موجب');console.log(JSON.stringify(B));T('8 رصيد موجب: سداد 3,000 والمتبقي 5,537.9 بلا سلفة',Math.abs(B.pay-3000)<0.01&&B.adv===0&&Math.abs(B.rem-5537.9)<0.01,B);
