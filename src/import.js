@@ -56,7 +56,7 @@ function impItemKey(d){return nrm(d).replace(/(^| )بيض( |$)/g,"$1بياض$2")
 function impMatchProject(key){if(!key)return'';var sm=S.cfg.siteMap||{},k=nrm(key);if(sm[k]&&proj(sm[k]))return sm[k];var T=nrm(key).split(' ').filter(function(w){return w.length>2});var best='',bs=0;S.projects.forEach(function(p){var P=nrm(p.name).split(' ').filter(function(w){return w.length>2});if(!P.length)return;var cm=P.filter(function(w){return T.indexOf(w)>=0}).length,sc=cm/Math.max(P.length,T.length);if(cm>=2&&(cm===T.length||cm===P.length)&&sc>bs){bs=sc;best=p.id}});return bs>=0.6?best:''}
 function impMatchCon(name){var n=nrm(name);var best='';S.cfg.contractors.forEach(function(c){var cn=nrm(c.name);if(cn===n||(n.length>4&&(cn.indexOf(n)>=0||n.indexOf(cn)>=0)))best=c.id});return best}
 /* بناء الحركات */
-var IMP_MIN='2025-12-25';/* بداية التحميل: نهاية 2025 */
+var IMP_MIN='2025-08-01';/* بداية التحميل: 1-8-2025 */
 function impBuild(st){var from=st.from||'',to=st.to||'9999';var lines=st.lines.filter(function(x){return(!from||x.date>=from)&&x.date<=to});var G={};
  var map0=st.map||{},LZ={},SH={},groups=[],sheets=[];st.lines.forEach(function(x){if((x.zd||'')>(LZ[x.con]||''))LZ[x.con]=x.zd||''});
  st.lines.forEach(function(x){if(!map0[x.site]||(x.zd||'')!==(LZ[x.con]||''))return;var k=[x.con,x.site,x.sheet].join('|');(SH[k]=SH[k]||[]).push(x)});
