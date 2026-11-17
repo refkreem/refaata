@@ -26,3 +26,9 @@ ACT.upd=function(){checkUpdate(true)};
 document.addEventListener('visibilitychange',function(){if(!document.hidden)checkUpdate()});
 setTimeout(checkUpdate,2500);setInterval(checkUpdate,600000);
 boot();
+
+/* ---------- تطبيق قابل للتثبيت (PWA) ---------- */
+(function(){try{if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();S.installEv=e;if(S.db)render()});
+window.addEventListener('appinstalled',function(){S.installEv=null});})();
+ACT.install=async function(){var e=S.installEv;if(!e){toast('على الآيفون: زر المشاركة ← إضافة إلى الشاشة الرئيسية. على أندرويد/كمبيوتر: قائمة المتصفح ← تثبيت التطبيق');return}e.prompt();try{await e.userChoice}catch(x){}S.installEv=null;render()};

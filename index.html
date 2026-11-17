@@ -1,4 +1,4 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14253d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg">
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14253d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-192.png">
 <title>مقاول Pro | الإدارة المالية والهندسية للمشروعات</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -119,7 +119,7 @@ td{color:#000;font-weight:700}
 <div class="err" id="lErr"></div><button class="btn p" style="justify-content:center" id="lBtn">دخول</button></form></div>
 <div class="top"><button class="ib burger" data-a="menu">☰</button><div class="logo">مقاول <i>Pro</i></div><span class="ver" id="ver" data-a="upd" style="cursor:pointer" title="رقم الإصدار — يتحدث تلقائيًا"></span><div class="sp"></div>
 <div class="meta"><span class="dot" id="dot"></span><span class="t" id="conn">…</span><span class="tag" id="roleTag" style="background:rgba(255,255,255,.15);color:#fff"></span></div>
-<button class="ib" data-a="refresh" title="تحديث البيانات">⟳</button><button class="ib" id="logout" style="display:none" data-a="logout">خروج</button></div>
+<button class="ib" data-a="refresh" title="تحديث البيانات">⟳</button><button class="ib" data-a="install" title="تثبيت التطبيق على الجهاز">⬇</button><button class="ib" id="logout" style="display:none" data-a="logout">خروج</button></div>
 <div class="layout"><nav class="side" id="side"></nav><main id="main"></main></div>
 <div id="modal"></div><div id="toast"></div>
 <script>
@@ -1803,7 +1803,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261117-2126';
+var BUILD='20261117-2133';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
@@ -1813,5 +1813,11 @@ ACT.upd=function(){checkUpdate(true)};
 document.addEventListener('visibilitychange',function(){if(!document.hidden)checkUpdate()});
 setTimeout(checkUpdate,2500);setInterval(checkUpdate,600000);
 boot();
+
+/* ---------- تطبيق قابل للتثبيت (PWA) ---------- */
+(function(){try{if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();S.installEv=e;if(S.db)render()});
+window.addEventListener('appinstalled',function(){S.installEv=null});})();
+ACT.install=async function(){var e=S.installEv;if(!e){toast('على الآيفون: زر المشاركة ← إضافة إلى الشاشة الرئيسية. على أندرويد/كمبيوتر: قائمة المتصفح ← تثبيت التطبيق');return}e.prompt();try{await e.userChoice}catch(x){}S.installEv=null;render()};
 
 </script></body></html>
