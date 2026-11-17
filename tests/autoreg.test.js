@@ -1,0 +1,18 @@
+const { chromium } = require('playwright');
+let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.stringify(x))}};
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file:///home/claude/refaata/index.html');await pg.waitForFunction(()=>window.S&&S.db);
+const r=await pg.evaluate(async()=>{var o={};S.user='a@x.com';S.role='admin';
+ o.gen=[impNewSite('عام'),impNewSite(''),impNewSite('مستشفى الشروق - رعاية')];
+ var st={files:[1],lines:[],wages:[],exp:[],notes:[],from:'',to:'',map:{'مستشفى الشروق - رعاية':'__new'},cmap:{'محمود نقاش':'__new'}};
+ S.imp=st;
+ var np={id:'p9',name:'مستشفى الشروق',client:'',value:0,boq:[],auto:'import'};S.projects.push(np);
+ S.cfg.contractors.push({id:'c9',name:'محمود',trade:'',phone:'',open:0,auto:'import'});
+ S.cfg.workers.push({name:'سيد',mode:'daily',rate:0,auto:'import'});
+ S.cfg.contractors.push({id:'c8',name:'يدوي',trade:'',phone:'',open:0});
+ var inc=hmIncomplete();o.n=inc.map(function(x){return x.t});o.h=VIEWS.home().indexOf('يحتاج استكمال')>=0;
+ np.value=500000;np.client='س';S.cfg.contractors[S.cfg.contractors.length-2].trade='نقاشة';S.cfg.contractors[S.cfg.contractors.length-2].phone='01';S.cfg.workers[S.cfg.workers.length-1].rate=200;
+ o.after=hmIncomplete().length;return o});
+T('أسماء عامة لا تُنشأ',r.gen[0]===''&&r.gen[1]===''&&r.gen[2]==='__new',r.gen);
+T('تنبيه لمشروع ومقاول وعامل تلقائيين فقط',r.n.join()==='مشروع,مقاول,عامل',r.n);T('الرئيسية تعرض التنبيه',r.h);T('يختفي بعد الاستكمال',r.after===0,r.after);T('لا أخطاء',errs.length===0,errs);
+console.log('نجح',ok,'فشل',bad);await b.close()})();
