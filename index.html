@@ -985,7 +985,7 @@ REPS.conAsOf={g:'مقاولو الباطن',n:'أرصدة المقاولين ف�
 S.wk={week:'',project:'',party:'',trade:'',st:'',sel:{}};
 var WK_ST={review:'قيد المراجعة (Pending Review)',await:'بانتظار الاعتماد (Awaiting Approval)',approved:'معتمد للصرف (Approved)',partial:'مدفوع جزئيًا (Partially Paid)',full:'مدفوع بالكامل (Fully Paid)',hold:'موقوف (On Hold)',recon:'يحتاج مطابقة (Requires Reconciliation)'};
 var WK_CLS={review:'',await:'warn',approved:'good',partial:'warn',full:'good',hold:'bad',recon:'bad'};
-function wkWeeks(){var m={};S.txs.forEach(function(t){if(t.type==='sub'&&t.cum&&apr(t)&&t.date)m[t.date]=1});return Object.keys(m).sort().reverse()}
+function wkWeeks(){var m={};S.txs.forEach(function(t){if(t.type==='sub'&&t.cum&&(apr(t)||t.status==='pending')&&t.date)m[t.date]=1});return Object.keys(m).sort().reverse()}
 function wkOf(t){return t.wk||t.date}
 function wkKey(w,p,c){return w+'|'+p+'|'+c}
 /* حساب أسبوع المقاول في مشروع: التراكمي − المدفوع قبل الأسبوع − السلف − الخصومات */
@@ -1803,7 +1803,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261117-2209';
+var BUILD='20261118-0147';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}

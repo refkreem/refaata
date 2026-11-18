@@ -2,7 +2,7 @@
 S.wk={week:'',project:'',party:'',trade:'',st:'',sel:{}};
 var WK_ST={review:'قيد المراجعة (Pending Review)',await:'بانتظار الاعتماد (Awaiting Approval)',approved:'معتمد للصرف (Approved)',partial:'مدفوع جزئيًا (Partially Paid)',full:'مدفوع بالكامل (Fully Paid)',hold:'موقوف (On Hold)',recon:'يحتاج مطابقة (Requires Reconciliation)'};
 var WK_CLS={review:'',await:'warn',approved:'good',partial:'warn',full:'good',hold:'bad',recon:'bad'};
-function wkWeeks(){var m={};S.txs.forEach(function(t){if(t.type==='sub'&&t.cum&&apr(t)&&t.date)m[t.date]=1});return Object.keys(m).sort().reverse()}
+function wkWeeks(){var m={};S.txs.forEach(function(t){if(t.type==='sub'&&t.cum&&(apr(t)||t.status==='pending')&&t.date)m[t.date]=1});return Object.keys(m).sort().reverse()}
 function wkOf(t){return t.wk||t.date}
 function wkKey(w,p,c){return w+'|'+p+'|'+c}
 /* حساب أسبوع المقاول في مشروع: التراكمي − المدفوع قبل الأسبوع − السلف − الخصومات */
