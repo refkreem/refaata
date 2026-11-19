@@ -1,0 +1,17 @@
+const { chromium } = require('playwright');
+let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.stringify(x))}};
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForFunction(()=>window.S&&S.db);
+const r=await pg.evaluate(()=>{S.user='a@x.com';S.role='admin';
+ var cl=impClassify({bayan:'من ح مقاول سيد سترجي',band:''}),cl2=impClassify({bayan:'من حساب مقاول تركيب رخام صبحي مفتاح',band:''});
+ S.cfg.contractors=[{id:'c1',name:'سيد استرجي'},{id:'c2',name:'احمد سيد زعبولة تصنيع المونيوم'},{id:'c3',name:'ابو شهد مبيض'}];
+ var m=[impMatchCon('سيد سترجي'),impMatchCon('ت ت المونيوم ( احمد سيد )'),impMatchCon('مقاول دهانات استر سيد السترجي'),impMatchCon('محمود')];
+ var sg=cwSuggest('كهرباء عمرو عباس',['عمرو عباس سيد كهربائئ','محسن عباس سيد']);
+ S.txs=[{id:'a1',type:'adv',kind:'worker',party:'كهرباء عمرو عباس',amount:8000,date:'2026-11-13',status:'approved'},{id:'l1',type:'labor',date:'2026-11-18',status:'approved',rows:[{name:'عمرو عباس سيد كهربائئ',adv:1000}]}];
+ var before=workerAdv('عمرو عباس سيد كهربائئ');S.cfg.wAlias={'كهرباء عمرو عباس':'عمرو عباس سيد كهربائئ'};var after=workerAdv('عمرو عباس سيد كهربائئ');
+ return{cl:cl.kind,cl2:cl2.kind,m:m,sg:sg,before:before,after:after}});
+T('«من ح مقاول» يُصنَّف سداد مقاول',r.cl==='conpay'&&r.cl2==='conpay',r);
+T('مطابقة اسم المقاول بتسامح حرف',r.m[0]==='c1'&&r.m[1]==='c2'&&r.m[2]==='c1'&&r.m[3]==='',r.m);
+T('اقتراح ربط سلفة بعامل',r.sg.length===1&&r.sg[0]==='عمرو عباس سيد كهربائئ',r.sg);
+T('السلفة القائمة تتغير بعد الربط',r.before===-1000&&r.after===7000,r);
+console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();
