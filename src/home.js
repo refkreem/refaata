@@ -3,7 +3,7 @@ function hmTile(v,ic,t,d,badge){return'<a class="tile" data-a="go" data-p="'+v+'
 function hmSec(t,tiles){return'<div class="card" style="margin-bottom:12px"><h3>'+t+'</h3><div class="tiles">'+tiles.join('')+'</div></div>'}
 function hmMine(){return S.txs.filter(function(t){return t.by===S.user&&t.status==='pending'}).length}
 /* تنبيهات استكمال بيانات ما سُجّل تلقائيًا من الاستيراد */
-function hmIncomplete(){var o=[];S.projects.forEach(function(p){if(p.auto&&(!pval(p)||!p.client))o.push({t:'مشروع',n:p.name,w:(!pval(p)?'قيمة العقد':'')+(!pval(p)&&!p.client?' + ':'')+(!p.client?'العميل':''),a:'projEdit',id:p.id})});
+function hmIncomplete(){var o=[];S.projects.forEach(function(p){if(p.hold)o.push({t:'مشروع معلّق',n:p.name,w:'تأكيد: مشروع جديد أم دمج مع '+(p.hold.similar||[]).map(function(i){var q=proj(i);return q?q.name:''}).filter(Boolean).join(' / '),a:'projHoldAsk',id:p.id})});S.projects.forEach(function(p){if(p.auto&&(!pval(p)||!p.client))o.push({t:'مشروع',n:p.name,w:(!pval(p)?'قيمة العقد':'')+(!pval(p)&&!p.client?' + ':'')+(!p.client?'العميل':''),a:'projEdit',id:p.id})});
  S.cfg.contractors.forEach(function(c){if(c.auto&&(!c.phone||!c.trade))o.push({t:'مقاول',n:c.name,w:(!c.trade?'التخصص':'')+(!c.trade&&!c.phone?' + ':'')+(!c.phone?'الهاتف':''),a:'conEdit',id:c.id})});
  S.cfg.workers.forEach(function(w,i){if(w.auto&&!num(w.rate))o.push({t:'عامل',n:w.name,w:'اليومية/الأجر',a:'wEdit',id:String(i)})});return o}
 VIEWS.home=function(){var r=S.role,name=h(ROLE_NAMES[r]||''),body='';

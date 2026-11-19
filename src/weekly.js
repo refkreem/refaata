@@ -15,9 +15,10 @@ function wkCalc(t,cap){var w=t.date,cp=cap||w,pid=t.project_id,con=t.party_id;va
  var bo=[];(t.lines||[]).forEach(function(l){if(l.boq_id){var b=boqItem(pid,l.boq_id);if(b&&bo.indexOf(boqLabel(b))<0)bo.push(boqLabel(b))}});
  return{t:t,key:key,week:w,pid:pid,con:con,cname:c.name||cname(con),pname:pname(pid),trade:c.trade||L0.name||'',boq:bo.join('، ')||'—',desc:cl.length?cl.map(function(l){return l.d}).filter(Boolean).join('، '):(t.desc||''),unit:cl.length?(cl[0].u||''):(L0.unit||''),qty:cl.length?sum(cl,function(l){return l.q}):num(L0.qty),rate:cl.length&&cl.length===1?num(cl[0].p):'',
   cum:num(t.cum_value),prevC:prevC,before:r2(before),ent:r2(num(t.cum_value)-prevC),advOut:advOut,advRecov:num(t.adv_recov),other:num(t.other_ded),net:net,paid:r2(now),rem:rem,st:s,pays:pays,carry:w<cp,asof:cp}}
+function projHeld(id){var p=id&&proj(id);return !!(p&&p.hold)}
 function wkRows(f){f=f||S.wk;var rows=[],last={};
  /* كل حساب (مقاول × مشروع) يظهر بآخر شهادة له حتى الأسبوع المختار؛ والرصيد المرحَّل غير المسدد يظهر أيضًا */
- S.txs.forEach(function(t){if(t.type!=='sub'||!t.cum||!(apr(t)||t.status==='pending')||!t.date||t.date>f.week)return;if(f.project&&t.project_id!==f.project)return;if(f.party&&t.party_id!==f.party)return;var k=t.project_id+'|'+t.party_id;if(!last[k]||t.date>last[k].date||(t.date===last[k].date&&String(t.at||'')>=String(last[k].at||'')))last[k]=t});
+ S.txs.forEach(function(t){if(t.type!=='sub'||!t.cum||!(apr(t)||t.status==='pending')||!t.date||t.date>f.week)return;if(projHeld(t.project_id))return;if(f.project&&t.project_id!==f.project)return;if(f.party&&t.party_id!==f.party)return;var k=t.project_id+'|'+t.party_id;if(!last[k]||t.date>last[k].date||(t.date===last[k].date&&String(t.at||'')>=String(last[k].at||'')))last[k]=t});
  Object.keys(last).forEach(function(k){var t=last[k],r=wkCalc(t,f.week);r.cdate=t.date;r.old=t.date!==f.week;/* الصرف مرتبط بتاريخ المستخلص: نطاق «الأسبوع» = المستخلصات المؤرخة بهذا الأسبوع فقط */if(f.scope==='week'){if(!r.old)rows.push(r)}else if(!r.old||Math.abs(r.rem)>0.5)rows.push(r)});
  rows=rows.filter(function(r){return(!f.trade||r.trade===f.trade)&&(!f.st||r.st===f.st)});return by(rows,function(r){return r.cname+'|'+r.pname})}
 function wkSetSt(key,st){S.cfg.wk=S.cfg.wk||{};S.cfg.wk[key]={st:st,by:S.user,at:new Date().toISOString()}}
