@@ -6,10 +6,12 @@ function wkWeeks(){var m={};S.txs.forEach(function(t){if(t.type==='sub'&&t.cum&&
 function wkOf(t){return t.wk||t.date}
 function wkKey(w,p,c){return w+'|'+p+'|'+c}
 /* حساب أسبوع المقاول في مشروع: التراكمي − المدفوع قبل الأسبوع − السلف − الخصومات */
+/* كشف «بنود مؤرخة» (خصم ما سبق صرفه = 0 دائمًا): مستحق الأسبوع = بنود ذلك التاريخ فقط. كشف تراكمي: أي «ما سبق صرفه» > 0 */
+function certStyleCum(pid,con){return S.txs.some(function(x){return x.type==='sub'&&x.cum&&x.project_id===pid&&x.party_id===con&&x.imp_batch!=='تاريخي'&&x.status!=='cancelled'&&num(x.sheet_P)>0.5})}
 function wkCalc(t,cap){var w=t.date,cp=cap||w,pid=t.project_id,con=t.party_id;var prevC=certPrevC(pid,con,w,t.id);var before=0,now=num(t.paid),pays=[];
  TX().forEach(function(x){if(x.id===t.id||x.project_id!==pid||x.party_id!==con)return;if(x.corr)return;if(x.type==='payment'&&/^سداد مستحقات \(من فرق/.test(x.desc||'')&&t.cum&&t.sheet_P!=null&&t.sheet_P!==''&&t.imp_batch!=='تاريخي')return;var amt=0;if(x.type==='sub')amt=num(x.paid);else if(x.type==='payment'&&x.kind==='contractor')amt=num(x.amount);else return;if(!amt)return;
   var xw=x.type==='sub'?x.date:wkOf(x);if(xw<w)before+=amt;else if(xw<=cp){now+=amt;if(x.type==='payment')pays.push(x)}});
- /* المدفوع سابقًا للشهادة المستوردة = «ما سبق صرفه» المكتوب في الكشف نفسه (لا يُجمع مع حركات تاريخية قديمة فيتكرر) */if(t.cum&&t.sheet_P!=null&&t.sheet_P!==''&&isFinite(Number(t.sheet_P))&&t.imp_batch!=='تاريخي')before=num(t.sheet_P);var cv=num(t.cum_value),sx=false;if(t.cum&&t.imp_batch!=='تاريخي'&&t.sheet_G!=null&&t.sheet_G!==''&&isFinite(Number(t.sheet_G))&&t.sheet_P!=null&&t.sheet_P!==''&&Number(t.sheet_G)>0){cv=num(t.sheet_G);sx=true}
+ /* المدفوع سابقًا للشهادة المستوردة = «ما سبق صرفه» المكتوب في الكشف نفسه (لا يُجمع مع حركات تاريخية قديمة فيتكرر) */if(t.cum&&t.sheet_P!=null&&t.sheet_P!==''&&isFinite(Number(t.sheet_P))&&t.imp_batch!=='تاريخي')before=num(t.sheet_P);var cv=num(t.cum_value),sx=false;if(t.cum&&t.imp_batch!=='تاريخي'&&t.sheet_G!=null&&t.sheet_G!==''&&isFinite(Number(t.sheet_G))&&t.sheet_P!=null&&t.sheet_P!==''&&Number(t.sheet_G)>0){if(certStyleCum(pid,con)){cv=num(t.sheet_G)}else{cv=num(t.gross);before=0}sx=true}
  var advOut=certAdvOut(pid,con,t.id);var net=r2(cv-before-num(t.adv_recov)-num(t.other_ded));var key=wkKey(w,pid,con);var st=(S.cfg.wk||{})[key];var s=st&&st.st||'review';
  var rem=r2(net-now);if(net<-0.5)s='recon';else if(now>0.5&&rem<=0.5)s='full';else if(now>0.5)s='partial';else if(s==='full'||s==='partial')s='review';
  var c=S.cfg.contractors.filter(function(x){return x.id===con})[0]||{};var cl=t.cert_lines||[];var L0=(t.lines||[])[0]||{};
