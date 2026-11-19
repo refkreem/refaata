@@ -1,7 +1,7 @@
 // اختبار القبول على الأسابيع الأربعة بالملفات الحقيقية. تشغيل: NODE_PATH=$(npm root -g) node tests/acceptance.manual.js
 const { chromium } = require('playwright'); const fs=require('fs');
 const A=process.env.ATT||'/mnt/user-data/attachments/417653ff-1ed1-57a2-b72f-c61552d5058e/';
-const Z={'2026-10-14':'09e3244b-1793843935465_14-10-2026_______.zip','2026-10-21':'45ebf9e3-1793842721467_21-10-2026_______.zip','2026-10-28':'a964418d-1793842525729_28-10-2026.zip','2026-11-04':'2d1759c4-1793844918233_4-11-2026_______.zip','2026-11-11':'d6f41e58-1794459689216_11-11-2026.zip'};
+const Z={'2026-10-14':'09e3244b-1793843935465_14-10-2026_______.zip','2026-10-21':'45ebf9e3-1793842721467_21-10-2026_______.zip','2026-10-28':'a964418d-1793842525729_28-10-2026.zip','2026-11-04':'2d1759c4-1793844918233_4-11-2026_______.zip','2026-11-11':'d6f41e58-1794459689216_11-11-2026.zip','2026-11-18':'cbb58c7c-18-11-2026_______.zip'};
 const R=[];const PARSED={},DELTA={};const T=(n,c,x)=>{R.push({n,ok:!!c,x});console.log(c?'  ✔':'  ✘',n,c?'':JSON.stringify(x))};
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const ctx=await b.newContext();const pg=await ctx.newPage();
 pg.on('pageerror',e=>{T('PAGEERR '+e.message,false)});pg.on('dialog',d=>{d.type()==='prompt'?d.accept(/تصفير/.test(d.message())?'تصفير':'سبب'):d.accept()});

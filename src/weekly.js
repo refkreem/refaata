@@ -3,21 +3,24 @@ S.wk={week:'',project:'',party:'',trade:'',st:'',scope:'week',sel:{}};
 var WK_ST={review:'قيد المراجعة (Pending Review)',await:'بانتظار الاعتماد (Awaiting Approval)',approved:'معتمد للصرف (Approved)',partial:'مدفوع جزئيًا (Partially Paid)',full:'مدفوع بالكامل (Fully Paid)',hold:'موقوف (On Hold)',recon:'يحتاج مطابقة (Requires Reconciliation)'};
 var WK_CLS={review:'',await:'warn',approved:'good',partial:'warn',full:'good',hold:'bad',recon:'bad'};
 function wkWeeks(){var m={};S.txs.forEach(function(t){if(t.type==='sub'&&t.cum&&(apr(t)||t.status==='pending')&&t.date)m[t.date]=1});return Object.keys(m).sort().reverse()}
-function wkOf(t){return t.wk||t.date}
+var _wkC={n:-1,l:[]};
+/* أسبوع الحركة: wk إن وُجد، وإلا أول تاريخ كشف أسبوعي ≥ تاريخها (حتى تُحسب مدفوعات منتصف الأسبوع ضمن كشف نهايته) */
+function accIsCust(id){var a=id&&S.accounts.filter(function(x){return x.id===id})[0];return!!(a&&(a.cust||/عصام/.test(a.name||'')))}
+function wkOf(t){if(t.wk)return t.wk;if(t.type!=='payment'||!t.date)return t.date;if(_wkC.n!==S.txs.length){_wkC={n:S.txs.length,l:wkWeeks().slice().reverse()}}for(var i=0;i<_wkC.l.length;i++){if(_wkC.l[i]>=t.date)return(impAdd(_wkC.l[i],-6)<=t.date)?_wkC.l[i]:t.date}return t.date}
 function wkKey(w,p,c){return w+'|'+p+'|'+c}
 /* حساب أسبوع المقاول في مشروع: التراكمي − المدفوع قبل الأسبوع − السلف − الخصومات */
 /* كشف «بنود مؤرخة» (خصم ما سبق صرفه = 0 دائمًا): مستحق الأسبوع = بنود ذلك التاريخ فقط. كشف تراكمي: أي «ما سبق صرفه» > 0 */
 function certStyleCum(pid,con){return S.txs.some(function(x){return x.type==='sub'&&x.cum&&x.project_id===pid&&x.party_id===con&&x.imp_batch!=='تاريخي'&&x.status!=='cancelled'&&num(x.sheet_P)>0.5})}
-function wkCalc(t,cap){var w=t.date,cp=cap||w,pid=t.project_id,con=t.party_id;var prevC=certPrevC(pid,con,w,t.id);var before=0,now=num(t.paid),pays=[];
+function wkCalc(t,cap){var w=t.date,cp=cap||w,pid=t.project_id,con=t.party_id;var prevC=certPrevC(pid,con,w,t.id);var before=0,now=num(t.paid),pays=[],cpd=0;var sdMode=!!(t.cum&&t.imp_batch!=='تاريخي'&&t.sheet_due!=null&&t.sheet_due!==''&&isFinite(Number(t.sheet_due)));if(sdMode)now=0;
  TX().forEach(function(x){if(x.id===t.id||x.project_id!==pid||x.party_id!==con)return;if(x.corr)return;if(x.type==='payment'&&/^سداد مستحقات \(من فرق/.test(x.desc||'')&&t.cum&&t.sheet_P!=null&&t.sheet_P!==''&&t.imp_batch!=='تاريخي')return;var amt=0;if(x.type==='sub')amt=num(x.paid);else if(x.type==='payment'&&x.kind==='contractor')amt=num(x.amount);else return;if(!amt)return;
-  var xw=x.type==='sub'?x.date:wkOf(x);if(xw<w)before+=amt;else if(xw<=cp){now+=amt;if(x.type==='payment')pays.push(x)}});
+  var xw=x.type==='sub'?x.date:wkOf(x);if(xw<w)before+=amt;else if(xw<=cp){now+=amt;if(x.type==='payment'){pays.push(x);if((x.from_custody||accIsCust(x.account_id))&&sdMode)cpd+=amt}}});
  /* المدفوع سابقًا للشهادة المستوردة = «ما سبق صرفه» المكتوب في الكشف نفسه (لا يُجمع مع حركات تاريخية قديمة فيتكرر) */if(t.cum&&t.sheet_P!=null&&t.sheet_P!==''&&isFinite(Number(t.sheet_P))&&t.imp_batch!=='تاريخي')before=num(t.sheet_P);var cv=num(t.cum_value),sx=false;if(t.cum&&t.imp_batch!=='تاريخي'&&t.sheet_G!=null&&t.sheet_G!==''&&isFinite(Number(t.sheet_G))&&t.sheet_P!=null&&t.sheet_P!==''&&Number(t.sheet_G)>0){if(certStyleCum(pid,con)){cv=num(t.sheet_G)}else{cv=num(t.gross);before=0}sx=true}
- var advOut=certAdvOut(pid,con,t.id);var net=r2(cv-before-num(t.adv_recov)-num(t.other_ded));var key=wkKey(w,pid,con);var st=(S.cfg.wk||{})[key];var s=st&&st.st||'review';
+ var advOut=certAdvOut(pid,con,t.id);if(sdMode&&num(t.sheet_cust)>cpd+0.5)now+=r2(num(t.sheet_cust)-cpd);var sd=(sx&&t.sheet_due!=null&&t.sheet_due!==''&&isFinite(Number(t.sheet_due)))?num(t.sheet_due):null,warn='';if(sd!=null){var gp=r2(cv-before);if(Math.abs(gp-sd)>0.5)warn='مستحق الشيت '+fmt(sd)+' يختلف عن حساب التراكمي '+fmt(gp);before=r2(cv-sd)}var net=r2(cv-before-num(t.adv_recov)-num(t.other_ded));var key=wkKey(w,pid,con);var st=(S.cfg.wk||{})[key];var s=st&&st.st||'review';
  var rem=r2(net-now);if(net<-0.5)s='recon';else if(now>0.5&&rem<=0.5)s='full';else if(now>0.5)s='partial';else if(s==='full'||s==='partial')s='review';
  var c=S.cfg.contractors.filter(function(x){return x.id===con})[0]||{};var cl=t.cert_lines||[];var L0=(t.lines||[])[0]||{};
  var bo=[];(t.lines||[]).forEach(function(l){if(l.boq_id){var b=boqItem(pid,l.boq_id);if(b&&bo.indexOf(boqLabel(b))<0)bo.push(boqLabel(b))}});
  return{t:t,key:key,week:w,pid:pid,con:con,cname:c.name||cname(con),pname:pname(pid),trade:c.trade||L0.name||'',boq:bo.join('، ')||'—',desc:cl.length?cl.map(function(l){return l.d}).filter(Boolean).join('، '):(t.desc||''),unit:cl.length?(cl[0].u||''):(L0.unit||''),qty:cl.length?sum(cl,function(l){return l.q}):num(L0.qty),rate:cl.length&&cl.length===1?num(cl[0].p):'',
-  cum:cv,prevC:prevC,before:r2(before),ent:sx?r2(cv-before):r2(cv-prevC),advOut:advOut,advRecov:num(t.adv_recov),other:num(t.other_ded),net:net,paid:r2(now),rem:rem,st:s,pays:pays,carry:w<cp,asof:cp}}
+  cum:cv,prevC:prevC,before:r2(before),ent:sx?r2(cv-before):r2(cv-prevC),advOut:advOut,advRecov:num(t.adv_recov),other:num(t.other_ded),net:net,paid:r2(now),rem:rem,st:s,pays:pays,carry:w<cp,asof:cp,warn:warn}}
 function wkAlerts(week){var o=[],g={};S.txs.forEach(function(t){if(t.type!=='sub'||!t.cum||t.status==='cancelled'||!t.date)return;var k=t.project_id+'|'+t.party_id+'|'+t.date;(g[k]=g[k]||[]).push(t)});
  Object.keys(g).forEach(function(k){if(g[k].length>1&&(!week||g[k][0].date===week)){var t=g[k][0],v=g[k].map(function(x){return fmt(x.cum_value)}).join(' / ');o.push('مستخلصان أو أكثر لنفس المقاول والمشروع والتاريخ: <b>'+h(cname(t.party_id))+'</b> — '+h(pname(t.project_id))+' ('+h(t.date)+') قيم التراكمي: '+v+' — قد يكون شيت مشروع آخر مدموجًا بالخطأ')}});
  var hp=S.projects.filter(function(p){return p.hold});if(hp.length)o.push(hp.length+' مشروع معلّق باسم مشابه ولا تدخل مستخلصاته في المستحقات — راجعها من الصفحة الرئيسية');
