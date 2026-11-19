@@ -11,6 +11,6 @@ const r=await pg.evaluate(()=>{S.user='a@x.com';S.role='admin';S.projects=[{id:'
  return{wk:wk.map(x=>[x.pid,x.cdate,x.cum]),all:all.map(x=>[x.pid,x.cdate,x.old]),imp:imp,imp2:imp2,dr:dr.map(x=>[x[2],x[3],x[7]])}});
 T('الأسبوع: مستخلص م1 المؤرخ 11-11 فقط',r.wk.length===1&&r.wk[0][0]==='p1'&&r.wk[0][1]==='2026-11-11'&&r.wk[0][2]===80000,r.wk);
 T('كل الأرصدة: يظهر م2 كقديم',r.all.length===2&&r.all.some(x=>x[0]==='p2'&&x[2]===true),r.all);
-T('استثناء الطالبات من الحد',r.imp[0]==='2026-10-25'&&r.imp[1]==='2026-10-25'&&r.imp[2]==='2026-10-25',r.imp);T('الحد قابل للضبط',r.imp2==='2025-09-01',r.imp2);
+T('استثناء الطالبات من الحد',r.imp[0]==='2025-10-01'&&r.imp[1]==='2025-10-01'&&r.imp[2]==='2025-10-01',r.imp);T('الحد قابل للضبط',r.imp2==='2025-09-01',r.imp2);
 T('الكشف: صف واحد بتاريخ 11-11',r.dr.length===1&&r.dr[0][1]==='2026-11-11'&&r.dr[0][2]===80000,r.dr);T('لا أخطاء',errs.length===0,errs);
 console.log('نجح',ok,'فشل',bad);await b.close()})();

@@ -66,11 +66,11 @@ function impTokEq(a,b){if(a===b)return true;if(a.length<4||b.length<4||Math.abs(
 function impSameName(a,b){var A=impTokN(a),B=impTokN(b);if(!A.length||!B.length)return false;var s=A.length<=B.length?A:B,l=s===A?B:A;if(s.length<2&&!(s.length===1&&s[0].length>=5))return false;return s.every(function(x){return l.some(function(y){return impTokEq(x,y)})})}
 function impMatchCon(name){var n=nrm(name);var best='';S.cfg.contractors.forEach(function(c){var cn=nrm(c.name);if(cn===n||(n.length>4&&(cn.indexOf(n)>=0||n.indexOf(cn)>=0)))best=c.id});if(best)return best;var m=S.cfg.contractors.filter(function(c){return impSameName(name,c.name)});return m.length===1?m[0].id:''}
 /* بناء الحركات */
-var IMP_MIN='2026-10-25';/* افتراضي: بداية التحميل 25-10-2026 (آخر أربعة أسابيع) (قابل للتعديل من S.cfg.impMin) */
+var IMP_MIN='2025-10-01';var IMP_FROM='';/* افتراضي: بداية التحميل 01-10-2025؛ وتاريخ «من تاريخ» الذي يختاره المستخدم يغلب دائمًا (قابل للتعديل من S.cfg.impMin) */
 function impMin(){return(S.cfg&&S.cfg.impMin)||IMP_MIN}
 /* مشاريع مستثناة من حد البداية (تُحمَّل كاملة من أول تاريخ): افتراضيًا «مبنى 1 و2 الطالبات» (بدأ منتصف 2025 ولا يزال نشطًا) */
-function impMinFor(site){var keep=(S.cfg&&S.cfg.impKeep)||[],n=nrm(site||'').replace(/\s+/g,'');for(var i=0;i<keep.length;i++){var k=nrm(keep[i]).replace(/\s+/g,'');if(k&&n.indexOf(k)>=0)return''}return impMin()}
-function impBuild(st){var from=st.from||'',to=st.to||'9999';var fut=impAdd(today(),7);var lines=st.lines.filter(function(x){return(!from||x.date>=from)&&x.date<=to&&x.date<=fut});var G={};
+function impMinFor(site){if(IMP_FROM)return IMP_FROM;var keep=(S.cfg&&S.cfg.impKeep)||[],n=nrm(site||'').replace(/\s+/g,'');for(var i=0;i<keep.length;i++){var k=nrm(keep[i]).replace(/\s+/g,'');if(k&&n.indexOf(k)>=0)return''}return impMin()}
+function impBuild(st){var from=st.from||'',to=st.to||'9999';IMP_FROM=from;var fut=impAdd(today(),7);var lines=st.lines.filter(function(x){return(!from||x.date>=from)&&x.date<=to&&x.date<=fut});var G={};
  var map0=st.map||{},LZ={},SH={},groups=[],sheets=[];st.lines.forEach(function(x){if((x.zd||'')>(LZ[x.con]||''))LZ[x.con]=x.zd||''});
  st.lines.forEach(function(x){if(!map0[x.site]||(x.zd||'')!==(LZ[x.con]||''))return;var k=[x.con,x.site,x.sheet].join('|');(SH[k]=SH[k]||[]).push(x)});
  Object.keys(SH).forEach(function(k){var rows=SH[k],x0=rows[0],byD={},cur={},prev=0,carry=0,wk=[];rows.forEach(function(r){(byD[r.ed]=byD[r.ed]||[]).push(r)});
