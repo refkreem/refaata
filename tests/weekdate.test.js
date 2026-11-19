@@ -1,0 +1,16 @@
+const { chromium } = require('playwright');
+let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.stringify(x))}};
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForFunction(()=>window.S&&S.db);
+const r=await pg.evaluate(()=>{S.user='a@x.com';S.role='admin';S.projects=[{id:'p1',name:'م1',value:1e6,boq:[]},{id:'p2',name:'م2',value:1e6,boq:[]}];S.cfg.contractors=[{id:'c1',name:'أ',trade:'حدادة'}];
+ var mk=function(id,d,p,cum){return{id:id,type:'sub',cum:true,status:'approved',date:d,project_id:p,party_id:'c1',cum_value:cum,gross:cum,amount:cum,paid:0,net:cum}};
+ S.txs=[mk('a1','2026-11-04','p1',50000),mk('a2','2026-11-11','p1',80000),mk('b1','2026-10-28','p2',30000)];
+ var wk=wkRows({week:'2026-11-11',scope:'week'}),all=wkRows({week:'2026-11-11',scope:'all'});
+ var imp=[impMinFor('مبني 1و2 الطالبات 2025'),impMinFor('شبابيك مدينة الطالبات'),impMinFor('مشروع آخر')];S.cfg.impMin='2025-09-01';var imp2=impMinFor('مشروع آخر');
+ var dr=duesRows({week:'2026-11-11'}).filter(x=>x[0]==='مقاول باطن');
+ return{wk:wk.map(x=>[x.pid,x.cdate,x.cum]),all:all.map(x=>[x.pid,x.cdate,x.old]),imp:imp,imp2:imp2,dr:dr.map(x=>[x[2],x[3],x[7]])}});
+T('الأسبوع: مستخلص م1 المؤرخ 11-11 فقط',r.wk.length===1&&r.wk[0][0]==='p1'&&r.wk[0][1]==='2026-11-11'&&r.wk[0][2]===80000,r.wk);
+T('كل الأرصدة: يظهر م2 كقديم',r.all.length===2&&r.all.some(x=>x[0]==='p2'&&x[2]===true),r.all);
+T('استثناء الطالبات من الحد',r.imp[0]===''&&r.imp[1]==='2025-08-01'&&r.imp[2]==='2025-08-01',r.imp);T('الحد قابل للضبط',r.imp2==='2025-09-01',r.imp2);
+T('الكشف: صف واحد بتاريخ 11-11',r.dr.length===1&&r.dr[0][1]==='2026-11-11'&&r.dr[0][2]===80000,r.dr);T('لا أخطاء',errs.length===0,errs);
+console.log('نجح',ok,'فشل',bad);await b.close()})();
