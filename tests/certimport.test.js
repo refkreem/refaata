@@ -15,7 +15,7 @@ function book(rows, tot) {
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] }); const pg = await (await b.newContext()).newPage();
   pg.on('pageerror', e => { f++; console.log('PAGEERR', e.message) }); pg.on('dialog', d => d.accept()); await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/, r => r.abort());
-  await pg.goto('file://' + path.resolve(__dirname, '../index.html')); await pg.waitForFunction(() => window.S && S.db); await pg.addScriptTag({ path: XL });
+  await pg.goto('file://' + path.resolve(__dirname, '../index.html')); await pg.waitForFunction(() => window.S && S.db); await pg.evaluate(() => { S.cfg.impMin = '2020-01-01'; }); await pg.addScriptTag({ path: XL });
   await pg.evaluate(() => { S.accounts.push({ id: 'bank', name: 'البنك', kind: 'bank', opening: 1000000 }); S.projects.push({ id: 'p5', name: 'تجديد وتطوير وحدة الاقامة بالدور الخامس - ابوالريش الياباني', value: 1, boq: [] }); render(); });
   const run = async (name, rows, tot) => {
     await pg.evaluate(() => { S.imp = null; S.impDone = ''; }); await pg.click('#side a[data-p=import]');

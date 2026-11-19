@@ -1471,10 +1471,10 @@ function impTokEq(a,b){if(a===b)return true;if(a.length<4||b.length<4||Math.abs(
 function impSameName(a,b){var A=impTokN(a),B=impTokN(b);if(!A.length||!B.length)return false;var s=A.length<=B.length?A:B,l=s===A?B:A;if(s.length<2&&!(s.length===1&&s[0].length>=5))return false;return s.every(function(x){return l.some(function(y){return impTokEq(x,y)})})}
 function impMatchCon(name){var n=nrm(name);var best='';S.cfg.contractors.forEach(function(c){var cn=nrm(c.name);if(cn===n||(n.length>4&&(cn.indexOf(n)>=0||n.indexOf(cn)>=0)))best=c.id});if(best)return best;var m=S.cfg.contractors.filter(function(c){return impSameName(name,c.name)});return m.length===1?m[0].id:''}
 /* بناء الحركات */
-var IMP_MIN='2025-10-15';/* افتراضي: بداية التحميل 15-10-2025 (قابل للتعديل من S.cfg.impMin) */
+var IMP_MIN='2026-10-25';/* افتراضي: بداية التحميل 25-10-2026 (آخر أربعة أسابيع) (قابل للتعديل من S.cfg.impMin) */
 function impMin(){return(S.cfg&&S.cfg.impMin)||IMP_MIN}
 /* مشاريع مستثناة من حد البداية (تُحمَّل كاملة من أول تاريخ): افتراضيًا «مبنى 1 و2 الطالبات» (بدأ منتصف 2025 ولا يزال نشطًا) */
-function impMinFor(site){var keep=(S.cfg&&S.cfg.impKeep)||['مبني 1و2 الطالبات'],n=nrm(site||'').replace(/\s+/g,'');for(var i=0;i<keep.length;i++){var k=nrm(keep[i]).replace(/\s+/g,'');if(k&&n.indexOf(k)>=0)return''}return impMin()}
+function impMinFor(site){var keep=(S.cfg&&S.cfg.impKeep)||[],n=nrm(site||'').replace(/\s+/g,'');for(var i=0;i<keep.length;i++){var k=nrm(keep[i]).replace(/\s+/g,'');if(k&&n.indexOf(k)>=0)return''}return impMin()}
 function impBuild(st){var from=st.from||'',to=st.to||'9999';var fut=impAdd(today(),7);var lines=st.lines.filter(function(x){return(!from||x.date>=from)&&x.date<=to&&x.date<=fut});var G={};
  var map0=st.map||{},LZ={},SH={},groups=[],sheets=[];st.lines.forEach(function(x){if((x.zd||'')>(LZ[x.con]||''))LZ[x.con]=x.zd||''});
  st.lines.forEach(function(x){if(!map0[x.site]||(x.zd||'')!==(LZ[x.con]||''))return;var k=[x.con,x.site,x.sheet].join('|');(SH[k]=SH[k]||[]).push(x)});
@@ -1867,7 +1867,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261119-1556';
+var BUILD='20261119-1613';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(window.__PREVIEW||!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
