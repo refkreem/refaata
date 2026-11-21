@@ -207,7 +207,7 @@ var MENU=[['home','🏠','الرئيسية','all','الرئيسية'],
 ['quick','⚡','تسجيل سريع من الموقع','op','الموقع'],['dayexp','🧾','مصروفات الموقع اليومية','op','الموقع'],['sitereps','📝','التقرير اليومي للموقع','all','الموقع'],['paycenter','✅','مركز الصرف الأسبوعي','fin','الأسبوعي'],['custrec','🔁','تسوية العهد الأسبوعية','fin','الأسبوعي'],['custweek','🧮','مراجعة العهدة قبل الصرف','fin','الأسبوعي'],['sitemon','🛰️','متابعة المواقع','rep','الموقع'],['import','📥','استيراد كشوف الخميس','fin','الأسبوعي'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin','الأسبوعي'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin','الأسبوعي'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin','الأسبوعي'],
 ['mpay','👔','مرتبات الموظفين الشهرية','fin','الرواتب'],
 ['accounts','🏦','الخزائن والبنوك','fin','المالية والمحاسبة'],['acct','📒','المحاسبة','fin','المالية والمحاسبة'],['costs','📈','التكاليف','fin','المالية والمحاسبة'],['budget','🚦','ميزانية البنود والتنبيهات','op','المالية والمحاسبة'],['costctl','📐','ضبط التكلفة وتحليل المقايسة','fin','المالية والمحاسبة'],
-['dashboard','📊','لوحة التحكم','fin','التقارير'],['prcenter','🖨️','مركز التقارير والطباعة','fin','التقارير'],['reports','📑','التقارير','rep','التقارير'],
+['mgr','🎯','لوحة المدير — أين نحن؟','fin','التقارير'],['dashboard','📊','لوحة التحكم','fin','التقارير'],['prcenter','🖨️','مركز التقارير والطباعة','fin','التقارير'],['reports','📑','التقارير','rep','التقارير'],
 ['review','✅','المراجعة والاعتماد','op','الإدارة'],['settings','⚙️','الإعدادات','adm','الإدارة']];
 function menuAllowed(m){var k=m[3],r=S.role;if(r==='admin')return true;if(k==='adm')return false;if(r==='accountant')return true;if(k==='all')return true;if(k==='op')return r==='engineer';if(k==='tech')return true;if(k==='rep')return r==='supervisor';return false}
 
@@ -1920,6 +1920,32 @@ VIEWS.quick=function(){var v=S.qx.v,k=S.qx.kind,accs=qxAccs(),t=today(),rec=qxRe
  return pg('تسجيل سريع من الموقع','',tabs+chips+'<div class="card">'+f+'<div class="hint">يُرحَّل فورًا على المشروع والبند ويخصم من رصيد الخزنة/العهدة المختارة؛ ويظهر في مراجعة العهدة ومركز الصرف.</div><div class="flt"><button class="btn p qx-send" data-a="qxSend">تسجيل</button></div></div><div class="card"><h3>آخر ما سجّلته</h3>'+tbl([{h:'التاريخ'},{h:'النوع'},{h:'المشروع'},{h:'البيان'},{h:'المبلغ',n:1},{h:''}],mine,{empty:'لا توجد قيود بعد'})+'</div>')};
 document.addEventListener('input',function(ev){var i=ev.target.id;if(i==='qx_qty'||i==='qx_price')ACT.qxCalc()});
 document.addEventListener('change',function(ev){var i=ev.target.id;if(i==='qx_proj'){S.qx.v=Object.assign(S.qx.v,qxRead());S.qx.v.boq='';render()}else if(i==='qx_ph')ACT.qxPhoto()});
+/* ===== لوحة المدير: أين نحن في كل مشروع (تكلفة مقابل ميزانية مقابل إنجاز) + السيولة ===== */
+function mgProj(p){var T=projTotals(p.id),bv=projBoqValue(p),bud=sum(p.boq||[],boqBudget),ev=sum(p.boq||[],function(b){var u=itemUse(p.id,b.id);return Math.min(num(b.qty),(u.progQty||u.subQty))*num(b.price)}),
+ B=num(p.expected_cost)||bud,prog=bv?ev/bv*100:null,cp=B?T.cost/B*100:null,V=pval(p),
+ cpi=(ev&&T.cost)?ev/T.cost:null,eac=(prog&&prog>0)?T.cost/(prog/100):null,st='g',msg='سليم';
+ if(!bv||!B){st='n';msg='ناقص بيانات (مقايسة/ميزانية)'}
+ else if(cp>100){st='b';msg='تجاوز الميزانية'}
+ else if(prog!=null&&cp-prog>10){st='b';msg='الصرف يسبق الإنجاز'}
+ else if(prog!=null&&cp-prog>3){st='w';msg='انتبه: الصرف أعلى من الإنجاز'}
+ return{p:p,V:V,B:B,cost:T.cost,rev:T.revenue,prog:prog,cp:cp,cpi:cpi,eac:eac,st:st,msg:msg,ev:ev,bv:bv}}
+function mgLiq(){var cust=0,cash=0;S.accounts.forEach(function(a){var b=accStats(a).bal;if(a.cust||/عصام/.test(a.name||''))cust+=b;else cash+=b});
+ var oc=sum(S.cfg.contractors,function(c){return Math.max(0,contractorLedger(c.id).owed)}),os=sum(S.cfg.suppliers,function(n){return Math.max(0,supplierLedger(n).bal)});
+ var pend=sum(S.txs.filter(function(t){return t.status==='pending'&&t.type==='expense'}),function(t){return num(t.amount)});
+ return{cust:cust,cash:cash,oc:oc,os:os,pend:pend,net:cash+cust-oc-os-pend}}
+function mgPct(v){return v==null?'—':Math.round(v)+'%'}
+VIEWS.mgr=function(){var L=mgLiq(),R=S.projects.filter(function(p){return!p.hold}).map(mgProj),sev={b:0,w:1,n:2,g:3};R.sort(function(a,b){return sev[a.st]-sev[b.st]});
+ var bad=R.filter(function(r){return r.st==='b'}).length,warn=R.filter(function(r){return r.st==='w'}).length;
+ var k='<div class="grid g4" style="margin-bottom:12px">'+kpi('السيولة (خزائن وبنوك)',fmt(L.cash),'',L.cash<0?'bad':'good')+kpi('عهدة الموقع',fmt(L.cust),L.cust<0?'سالبة — موّلها':'',L.cust<0?'bad':'good')+kpi('مستحقات علينا (مقاولون+موردون)',fmt(L.oc+L.os),'مقاولون '+fmt(L.oc)+' · موردون '+fmt(L.os),'warn')+kpi('الصافي بعد الالتزامات',fmt(L.net),L.pend?'يشمل معلّق '+fmt(L.pend):'',L.net<0?'bad':'good')+'</div>';
+ var banner=(bad||warn)?'<div class="hint '+(bad?'b':'w')+'" style="margin-bottom:12px"><b>'+(bad?bad+' مشروع يحتاج تدخل':'')+(bad&&warn?' · ':'')+(warn?warn+' مشروع تنبيه':'')+'</b></div>':'<div class="hint g" style="margin-bottom:12px">كل المشاريع ضمن الميزانية والإنجاز.</div>';
+ var cards=R.map(function(r){var c={b:'var(--bad,#c0392b)',w:'var(--warn,#d68910)',g:'var(--good,#1e8449)',n:'#888'}[r.st];
+  function bar(v,col){var w=Math.max(0,Math.min(100,v||0));return'<div style="background:#0001;border-radius:6px;height:10px;overflow:hidden"><div style="width:'+w+'%;height:10px;background:'+col+'"></div></div>'}
+  return'<div class="card" style="border-right:6px solid '+c+'"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><h3 style="margin:0">'+h(r.p.name)+'</h3><span class="tag '+(r.st==='g'?'g':r.st==='n'?'':'w')+'">'+r.msg+'</span></div>'
+  +'<div style="margin-top:10px"><small>التكلفة مقابل الميزانية: <b>'+fmt(r.cost)+'</b> من '+fmt(r.B)+' ('+mgPct(r.cp)+')</small>'+bar(r.cp,r.cp>100?'#c0392b':'#2e86c1')+'</div>'
+  +'<div style="margin-top:8px"><small>الإنجاز (قيمة منفّذة '+fmt(r.ev)+' من '+fmt(r.bv)+'): <b>'+mgPct(r.prog)+'</b></small>'+bar(r.prog,'#1e8449')+'</div>'
+  +'<div class="grid g4" style="margin-top:10px;font-size:13px"><div>قيمة العقد<br><b>'+fmt(r.V)+'</b></div><div>المحصّل<br><b>'+fmt(r.rev)+'</b></div><div>كفاءة التكلفة<br><b>'+(r.cpi==null?'—':r.cpi.toFixed(2))+'</b></div><div>التكلفة المتوقعة عند الإتمام<br><b>'+(r.eac==null?'—':fmt(r.eac))+'</b></div></div>'
+  +'<div class="flt" style="margin-top:8px"><button class="btn sm" data-a="openProj" data-p="'+r.p.id+'">فتح المشروع</button></div></div>'}).join('');
+ return pg('لوحة المدير — أين نحن؟','',k+banner+(cards||'<div class="hint">لا توجد مشاريع.</div>')+'<div class="hint">الإنجاز = كمية منفّذة (تقدم أو مستخلصات) × سعر البند ÷ قيمة المقايسة. كفاءة التكلفة = قيمة المنفّذ ÷ التكلفة (أكبر من 1 جيد). المتوقع عند الإتمام = التكلفة ÷ نسبة الإنجاز.</div>')};
 /* ---------- events & boot ---------- */
 ACT.go=function(v){go(v)};ACT.menu=function(){$('side').classList.toggle('open')};ACT.mclose=closeModal;
 ACT.msave=async function(){if(!S.modalSave)return;var b=$('msaveBtn');b.disabled=true;try{var ok=await S.modalSave();if(ok!==false)closeModal()}catch(e){console.error(e);toast('حدث خطأ: '+e.message)}b.disabled=false};
@@ -1938,7 +1964,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261121-2058';
+var BUILD='20261121-2059';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(window.__PREVIEW||!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}
