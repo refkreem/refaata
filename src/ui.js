@@ -60,7 +60,7 @@ ACT.transfer=function(){if(S.accounts.length<2){toast('أضف حسابين عل�
  modal('تحويل داخلي بين الحسابات','<div class="fg">'+fld('التاريخ',inp('x_date',today(),'date'))+fld('من حساب','<select id="x_from">'+accOpts('')+'</select>')+fld('إلى حساب','<select id="x_to">'+accOpts(S.accounts[1].id)+'</select>')+fld('المبلغ',inp('x_amt','','number','step="any"'))+fld('ملاحظات',inp('x_note'),'full')+'</div>',{save:async function(){var f=v$('x_from'),t=v$('x_to'),a=num(v$('x_amt'));if(!f||!t||f===t){toast('اختر حسابين مختلفين');return false}if(a<=0){toast('اكتب المبلغ');return false}var o={id:uid(),type:'transfer',date:v$('x_date'),from:f,to:t,amount:a,desc:v$('x_note'),status:'approved',by:S.user,at:new Date().toISOString()};if(!await dbSet('txs',o))return false;S.txs.push(o);render()}})};
 
 /* ---------- projects ---------- */
-VIEWS.projects=function(){if(S.vp)return projectDetail(proj(S.vp));
+VIEWS.projects=function(){if(S.vp)return needBanner(proj(S.vp))+projectDetail(proj(S.vp));
  var rows=S.projects.map(function(p){var T=projTotals(p.id),bv=projBoqValue(p),ex=num(p.expected_cost);var fd=finalDate(p),dd=daysTo(initialDate(p));
  return{a:'openProj',p:p.id,c:[h(p.name)+(p.client?'<div class="fnt" style="font-size:12px">'+h(p.client)+'</div>':''),p.months||'—',p.start||'—',initialDate(p)||'—',fd||'—',fmt(pval(p)),fmt(ex),fmt(T.cost),ex?barHtml(pct(T.cost,ex))+'<span class="fnt" style="font-size:12px">'+pct(T.cost,ex)+'%</span>':'—',dd==null?'—':dd<0?'<span class="tag b">متأخر '+(-dd)+' يوم</span>':'<span class="tag '+(dd<60?'w':'g')+'">'+dd+' يوم</span>',
  '<button class="btn sm" data-a="projEdit" data-p="'+p.id+'">تعديل</button> '+(isFin()?'<button class="btn sm d" data-a="projDel" data-p="'+p.id+'">حذف</button>':'')]}});

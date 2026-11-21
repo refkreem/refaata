@@ -10,7 +10,6 @@ function pcChecks(w){var from=impAdd(w,-6),a=cwAcc(),ck=[];
  ck.push({ok:pend===0,t:'لا توجد مصروفات معلّقة لهذا الأسبوع',d:pend?pend+' بند يحتاج استكمال':'',go:'review'});
  ck.push({ok:held===0,t:'لا توجد مشاريع معلّقة (اسم مشابه)',d:held?held+' مشروع':'',go:'home'});
  ck.push({ok:unl===0,t:'كل سلف العمال مربوطة بعامل',d:unl?unl+' سلفة غير مربوطة':'',go:'custweek'});
- ck.push({ok:wr===0&&neg===0,t:'حسابات المقاولين تطابق الشيتات',d:wr||neg?(wr+neg)+' تنبيه':'',go:'wkpay',lvl:'w'});
  ck.push({ok:rows.length>0,t:'مستخلصات الأسبوع محمّلة',d:rows.length+' مستخلص',go:'import'});
  return ck}
 VIEWS.paycenter=function(){var W=pcWeeks();if(!S.wk.week||W.indexOf(S.wk.week)<0)S.wk.week=W[0]||'';var w=S.wk.week,from=impAdd(w,-6);

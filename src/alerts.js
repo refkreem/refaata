@@ -10,7 +10,7 @@ function acAll(){var o=[];function A(sev,cat,msg,go,p){o.push({sev:sev,cat:cat,m
   (p.boq||[]).forEach(function(b){var s=itemState(p.id,b.id);if(s&&s.bud>0&&s.u.total>s.bud*1.0001)A(2,'المقايسة',h(p.name)+' › '+h(boqLabel(b))+': تجاوز البند '+fmt(s.u.total-s.bud),'costctl')})});
  var W=(typeof pcWeeks==='function'?pcWeeks():[])[0];
  if(W){pcChecks(W).forEach(function(c){if(!c.ok&&c.go!=='home'&&c.go!=='review'&&!/رصيد العهدة/.test(c.t))A(c.lvl==='w'?2:3,'الصرف الأسبوعي',c.t+(c.d?' — '+c.d:'')+' (أسبوع '+W+')',c.go)});
-  wkAlerts(W).forEach(function(m){if(!/مشروع معلّق/.test(m))A(2,'الصرف الأسبوعي',m,'wkpay')})}
+}
  var od=0;S.txs.forEach(function(t){if(t.type==='sub'&&t.status==='pending')od++});
  o.sort(function(a,b){return b.sev-a.sev});return o}
 function acCount(){try{return acAll().filter(function(x){return x.sev>=2}).length}catch(e){return 0}}
