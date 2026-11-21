@@ -207,7 +207,7 @@ var MENU=[['home','🏠','الرئيسية','all','الرئيسية'],
 ['quick','⚡','تسجيل سريع من الموقع','op','الموقع'],['dayexp','🧾','مصروفات الموقع اليومية','op','الموقع'],['sitereps','📝','التقرير اليومي للموقع','all','الموقع'],['paycenter','✅','مركز الصرف الأسبوعي','fin','الأسبوعي'],['custrec','🔁','تسوية العهد الأسبوعية','fin','الأسبوعي'],['custweek','🧮','مراجعة العهدة قبل الصرف','fin','الأسبوعي'],['sitemon','🛰️','متابعة المواقع','rep','الموقع'],['import','📥','استيراد كشوف الخميس','fin','الأسبوعي'],['wkpay','💸','مدفوعات المقاولين الأسبوعية','fin','الأسبوعي'],['wkwages','👷','كشف أجور العمال الأسبوعي','fin','الأسبوعي'],['cashreq','🧮','المتطلبات النقدية الأسبوعية','fin','الأسبوعي'],
 ['mpay','👔','مرتبات الموظفين الشهرية','fin','الرواتب'],
 ['accounts','🏦','الخزائن والبنوك','fin','المالية والمحاسبة'],['acct','📒','المحاسبة','fin','المالية والمحاسبة'],['costs','📈','التكاليف','fin','المالية والمحاسبة'],['budget','🚦','ميزانية البنود والتنبيهات','op','المالية والمحاسبة'],['costctl','📐','ضبط التكلفة وتحليل المقايسة','fin','المالية والمحاسبة'],
-['mgr','🎯','لوحة المدير — أين نحن؟','fin','التقارير'],['dashboard','📊','لوحة التحكم','fin','التقارير'],['prcenter','🖨️','مركز التقارير والطباعة','fin','التقارير'],['reports','📑','التقارير','rep','التقارير'],
+['alerts','🔔','مركز التنبيهات','fin','التقارير'],['mgr','🎯','لوحة المدير — أين نحن؟','fin','التقارير'],['dashboard','📊','لوحة التحكم','fin','التقارير'],['prcenter','🖨️','مركز التقارير والطباعة','fin','التقارير'],['reports','📑','التقارير','rep','التقارير'],
 ['review','✅','المراجعة والاعتماد','op','الإدارة'],['settings','⚙️','الإعدادات','adm','الإدارة']];
 function menuAllowed(m){var k=m[3],r=S.role;if(r==='admin')return true;if(k==='adm')return false;if(r==='accountant')return true;if(k==='all')return true;if(k==='op')return r==='engineer';if(k==='tech')return true;if(k==='rep')return r==='supervisor';return false}
 
@@ -292,7 +292,7 @@ function ask(title,fields,cb,label){modal(title,'<div class="fg">'+fields+'</div
 /* ---------- router ---------- */
 function go(view,vp,tab){S.view=view;S.vp=vp||null;if(tab)S.tab=tab;$('side').classList.remove('open');render();window.scrollTo(0,0)}
 function pendingCount(){return S.txs.filter(function(t){return t.status==='pending'}).length}
-function renderNav(){var n=pendingCount(),lastG='';$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){var g=m[4]&&m[4]!==lastG&&m[4]!=='الرئيسية'?'<div class="navg">'+m[4]+'</div>':'';lastG=m[4]||lastG;return g+'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
+function renderNav(){var n=pendingCount(),lastG='';$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){var g=m[4]&&m[4]!==lastG&&m[4]!=='الرئيسية'?'<div class="navg">'+m[4]+'</div>':'';lastG=m[4]||lastG;return g+'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+(m[0]==='alerts'&&acCount()?'<span class="bdg">'+acCount()+'</span>':'')+'</a>'}).join('');
  $('roleTag').textContent=ROLE_NAMES[S.role]||''}
 function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=(S.loadErr?'<div class="hint b" style="margin-bottom:12px"><b>تعذر الاتصال بقاعدة البيانات</b> ('+h(S.loadErr)+'). غالبًا لم تُنشأ قاعدة Firestore بعد في مشروع Firebase، أو قواعد الأمان تمنع القراءة. أنشئ Firestore Database ثم اضغط زر التحديث ⟳.</div>':'')+(f?f():'');if(AFTER[S.view])AFTER[S.view]()}
 var VIEWS={},AFTER={};
@@ -1946,6 +1946,29 @@ VIEWS.mgr=function(){var L=mgLiq(),R=S.projects.filter(function(p){return!p.hold
   +'<div class="grid g4" style="margin-top:10px;font-size:13px"><div>قيمة العقد<br><b>'+fmt(r.V)+'</b></div><div>المحصّل<br><b>'+fmt(r.rev)+'</b></div><div>كفاءة التكلفة<br><b>'+(r.cpi==null?'—':r.cpi.toFixed(2))+'</b></div><div>التكلفة المتوقعة عند الإتمام<br><b>'+(r.eac==null?'—':fmt(r.eac))+'</b></div></div>'
   +'<div class="flt" style="margin-top:8px"><button class="btn sm" data-a="openProj" data-p="'+r.p.id+'">فتح المشروع</button></div></div>'}).join('');
  return pg('لوحة المدير — أين نحن؟','',k+banner+(cards||'<div class="hint">لا توجد مشاريع.</div>')+'<div class="hint">الإنجاز = كمية منفّذة (تقدم أو مستخلصات) × سعر البند ÷ قيمة المقايسة. كفاءة التكلفة = قيمة المنفّذ ÷ التكلفة (أكبر من 1 جيد). المتوقع عند الإتمام = التكلفة ÷ نسبة الإنجاز.</div>')};
+/* ===== مركز التنبيهات الموحّد: يجمع كل التنبيهات في قائمة واحدة مرتبة بالأهمية ===== */
+/* sev: 3 حرج · 2 تنبيه · 1 للعلم */
+function acAll(){var o=[];function A(sev,cat,msg,go,p){o.push({sev:sev,cat:cat,msg:msg,go:go||'',p:p||''})}
+ S.accounts.forEach(function(a){var b=accStats(a).bal;if(b<-0.5)A(a.cust||/عصام/.test(a.name||'')?3:3,'السيولة','رصيد «'+h(a.name)+'» سالب: '+fmt(b)+(a.cust?' — موّل العهدة بتحويل وارد':''),a.cust?'custweek':'accounts')});
+ var pend=S.txs.filter(function(t){return t.status==='pending'});if(pend.length)A(2,'الاعتماد',pend.length+' حركة بانتظار الاعتماد/الاستكمال ('+fmt(sum(pend,function(t){return num(t.amount)||num(t.net)||0}))+')','review');
+ var un=S.txs.filter(function(t){return t.type==='expense'&&t.unclassified&&t.status!=='rejected'&&t.status!=='pending'}).length;if(un)A(1,'التكلفة',un+' مصروف موقع غير مربوط ببند مقايسة','custrec');
+ S.projects.forEach(function(p){if(p.hold)A(2,'البيانات','مشروع معلّق باسم مشابه: '+h(p.name)+' — لا تدخل مستخلصاته في المستحقات حتى تقرّر','home')});
+ hmIncomplete().filter(function(x){return x.a!=='projHoldAsk'}).slice(0,15).forEach(function(x){A(1,'البيانات','استكمل بيانات '+x.t+' «'+h(x.n)+'»: '+x.w,'home')});
+ S.projects.filter(function(p){return!p.hold}).forEach(function(p){var r=mgProj(p);if(r.st==='b')A(3,'المشاريع','«'+h(p.name)+'»: '+r.msg+' (تكلفة '+mgPct(r.cp)+' / إنجاز '+mgPct(r.prog)+')','mgr');else if(r.st==='w')A(2,'المشاريع','«'+h(p.name)+'»: '+r.msg,'mgr');
+  (p.boq||[]).forEach(function(b){var s=itemState(p.id,b.id);if(s&&s.bud>0&&s.u.total>s.bud*1.0001)A(2,'المقايسة',h(p.name)+' › '+h(boqLabel(b))+': تجاوز البند '+fmt(s.u.total-s.bud),'costctl')})});
+ var W=(typeof pcWeeks==='function'?pcWeeks():[])[0];
+ if(W){pcChecks(W).forEach(function(c){if(!c.ok&&c.go!=='home'&&c.go!=='review'&&!/رصيد العهدة/.test(c.t))A(c.lvl==='w'?2:3,'الصرف الأسبوعي',c.t+(c.d?' — '+c.d:'')+' (أسبوع '+W+')',c.go)});
+  wkAlerts(W).forEach(function(m){if(!/مشروع معلّق/.test(m))A(2,'الصرف الأسبوعي',m,'wkpay')})}
+ var od=0;S.txs.forEach(function(t){if(t.type==='sub'&&t.status==='pending')od++});
+ o.sort(function(a,b){return b.sev-a.sev});return o}
+function acCount(){try{return acAll().filter(function(x){return x.sev>=2}).length}catch(e){return 0}}
+VIEWS.alerts=function(){var L=acAll(),f=S.acf||'',cats={};L.forEach(function(x){cats[x.cat]=(cats[x.cat]||0)+1});
+ var shown=f?L.filter(function(x){return x.cat===f}):L,tag={3:'<span class="tag b">حرج</span>',2:'<span class="tag w">تنبيه</span>',1:'<span class="tag">للعلم</span>'};
+ var k='<div class="grid g4" style="margin-bottom:12px">'+kpi('حرج',L.filter(function(x){return x.sev===3}).length,'يحتاج تدخل الآن',L.some(function(x){return x.sev===3})?'bad':'good')+kpi('تنبيه',L.filter(function(x){return x.sev===2}).length,'',L.some(function(x){return x.sev===2})?'warn':'good')+kpi('للعلم',L.filter(function(x){return x.sev===1}).length,'')+kpi('الإجمالي',L.length,'')+'</div>';
+ var flt='<div class="flt" style="margin-bottom:10px"><button class="btn sm'+(f?'':' p')+'" data-a="acFilter" data-p="">الكل</button>'+Object.keys(cats).map(function(c){return'<button class="btn sm'+(f===c?' p':'')+'" data-a="acFilter" data-p="'+h(c)+'">'+h(c)+' ('+cats[c]+')</button>'}).join('')+'</div>';
+ var rows=shown.map(function(x){return[tag[x.sev],h(x.cat),x.msg,x.go?'<button class="btn sm" data-a="go" data-p="'+x.go+'">افتح</button>':'']});
+ return pg('مركز التنبيهات','',k+flt+(L.length?tbl([{h:''},{h:'القسم'},{h:'التنبيه'},{h:''}],rows,{}):'<div class="hint g">✔ لا توجد تنبيهات — كل شيء سليم.</div>'))};
+ACT.acFilter=function(c){S.acf=c||'';render()};
 /* ---------- events & boot ---------- */
 ACT.go=function(v){go(v)};ACT.menu=function(){$('side').classList.toggle('open')};ACT.mclose=closeModal;
 ACT.msave=async function(){if(!S.modalSave)return;var b=$('msaveBtn');b.disabled=true;try{var ok=await S.modalSave();if(ok!==false)closeModal()}catch(e){console.error(e);toast('حدث خطأ: '+e.message)}b.disabled=false};
