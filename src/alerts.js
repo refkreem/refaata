@@ -4,7 +4,7 @@ function acAll(){var o=[];function A(sev,cat,msg,go,p){o.push({sev:sev,cat:cat,m
  S.accounts.forEach(function(a){var b=accStats(a).bal;if(b<-0.5)A(a.cust||/عصام/.test(a.name||'')?3:3,'السيولة','رصيد «'+h(a.name)+'» سالب: '+fmt(b)+(a.cust?' — موّل العهدة بتحويل وارد':''),a.cust?'custweek':'accounts')});
  var pend=S.txs.filter(function(t){return t.status==='pending'});if(pend.length)A(2,'الاعتماد',pend.length+' حركة بانتظار الاعتماد/الاستكمال ('+fmt(sum(pend,function(t){return num(t.amount)||num(t.net)||0}))+')','review');
  var un=S.txs.filter(function(t){return t.type==='expense'&&t.unclassified&&t.status!=='rejected'&&t.status!=='pending'}).length;if(un)A(1,'التكلفة',un+' مصروف موقع غير مربوط ببند مقايسة','custrec');
- S.projects.forEach(function(p){if(p.hold)A(2,'البيانات','مشروع معلّق باسم مشابه: '+h(p.name)+' — لا تدخل مستخلصاته في المستحقات حتى تقرّر','home')});
+ S.projects.forEach(function(p){if(p.hold)A(1,'البيانات','مشروع باسم مشابه لمشروع آخر: '+h(p.name)+' — أكّد أنه مشروع جديد أو ادمجه','home')});
  hmIncomplete().filter(function(x){return x.a!=='projHoldAsk'}).slice(0,15).forEach(function(x){A(1,'البيانات','استكمل بيانات '+x.t+' «'+h(x.n)+'»: '+x.w,'home')});
  S.projects.filter(function(p){return!p.hold}).forEach(function(p){var r=mgProj(p);if(r.st==='b')A(3,'المشاريع','«'+h(p.name)+'»: '+r.msg+' (تكلفة '+mgPct(r.cp)+' / إنجاز '+mgPct(r.prog)+')','mgr');else if(r.st==='w')A(2,'المشاريع','«'+h(p.name)+'»: '+r.msg,'mgr');
   (p.boq||[]).forEach(function(b){var s=itemState(p.id,b.id);if(s&&s.bud>0&&s.u.total>s.bud*1.0001)A(2,'المقايسة',h(p.name)+' › '+h(boqLabel(b))+': تجاوز البند '+fmt(s.u.total-s.bud),'costctl')})});

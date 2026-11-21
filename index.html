@@ -117,6 +117,14 @@ td{color:#000;font-weight:700}
 @media(max-width:900px){html,body{overflow-x:hidden;overflow-x:clip;max-width:100vw}.side:not(.open){visibility:hidden;box-shadow:none}.top{gap:6px;padding:6px 8px;flex-wrap:wrap}.top>*{min-width:0}.top .logo{font-size:16px;white-space:nowrap}.top .ib{padding:4px 8px}.top .ver{font-size:10px;padding:1px 6px;white-space:nowrap}.pg-h h2{font-size:21px}.pg-h .btn{white-space:nowrap}}
 @media(max-width:520px){#roleTag{display:none}}
 .qx-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.qx-tabs .btn{flex:1;min-width:110px}.qx-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.qx-big{font-size:28px!important;font-weight:700;text-align:center;padding:14px!important}.qx-send{width:100%;font-size:18px;padding:14px}
+.tw{max-height:calc(100vh - 150px)}
+.tw thead th{position:sticky;top:0;z-index:3;box-shadow:0 1px 0 var(--bd)}
+.tw td:first-child,.tw th:first-child{position:sticky;right:0;z-index:2;background:var(--surface);box-shadow:-1px 0 0 var(--bd)}
+.tw th:first-child{z-index:4;background:var(--s2)}
+.tw tfoot td{position:sticky;bottom:0;z-index:2;box-shadow:0 -1px 0 var(--bd)}
+.tw tfoot td:first-child,.tw tr.sub td:first-child,.tw tr.clk:hover td:first-child{background:var(--s2)}
+@media print{.tw{max-height:none}.tw td:first-child,.tw th:first-child{position:static}}
+@media(min-width:900px){.flt select,.flt input{max-width:190px;padding:5px 7px}.flt label{font-size:13px}.kpi{padding:7px 11px}.kpi .l{font-size:12.5px}.kpi .v{font-size:18px}.kpi .s{font-size:12px}.g4{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}.grid{gap:8px}.tw{max-height:calc(100vh - 120px)}}
 </style></head><body>
 <div class="login" id="login"><form id="loginForm"><h2 class="disp">مقاول <span style="color:var(--ac)">Pro</span></h2><div class="mut">تسجيل الدخول لنظام الشركة</div>
 <label class="f">البريد الإلكتروني<input id="lEmail" type="email" dir="ltr" required autocomplete="username"></label>
@@ -677,7 +685,7 @@ VIEWS.review=function(){var list=S.txs.filter(function(t){return t.status==='pen
  return pg('المراجعة والاعتماد',isFin()&&list.some(function(t){return t.status==='pending'})?'<button class="btn p" data-a="txOkAll">اعتماد الكل</button>':'','<div class="hint" style="margin-bottom:10px">الحركات التي يدخلها مهندس الموقع تنتظر هنا ولا تؤثر على الأرصدة والتقارير حتى يعتمدها المحاسب.</div>'+tbl([{h:'التاريخ'},{h:'أدخلها'},{h:'النوع'},{h:'البيان'},{h:'القيمة',n:1},{h:'الحساب'},{h:'الحالة'},{h:''}],rows,{empty:'لا توجد حركات بانتظار الاعتماد ✔'}))};
 ACT.txOk=async function(id){var t=S.txs.filter(function(x){return x.id===id})[0];if(cashMoves(Object.assign({},t,{status:'approved'})).length===0&&paidTx(t)>0&&t.type!=='progress'){if(!confirm('هذه الحركة بدون حساب صرف؛ لن تظهر في أي خزينة أو بنك. اعتماد على أي حال؟'))return}t.status='approved';t.approved_by=S.user;if(await dbSet('txs',t))render()};
 ACT.txNo=async function(id){var t=S.txs.filter(function(x){return x.id===id})[0];t.status='rejected';if(await dbSet('txs',t))render()};
-ACT.txOkAll=async function(){var l=S.txs.filter(function(t){return t.status==='pending'});if(!confirm('اعتماد '+l.length+' حركة؟'))return;for(var t of l){t.status='approved';t.approved_by=S.user;await dbSet('txs',t)}render()};
+ACT.txOkAll=async function(){var l=S.txs.filter(function(t){return t.status==='pending'});if(!l.length){toast('لا يوجد معلّق');return}if(S.okArm&&Date.now()-S.okArm<8000){S.okArm=0;toast('جارٍ اعتماد '+l.length+' حركة…');var at=new Date().toISOString();l.forEach(function(t){t.status='approved';t.approved_by=S.user;t.updated=at;delete t.imp_missing});var ok=await dbSetMany('txs',l);if(!ok){l.forEach(function(t){t.status='pending'});toast('⚠ تعذر الاعتماد — أعد المحاولة');render();return}toast('✔ تم اعتماد '+l.length+' حركة');render()}else{S.okArm=Date.now();toast('اضغط «اعتماد الكل» مرة ثانية خلال 8 ثوانٍ لتأكيد اعتماد '+l.length+' حركة')}};
 /* ---------- تصدير Excel منسق (ExcelJS) ---------- */
 var XL_URLS=['https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js','https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'];
 function xlLoad(){return new Promise(function(res,rej){if(window.ExcelJS)return res(window.ExcelJS);var i=0;(function next(){if(i>=XL_URLS.length)return rej(new Error('تعذر تحميل مكتبة Excel'));var s=document.createElement('script');s.src=XL_URLS[i++];s.onload=function(){window.ExcelJS?res(window.ExcelJS):next()};s.onerror=next;document.head.appendChild(s)})()})}
@@ -1022,7 +1030,7 @@ function wkAlerts(week){var o=[],g={};S.txs.forEach(function(t){if(t.type!=='sub
 function projHeld(id){var p=id&&proj(id);return !!(p&&p.hold)}
 function wkRows(f){f=f||S.wk;var rows=[],last={};
  /* كل حساب (مقاول × مشروع) يظهر بآخر شهادة له حتى الأسبوع المختار؛ والرصيد المرحَّل غير المسدد يظهر أيضًا */
- S.txs.forEach(function(t){if(t.type!=='sub'||!t.cum||t.corr||!(apr(t)||t.status==='pending')||!t.date||t.date>f.week)return;if(projHeld(t.project_id))return;if(f.project&&t.project_id!==f.project)return;if(f.party&&t.party_id!==f.party)return;var k=t.project_id+'|'+t.party_id;if(!last[k]||t.date>last[k].date||(t.date===last[k].date&&String(t.at||'')>=String(last[k].at||'')))last[k]=t});
+ S.txs.forEach(function(t){if(t.type!=='sub'||!t.cum||t.corr||!(apr(t)||t.status==='pending')||!t.date||t.date>f.week)return;if(f.project&&t.project_id!==f.project)return;if(f.party&&t.party_id!==f.party)return;var k=t.project_id+'|'+t.party_id;if(!last[k]||t.date>last[k].date||(t.date===last[k].date&&String(t.at||'')>=String(last[k].at||'')))last[k]=t});
  Object.keys(last).forEach(function(k){var t=last[k],r=wkCalc(t,f.week);r.cdate=t.date;r.old=t.date!==f.week;/* الصرف مرتبط بتاريخ المستخلص: نطاق «الأسبوع» = المستخلصات المؤرخة بهذا الأسبوع فقط */if(f.scope==='week'){if(!r.old)rows.push(r)}else if(!r.old||Math.abs(r.rem)>0.5)rows.push(r)});
  rows=rows.filter(function(r){return(!f.trade||r.trade===f.trade)&&(!f.st||r.st===f.st)});return by(rows,function(r){return r.cname+'|'+r.pname})}
 function wkSetSt(key,st){S.cfg.wk=S.cfg.wk||{};S.cfg.wk[key]={st:st,by:S.user,at:new Date().toISOString()}}
@@ -1951,7 +1959,7 @@ function acAll(){var o=[];function A(sev,cat,msg,go,p){o.push({sev:sev,cat:cat,m
  S.accounts.forEach(function(a){var b=accStats(a).bal;if(b<-0.5)A(a.cust||/عصام/.test(a.name||'')?3:3,'السيولة','رصيد «'+h(a.name)+'» سالب: '+fmt(b)+(a.cust?' — موّل العهدة بتحويل وارد':''),a.cust?'custweek':'accounts')});
  var pend=S.txs.filter(function(t){return t.status==='pending'});if(pend.length)A(2,'الاعتماد',pend.length+' حركة بانتظار الاعتماد/الاستكمال ('+fmt(sum(pend,function(t){return num(t.amount)||num(t.net)||0}))+')','review');
  var un=S.txs.filter(function(t){return t.type==='expense'&&t.unclassified&&t.status!=='rejected'&&t.status!=='pending'}).length;if(un)A(1,'التكلفة',un+' مصروف موقع غير مربوط ببند مقايسة','custrec');
- S.projects.forEach(function(p){if(p.hold)A(2,'البيانات','مشروع معلّق باسم مشابه: '+h(p.name)+' — لا تدخل مستخلصاته في المستحقات حتى تقرّر','home')});
+ S.projects.forEach(function(p){if(p.hold)A(1,'البيانات','مشروع باسم مشابه لمشروع آخر: '+h(p.name)+' — أكّد أنه مشروع جديد أو ادمجه','home')});
  hmIncomplete().filter(function(x){return x.a!=='projHoldAsk'}).slice(0,15).forEach(function(x){A(1,'البيانات','استكمل بيانات '+x.t+' «'+h(x.n)+'»: '+x.w,'home')});
  S.projects.filter(function(p){return!p.hold}).forEach(function(p){var r=mgProj(p);if(r.st==='b')A(3,'المشاريع','«'+h(p.name)+'»: '+r.msg+' (تكلفة '+mgPct(r.cp)+' / إنجاز '+mgPct(r.prog)+')','mgr');else if(r.st==='w')A(2,'المشاريع','«'+h(p.name)+'»: '+r.msg,'mgr');
   (p.boq||[]).forEach(function(b){var s=itemState(p.id,b.id);if(s&&s.bud>0&&s.u.total>s.bud*1.0001)A(2,'المقايسة',h(p.name)+' › '+h(boqLabel(b))+': تجاوز البند '+fmt(s.u.total-s.bud),'costctl')})});
@@ -1992,7 +2000,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261121-2254';
+var BUILD='20261121-2313';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(window.__PREVIEW||!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}

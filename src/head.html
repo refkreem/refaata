@@ -117,6 +117,14 @@ td{color:#000;font-weight:700}
 @media(max-width:900px){html,body{overflow-x:hidden;overflow-x:clip;max-width:100vw}.side:not(.open){visibility:hidden;box-shadow:none}.top{gap:6px;padding:6px 8px;flex-wrap:wrap}.top>*{min-width:0}.top .logo{font-size:16px;white-space:nowrap}.top .ib{padding:4px 8px}.top .ver{font-size:10px;padding:1px 6px;white-space:nowrap}.pg-h h2{font-size:21px}.pg-h .btn{white-space:nowrap}}
 @media(max-width:520px){#roleTag{display:none}}
 .qx-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.qx-tabs .btn{flex:1;min-width:110px}.qx-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.qx-big{font-size:28px!important;font-weight:700;text-align:center;padding:14px!important}.qx-send{width:100%;font-size:18px;padding:14px}
+.tw{max-height:calc(100vh - 150px)}
+.tw thead th{position:sticky;top:0;z-index:3;box-shadow:0 1px 0 var(--bd)}
+.tw td:first-child,.tw th:first-child{position:sticky;right:0;z-index:2;background:var(--surface);box-shadow:-1px 0 0 var(--bd)}
+.tw th:first-child{z-index:4;background:var(--s2)}
+.tw tfoot td{position:sticky;bottom:0;z-index:2;box-shadow:0 -1px 0 var(--bd)}
+.tw tfoot td:first-child,.tw tr.sub td:first-child,.tw tr.clk:hover td:first-child{background:var(--s2)}
+@media print{.tw{max-height:none}.tw td:first-child,.tw th:first-child{position:static}}
+@media(min-width:900px){.flt select,.flt input{max-width:190px;padding:5px 7px}.flt label{font-size:13px}.kpi{padding:7px 11px}.kpi .l{font-size:12.5px}.kpi .v{font-size:18px}.kpi .s{font-size:12px}.g4{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}.grid{gap:8px}.tw{max-height:calc(100vh - 120px)}}
 </style></head><body>
 <div class="login" id="login"><form id="loginForm"><h2 class="disp">مقاول <span style="color:var(--ac)">Pro</span></h2><div class="mut">تسجيل الدخول لنظام الشركة</div>
 <label class="f">البريد الإلكتروني<input id="lEmail" type="email" dir="ltr" required autocomplete="username"></label>

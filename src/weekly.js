@@ -29,7 +29,7 @@ function wkAlerts(week){var o=[],g={};S.txs.forEach(function(t){if(t.type!=='sub
 function projHeld(id){var p=id&&proj(id);return !!(p&&p.hold)}
 function wkRows(f){f=f||S.wk;var rows=[],last={};
  /* كل حساب (مقاول × مشروع) يظهر بآخر شهادة له حتى الأسبوع المختار؛ والرصيد المرحَّل غير المسدد يظهر أيضًا */
- S.txs.forEach(function(t){if(t.type!=='sub'||!t.cum||t.corr||!(apr(t)||t.status==='pending')||!t.date||t.date>f.week)return;if(projHeld(t.project_id))return;if(f.project&&t.project_id!==f.project)return;if(f.party&&t.party_id!==f.party)return;var k=t.project_id+'|'+t.party_id;if(!last[k]||t.date>last[k].date||(t.date===last[k].date&&String(t.at||'')>=String(last[k].at||'')))last[k]=t});
+ S.txs.forEach(function(t){if(t.type!=='sub'||!t.cum||t.corr||!(apr(t)||t.status==='pending')||!t.date||t.date>f.week)return;if(f.project&&t.project_id!==f.project)return;if(f.party&&t.party_id!==f.party)return;var k=t.project_id+'|'+t.party_id;if(!last[k]||t.date>last[k].date||(t.date===last[k].date&&String(t.at||'')>=String(last[k].at||'')))last[k]=t});
  Object.keys(last).forEach(function(k){var t=last[k],r=wkCalc(t,f.week);r.cdate=t.date;r.old=t.date!==f.week;/* الصرف مرتبط بتاريخ المستخلص: نطاق «الأسبوع» = المستخلصات المؤرخة بهذا الأسبوع فقط */if(f.scope==='week'){if(!r.old)rows.push(r)}else if(!r.old||Math.abs(r.rem)>0.5)rows.push(r)});
  rows=rows.filter(function(r){return(!f.trade||r.trade===f.trade)&&(!f.st||r.st===f.st)});return by(rows,function(r){return r.cname+'|'+r.pname})}
 function wkSetSt(key,st){S.cfg.wk=S.cfg.wk||{};S.cfg.wk[key]={st:st,by:S.user,at:new Date().toISOString()}}
