@@ -9,6 +9,6 @@ const r=await pg.evaluate(()=>{S.user='a@x.com';S.role='admin';
  var m=mgProj(S.projects[0]),A=acAll();go('mgr');var t1=document.getElementById('main').innerText;go('conrec');var t3=document.getElementById('main').innerText;go('alerts');var t2=document.getElementById('main').innerText;
  return{t3:t3.length,m:{prog:m.prog,cp:m.cp,st:m.st},acats:A.map(a=>a.cat+a.sev),t1:t1.length,t2:t2.length,badge:acCount()}});
 T('الإنجاز 20%',Math.round(r.m.prog)===20,r.m);T('الصرف 60% يسبق الإنجاز',r.m.st==='b',r.m);
-T('تنبيه سيولة سالبة',r.acats.indexOf('السيولة3')>=0,r.acats);T('تنبيه مشروع',r.acats.indexOf('المشاريع3')>=0,r.acats);
-T('الشاشتان تعرضان',r.t1>100&&r.t2>100,r);T('شاشة المطابقة تعمل',r.t3>20,r.t3);T('شارة التنبيهات',r.badge>=1,r.badge);T('بلا أخطاء',!errs.length,errs);
+T('تنبيه سيولة سالبة',r.acats.indexOf('العهدة3')>=0,r.acats);T('تنبيه مشروع',r.acats.indexOf('المشاريع3')>=0,r.acats);
+T('الشاشتان تعرضان',r.t1>100&&r.t2>100,r);T('شاشة المطابقة تعمل',r.t3>20,r.t3);T('بلا أخطاء',!errs.length,errs);
 console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();

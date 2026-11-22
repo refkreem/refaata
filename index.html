@@ -300,7 +300,7 @@ function ask(title,fields,cb,label){modal(title,'<div class="fg">'+fields+'</div
 /* ---------- router ---------- */
 function go(view,vp,tab){S.view=view;S.vp=vp||null;if(tab)S.tab=tab;$('side').classList.remove('open');render();window.scrollTo(0,0)}
 function pendingCount(){return S.txs.filter(function(t){return t.status==='pending'}).length}
-function renderNav(){var n=pendingCount(),lastG='';$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){var g=m[4]&&m[4]!==lastG&&m[4]!=='الرئيسية'?'<div class="navg">'+m[4]+'</div>':'';lastG=m[4]||lastG;return g+'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+(m[0]==='alerts'&&acCount()?'<span class="bdg">'+acCount()+'</span>':'')+'</a>'}).join('');
+function renderNav(){var n=pendingCount(),lastG='';$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){var g=m[4]&&m[4]!==lastG&&m[4]!=='الرئيسية'?'<div class="navg">'+m[4]+'</div>':'';lastG=m[4]||lastG;return g+'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
  $('roleTag').textContent=ROLE_NAMES[S.role]||''}
 function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=(S.loadErr?'<div class="hint b" style="margin-bottom:12px"><b>تعذر الاتصال بقاعدة البيانات</b> ('+h(S.loadErr)+'). غالبًا لم تُنشأ قاعدة Firestore بعد في مشروع Firebase، أو قواعد الأمان تمنع القراءة. أنشئ Firestore Database ثم اضغط زر التحديث ⟳.</div>':'')+(f?f():'');if(AFTER[S.view])AFTER[S.view]()}
 var VIEWS={},AFTER={};
@@ -1263,7 +1263,6 @@ VIEWS.home=function(){var r=S.role,name=h(ROLE_NAMES[r]||''),body='';
   var neg=S.accounts.filter(function(a){return accStats(a).bal<0}),miss=S.txs.filter(function(t){return t.status==='pending'&&t.imp_missing&&t.imp_missing.length}).length;
   var al=[],inc=hmIncomplete();wkAlerts(W).forEach(function(x){al.push('⚠ '+x)});if(inc.length)al.push('<b>'+inc.length+' سجل مُسجَّل تلقائيًا من المصروفات الأسبوعية يحتاج استكمال بياناته:</b>');inc.slice(0,12).forEach(function(x){al.push('• '+x.t+' <a data-a="'+x.a+'" '+'data-p="'+h(x.id)+'"'+' style="cursor:pointer;text-decoration:underline">'+h(x.n)+'</a> — ينقص: '+x.w)});if(inc.length>12)al.push('… و'+(inc.length-12)+' آخرين');if(neg.length)al.push('رصيد سالب في: '+neg.map(function(a){return h(a.name)}).join('، '));if(miss)al.push(miss+' حركة مستوردة ناقصة البيانات');if(!mp)al.push('لم يُنشأ كشف مرتبات شهر '+M);else if(mp.mst==='approved')al.push('مرتبات '+M+' معتمدة وبانتظار الصرف');
   body+='<div class="grid g4" style="margin-bottom:12px">'+kpi('السيولة (كل الحسابات)',fmt(liq),S.accounts.length+' حساب',liq<0?'bad':'')+kpi('بانتظار الاعتماد',pend,pend?'تحتاج مراجعة':'لا يوجد',pend?'warn':'good')+kpi('مستحق للمقاولين'+(W?' ('+W+')':''),fmt(cRem))+kpi('أجور غير مصروفة'+(G?' ('+G+')':''),fmt(wRem))+'</div>';
-  var acl=acAll(),ac3=acl.filter(function(x){return x.sev===3}).length,ac2=acl.filter(function(x){return x.sev===2}).length;if(acl.length)body+='<a data-a="go" data-p="alerts" class="hint '+(ac3?'b':'w')+'" style="display:block;margin-bottom:12px;cursor:pointer;text-decoration:none;color:inherit">🔔 <b>'+(ac3?ac3+' تنبيه حرج':'')+(ac3&&ac2?' · ':'')+(ac2?ac2+' تنبيه':'')+(!ac3&&!ac2?acl.length+' للعلم':'')+'</b> — افتح مركز التنبيهات (مرتبة بالأهمية)</a>';
   body+=hmSec('الأسبوعي (كل خميس)',[hmTile('import','📥','استيراد كشوف الخميس','تحميل الملفات الأسبوعية'),hmTile('wkpay','💸','مدفوعات المقاولين','استحقاق الأسبوع والسندات'),hmTile('wkwages','👷','أجور العمال','كشف وصرف الأسبوع'),hmTile('cashreq','🧮','المتطلبات النقدية','كم نحتاج هذا الأسبوع')])+
    hmSec('الشهري',[hmTile('mpay','👔','مرتبات الموظفين','مسودة، اعتماد، صرف'),hmTile('acct','📒','المحاسبة','قيود وميزان وقوائم'),hmTile('accounts','🏦','الخزائن والبنوك','أرصدة وتحويلات')])+
    hmSec('المتابعة والتقارير',[hmTile('dashboard','📊','لوحة التحكم','مؤشرات الشركة'),hmTile('costctl','📐','ضبط التكلفة','ربحية المشاريع والبنود'),hmTile('prcenter','🖨️','مركز الطباعة','12 تقريرًا بالتواقيع'),hmTile('review','✅','المراجعة والاعتماد','الحركات المعلّقة',pend||'')])+
@@ -1967,14 +1966,16 @@ VIEWS.mgr=function(){var L=mgLiq(),R=S.projects.filter(function(p){return!p.hold
 /* ===== مركز التنبيهات الموحّد: يجمع كل التنبيهات في قائمة واحدة مرتبة بالأهمية ===== */
 /* sev: 3 حرج · 2 تنبيه · 1 للعلم */
 function acAll(){var o=[];function A(sev,cat,msg,go,p){o.push({sev:sev,cat:cat,msg:msg,go:go||'',p:p||''})}
- S.accounts.forEach(function(a){var b=accStats(a).bal;if(b<-0.5)A(a.cust||/عصام/.test(a.name||'')?3:3,'السيولة','رصيد «'+h(a.name)+'» سالب: '+fmt(b)+(a.cust?' — موّل العهدة بتحويل وارد':''),a.cust?'custweek':'accounts')});
- var pend=S.txs.filter(function(t){return t.status==='pending'});if(pend.length)A(2,'الاعتماد',pend.length+' حركة بانتظار الاعتماد/الاستكمال ('+fmt(sum(pend,function(t){return num(t.amount)||num(t.net)||0}))+')','review');
+ S.accounts.forEach(function(a){var b=accStats(a).bal;if(b<-0.5)A(3,a.cust||/عصام/.test(a.name||'')?'العهدة':'السيولة','رصيد «'+h(a.name)+'» سالب: '+fmt(b)+(a.cust?' — موّل العهدة بتحويل وارد':''),a.cust?'custweek':'accounts')});
+ var pend=S.txs.filter(function(t){return t.status==='pending'});if(pend.length)A(2,'العهدة',pend.length+' حركة بانتظار الاعتماد/الاستكمال ('+fmt(sum(pend,function(t){return num(t.amount)||num(t.net)||0}))+')','review');
  var un=S.txs.filter(function(t){return t.type==='expense'&&t.unclassified&&t.status!=='rejected'&&t.status!=='pending'}).length;if(un)A(1,'التكلفة',un+' مصروف موقع غير مربوط ببند مقايسة','custrec');
  S.projects.forEach(function(p){if(p.hold)A(1,'البيانات','مشروع باسم مشابه لمشروع آخر: '+h(p.name)+' — أكّد أنه مشروع جديد أو ادمجه','home')});
  hmIncomplete().filter(function(x){return x.a!=='projHoldAsk'}).slice(0,15).forEach(function(x){A(1,'البيانات','استكمل بيانات '+x.t+' «'+h(x.n)+'»: '+x.w,'home')});
  S.projects.filter(function(p){return!p.hold}).forEach(function(p){var r=mgProj(p);if(r.st==='b')A(3,'المشاريع','«'+h(p.name)+'»: '+r.msg+' (تكلفة '+mgPct(r.cp)+' / إنجاز '+mgPct(r.prog)+')','mgr');else if(r.st==='w')A(2,'المشاريع','«'+h(p.name)+'»: '+r.msg,'mgr');
   (p.boq||[]).forEach(function(b){var s=itemState(p.id,b.id);if(s&&s.bud>0&&s.u.total>s.bud*1.0001)A(2,'المقايسة',h(p.name)+' › '+h(boqLabel(b))+': تجاوز البند '+fmt(s.u.total-s.bud),'costctl')})});
  var W=(typeof pcWeeks==='function'?pcWeeks():[])[0];
+ if(W&&typeof crcRows==='function')crcRows(W).forEach(function(x){if(x.st==='rev'||x.st==='sheet')A(2,'المقاولون',h(x.r.cname)+' — '+h(x.r.pname)+': '+x.why,'conrec')});
+ var np=S.txs.filter(function(t){return t.type==='payment'&&t.kind==='contractor'&&!t.party_id&&t.status!=='rejected'}).length;if(np)A(2,'المقاولون',np+' دفعة مقاول بلا اسم مقاول — حدّد المقاول','review');
  if(W){pcChecks(W).forEach(function(c){if(!c.ok&&c.go!=='home'&&c.go!=='review'&&!/رصيد العهدة/.test(c.t))A(c.lvl==='w'?2:3,'الصرف الأسبوعي',c.t+(c.d?' — '+c.d:'')+' (أسبوع '+W+')',c.go)});
 }
  var od=0;S.txs.forEach(function(t){if(t.type==='sub'&&t.status==='pending')od++});
@@ -1987,6 +1988,10 @@ VIEWS.alerts=function(){var L=acAll(),f=S.acf||'',cats={};L.forEach(function(x){
  var rows=shown.map(function(x){return[tag[x.sev],h(x.cat),x.msg,x.go?'<button class="btn sm" data-a="go" data-p="'+x.go+'">افتح</button>':'']});
  return pg('مركز التنبيهات','',k+flt+(L.length?tbl([{h:''},{h:'القسم'},{h:'التنبيه'},{h:''}],rows,{}):'<div class="hint g">✔ لا توجد تنبيهات — كل شيء سليم.</div>'))};
 ACT.acFilter=function(c){S.acf=c||'';render()};
+
+/* تنبيهات سياقية: تظهر في الصفحة المعنية فقط (قسم واحد أو أكثر) */
+function ctxAlerts(cats,cur){var L=[];try{L=acAll().filter(function(x){return cats.indexOf(x.cat)>=0})}catch(e){}if(!L.length)return'';var top=L.slice(0,6);return'<details class="hint '+(L.some(function(x){return x.sev===3})?'b':'w')+'" style="margin-bottom:10px" open><summary><b>'+L.length+' تنبيه</b> في هذا القسم</summary>'+top.map(function(x){return'<div style="margin-top:4px">• '+x.msg+(x.go&&x.go!==cur?' <button class="btn sm" data-a="go" data-p="'+x.go+'">افتح</button>':'')+'</div>'}).join('')+(L.length>6?'<div class="mut" style="margin-top:4px">+ '+(L.length-6)+' أخرى</div>':'')+'</details>'}
+[['subs',['المقاولون']],['custweek',['العهدة']],['custrec',['العهدة']],['dayexp',['العهدة']],['quick',['العهدة']],['wkpay',['المقاولون']],['accounts',['السيولة']],['projects',['المقايسة','المشاريع']]].forEach(function(q){var o=VIEWS[q[0]];if(!o)return;VIEWS[q[0]]=function(){var r=o.apply(this,arguments);return(S.vp&&q[0]==='projects'?'':ctxAlerts(q[1],q[0]))+r}});
 /* ===== نواقص بيانات المشروع داخل الشاشة نفسها + شبكة إدخال سريع لبيانات كل المشاريع ===== */
 function pdMissing(p){var m=[];if(!num(p.value))m.push('قيمة العقد');if(!(p.boq||[]).length)m.push('المقايسة');if(!num(p.expected_cost)&&!sum(p.boq||[],boqBudget))m.push('الميزانية (التكلفة المتوقعة)');if(!p.client)m.push('العميل');return m}
 function needBanner(p){if(!p||p.hold)return'';var m=pdMissing(p);if(!m.length)return'';return'<div class="hint w" style="margin-bottom:10px">ينقص لحساب التقدم والربح: <b>'+m.join(' · ')+'</b> <button class="btn sm" data-a="projEdit" data-p="'+p.id+'">إضافة</button> <button class="btn sm" data-a="go" data-p="projdata">إدخال سريع لكل المشاريع</button></div>'}
@@ -2025,7 +2030,7 @@ async function boot(){
  await start(makeLocalDb(),'تخزين محلي على هذا الجهاز (بدون اتصال بالسحابة)',te);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.db&&!$('modal').classList.contains('show')&&Date.now()-(S.lastLoad||0)>120000){S.lastLoad=Date.now();loadAll().then(render)}});
-var BUILD='20261122-0118';
+var BUILD='20261122-2242';
 (function(){var v=document.getElementById('ver');if(v)v.textContent='v '+BUILD})();
 async function checkUpdate(manual){try{if(window.__PREVIEW||!/^https?:/.test(location.protocol))return;var r=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;var m=(await r.text()).match(/var BUILD='([^']+)'/);if(!m||m[1]===BUILD){if(manual)toast('أنت على آخر إصدار ('+BUILD+')');return}var k='upd_'+m[1],did=null;try{did=sessionStorage.getItem(k)}catch(e){}
  if(did&&!manual){toast('يوجد إصدار أحدث ('+m[1]+') — أغلق الصفحة وافتحها من جديد');return}

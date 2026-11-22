@@ -10,7 +10,7 @@ const r=await pg.evaluate(async()=>{var o={};S.user='a@x.com';S.role='admin';
  S.cfg.contractors.push({id:'c9',name:'محمود',trade:'',phone:'',open:0,auto:'import'});
  S.cfg.workers.push({name:'سيد',mode:'daily',rate:0,auto:'import'});
  S.cfg.contractors.push({id:'c8',name:'يدوي',trade:'',phone:'',open:0});
- var inc=hmIncomplete();o.n=inc.map(function(x){return x.t});o.h=VIEWS.home().indexOf('تنبيه')>=0;
+ var inc=hmIncomplete();o.n=inc.map(function(x){return x.t});o.h=VIEWS.home().indexOf('تنبيه')<0&&acAll().length>0;
  np.value=500000;np.client='س';S.cfg.contractors[S.cfg.contractors.length-2].trade='نقاشة';S.cfg.contractors[S.cfg.contractors.length-2].phone='01';S.cfg.workers[S.cfg.workers.length-1].rate=200;
  o.after=hmIncomplete().length;return o});
 T('أسماء عامة لا تُنشأ',r.gen[0]===''&&r.gen[1]===''&&r.gen[2]==='__new',r.gen);
