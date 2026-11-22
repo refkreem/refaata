@@ -1,0 +1,11 @@
+const { chromium } = require('playwright');
+let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.stringify(x))}};
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await(await b.newContext()).newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForFunction(()=>window.S&&S.db);
+const r=await pg.evaluate(()=>{S.user='a@x.com';S.role='admin';S.projects=[{id:'p1',name:'مشروع أ',boq:[]}];S.cfg.contractors=[{id:'c1',name:'مقاول'}];S.accounts=[{id:'a1',name:'محمد عصام',cust:1,opening:0}];
+ var base={type:'sub',cum:true,date:'2026-11-18',project_id:'p1',party_id:'c1',status:'approved',gross:22364,cum_value:123419,sheet_G:123419,sheet_P:100000,sheet_cust:1364,paid:0,net:22364,imp_items:[{d:'a',b:8855},{d:'b',b:10800},{d:'c',b:1345},{d:'d',b:0}]};
+ S.txs=[Object.assign({id:'t1',sheet_due:22364},base)];
+ var r1=wkRows({week:'2026-11-18',scope:'week'})[0];var c=crcRows('2026-11-18')[0];
+ return{rem:r1&&r1.rem,ent:r1&&r1.ent,st:c&&c.st,B:c&&c.B}});
+T('المتبقي = رصيد الشيت',Math.abs(r.rem-21000)<1,r);T('المطابقة مطابق',r.st==='ok',r);T('بلا أخطاء',!errs.length,errs);
+console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();
