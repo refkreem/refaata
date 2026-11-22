@@ -1,0 +1,14 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.stringify(x))}};
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await(await b.newContext({viewport:{width:1280,height:800}})).newPage();const errs=[];pg.on('console',m=>{if(/^(ACC|FP)/.test(m.text()))console.log(m.text())});pg.on('pageerror',e=>errs.push(e.message));
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForFunction(()=>window.S&&S.db);
+const r=await pg.evaluate(async()=>{S.user='a@x.com';S.role='admin';S.projects=[{id:'p1',name:'مشروع طويل الاسم جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا جدا',value:1000,advance:50000,boq:[]}];S.cfg.contractors=[{id:'c1',name:'مقاول'}];S.accounts=[{id:'a1',name:'الخزينة',opening:0}];
+ S.txs=[{id:'x1',type:'payment',kind:'contractor',amount:700,date:'2026-11-18',status:'approved',desc:'دفعة'}];
+ var sv=[];saveTx=async function(o){o.id='n'+sv.length;S.txs.push(o);sv.push(o);return true};dbSet=async function(){return true};
+ go('revenues');var b1=document.getElementById('main').innerText.indexOf('غير مسجّلة كإيراد')>=0;console.log('ACC',!!document.getElementById('adv_acc'),document.getElementById('main').innerText.length);document.getElementById('adv_acc').value='a1';await ACT.advPost();
+ go('fixpay');var f1=document.getElementById('main').innerText.indexOf('مقاول')>=0;console.log('FP',!!document.getElementById('fp_x1'));document.getElementById('fp_x1').value='c1';await ACT.fpSet('x1');
+ var ws={};['projects','subs','revenues','fixpay'].forEach(function(v){go(v);var t=document.querySelector('.tw');ws[v]=t?(t.scrollWidth-t.clientWidth):-1});
+ return{b1:b1,f1:f1,rev:sv.filter(function(x){return x.type==='revenue'&&x.amount===50000}).length,party:S.txs.filter(function(t){return t.id==='x1'})[0].party_id,ws:ws,left:advMissing().length}});
+T('تنبيه الدفعة المقدمة',r.b1,r);T('تسجيل إيراد',r.rev===1,r);T('لا نواقص بعد',r.left===0,r);T('شاشة الدفعات بلا مقاول',r.f1,r);T('ربط المقاول',r.party==='c1',r);
+Object.keys(r.ws).forEach(k=>T('لا تمرير أفقي '+k,r.ws[k]<=2,r.ws));T('بلا أخطاء',!errs.length,errs);
+console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();
