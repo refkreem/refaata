@@ -127,11 +127,17 @@ td{color:#000;font-weight:700}
 @media(min-width:900px){.flt select,.flt input{max-width:190px;padding:5px 7px}.flt label{font-size:13px}.kpi{padding:7px 11px}.kpi .l{font-size:12.5px}.kpi .v{font-size:18px}.kpi .s{font-size:12px}.g4{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}.grid{gap:8px}.tw{max-height:calc(100vh - 120px)}}
 /* عرض كامل بلا تمرير أفقي: النص الطويل يلتف على أسطر، والأرقام والأزرار في سطر واحد */
 .tw table{width:100%}
-.tw th,.tw td{white-space:normal;overflow-wrap:anywhere;word-break:normal;line-height:1.5}
+.tw th,.tw td{white-space:normal;overflow-wrap:break-word;word-break:normal;line-height:1.5}
 .tw th.n,.tw td.n,.tw td .btn,.tw td input[type=checkbox]{white-space:nowrap}
 .tw td:first-child{min-width:0}
 .tw{overflow-x:hidden}
 @media(min-width:700px){.tw table{table-layout:auto}.tw th,.tw td{padding:8px 8px}}
+.nw{white-space:nowrap}
+.sm13 th,.sm13 td{font-size:13px!important;padding:6px 5px!important}
+.sm13 .trd{min-width:60px;font-size:12px}
+.sm13 .btn.sm{padding:3px 6px;font-size:12px}
+.tw th{min-width:64px}
+.trd{min-width:90px;width:100%;padding:4px 6px;font-size:13px;border:1px dashed var(--bd,#c9d3dd);border-radius:6px;background:transparent}
 </style></head><body>
 <div class="login" id="login"><form id="loginForm"><h2 class="disp">مقاول <span style="color:var(--ac)">Pro</span></h2><div class="mut">تسجيل الدخول لنظام الشركة</div>
 <label class="f">البريد الإلكتروني<input id="lEmail" type="email" dir="ltr" required autocomplete="username"></label>
