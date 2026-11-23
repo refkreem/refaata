@@ -10,7 +10,7 @@ await pg.evaluate(()=>{S.wg.week='2026-10-29';go('wkwages')});
 T('الأسابيع مكتشفة',await pg.evaluate(()=>wgWeeks().join()==='2026-10-29,2026-10-22'));
 const a=await pg.evaluate(()=>({s:wgSheets().map(r=>[r.total,r.net,r.rem]),w:wgWorkers().length}));
 T('كشفان للأسبوع وإجمالي صحيح (3050 الصافي 2850+300)',a.s.length===2&&a.w===3&&a.s.reduce((x,r)=>x+r[1],0)===3150,a);
-T('الشاشة والزر',await pg.evaluate(()=>{const m=document.getElementById('main').innerHTML;return m.includes('صرف المحدد')&&MENU.some(x=>x[0]==='wkwages'&&x[4]!=='hide')}));
+T('الشاشة والزر',await pg.evaluate(()=>{const m=document.getElementById('main').innerHTML;return m.includes('صرف المحدد')&&WKTABS.some(x=>x[0]==='wkwages')}));
 const bal0=await pg.evaluate(()=>accStats(S.accounts[0]).bal);
 await pg.evaluate(()=>{go('wkwages');S.wg.sel={};wgSheets().forEach(r=>{if(r.pid==='p1')S.wg.sel[r.id]=1});ACT.wgPay()});await pg.waitForTimeout(150);await pg.selectOption('#f_acc','a1');await pg.click('[data-a=msave]');await pg.waitForTimeout(350);
 const b1=await pg.evaluate(()=>({bal:accStats(S.accounts[0]).bal,rem:wgSheets().map(r=>r.rem)}));

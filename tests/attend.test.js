@@ -1,0 +1,16 @@
+const { chromium } = require('playwright');
+let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.stringify(x))}};
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const ctx=await b.newContext({viewport:{width:1280,height:800},geolocation:{latitude:30.0444,longitude:31.2357,accuracy:10},permissions:['geolocation']});const pg=await ctx.newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForFunction(()=>window.S&&S.db);
+await pg.evaluate(()=>{S.user='eng@x.com';S.role='admin';S.projects=[{id:'p1',name:'مشروع أ',boq:[]},{id:'p2',name:'مشروع ب',boq:[]}];S.cfg.workers=[{name:'علي'},{name:'سعيد'}];S.txs=[];S.accounts=[];dbSet=async()=>true;go('attend')});
+await pg.evaluate(()=>ACT.atGeo('p1'));
+await pg.evaluate(()=>{document.getElementById('at_proj').value='';});
+await pg.evaluate(()=>ACT.atMark('in'));await pg.waitForTimeout(300);
+let r=await pg.evaluate(()=>{var t=S.txs.filter(x=>x.type==='attend');return{n:t.length,pid:t[0]&&t[0].project_id,w:t[0]&&t[0].within,d:t[0]&&t[0].dist,geo:S.projects[0].geo}});
+T('تثبيت الموقع',r.geo&&Math.abs(r.geo.lat-30.0444)<1e-6,r);T('حضور داخل النطاق لأقرب مشروع',r.n===1&&r.pid==='p1'&&r.w===true&&r.d<5,r);
+await pg.evaluate(()=>{document.querySelector('.at_w').checked=true;document.getElementById('at_proj').value='p1'});await pg.evaluate(()=>ACT.atWorkers());await pg.waitForTimeout(300);
+r=await pg.evaluate(()=>{var t=S.txs.filter(x=>x.kind==='worker');return{n:t.length,w:t[0]&&t[0].workers,txt:document.getElementById('main').innerText}});
+T('حضور عمال',r.n===1&&r.w[0]==='علي',r);T('السجل يظهر',r.txt.indexOf('داخل النطاق')>=0,r.txt.slice(0,200));
+r=await pg.evaluate(()=>{go('wkpay');var a=document.getElementById('main').innerText;go('wkwages');return{a:a.indexOf('الاحتياج النقدي')>=0&&a.indexOf('العمال')>=0,v:S.view}});T('تبويبات الصرف الأسبوعي',r.a,r);
+r=await pg.evaluate(()=>{ACT.wkTab('cashreq');return S.view});T('الانتقال بين التبويبات',r==='cashreq',r);
+T('بلا أخطاء',!errs.length,errs);console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();
