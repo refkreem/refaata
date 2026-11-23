@@ -14,8 +14,10 @@ const r=await pg.evaluate(async()=>{S.user='a@x.com';S.role='admin';window.confi
  ACT.qxEdit(e4.id);S.qx.lines[0].qty=2;render();await ACT.qxSend();var ed4=JSON.parse(JSON.stringify(S.txs.filter(x=>x.id===e4.id)[0]));
  await ACT.qxOk(e1.id);var apr=S.txs.filter(x=>x.id===e1.id)[0].status;
  ACT.qxOk(e4.id);var hasModal=!!document.getElementById('f_acc');document.getElementById('f_acc').value='a2';await S.modalSave();var e4a=S.txs.filter(x=>x.id===e4.id)[0];
+ var ctx={};S.txs.push({id:'sc1',type:'sub',status:'approved',party_id:'c1',project_id:'p1',no:'3',date:'2026-11-01',net:5000,paid:3000,lines:[{boq_id:'b1',qty:12,qty_prev:0,price:100}]},{id:'pc1',type:'payment',kind:'contractor',status:'approved',party_id:'c1',project_id:'p1',date:'2026-11-05',amount:1000,desc:'دفعة'});
+ ACT.qxKind('con');S.qx.v.proj='p1';S.qx.v.con='c1';render();ctx.con=document.body.innerText;S.txs.push({id:'ad1',type:'adv',kind:'worker',status:'approved',party:'عامل س',project_id:'p1',date:'2026-11-02',amount:150});ACT.qxKind('adv');S.qx.v.wrk='عامل س';render();ctx.adv=document.body.innerText;
  var n0=S.txs.length;await ACT.qxDel(e3.id);var del=S.txs.length===n0-1;
- return{e1:e1,e2:e2,e3:e3,e4:e4,ed4:ed4,e4a:e4a,apr:apr,hasModal:hasModal,del:del,toasts:toasts,n:saved.length}});
+ return{ctx:ctx,e1:e1,e2:e2,e3:e3,e4:e4,ed4:ed4,e4a:e4a,apr:apr,hasModal:hasModal,del:del,toasts:toasts,n:saved.length}});
 T('مشتريات بأصناف من العهدة',r.e1&&r.e1.type==='purchase'&&r.e1.lines.length===2&&r.e1.total===2100&&r.e1.paid===2100&&r.e1.account_id==='a1'&&r.e1.status==='pending',r.e1);
 T('دفعة مقاول بأصناف',r.e2&&r.e2.type==='payment'&&r.e2.kind==='contractor'&&r.e2.items.length===1&&r.e2.amount===600&&r.e2.from_custody===1&&r.e2.status==='pending',r.e2);
 T('سلفة عامل',r.e3&&r.e3.type==='adv'&&r.e3.amount===200&&r.e3.status==='pending',r.e3);
@@ -24,5 +26,5 @@ T('منع التكرار',r.n===4,r.n);
 T('تعديل الطلب',r.ed4&&r.ed4.total===80000&&r.ed4.status==='pending',r.ed4);
 T('اعتماد من العهدة',r.apr==='approved',r.apr);
 T('اعتماد وصرف الطلب',r.hasModal&&r.e4a.status==='approved'&&r.e4a.account_id==='a2'&&r.e4a.paid===80000,r.e4a);
-T('حذف',r.del,r.del);
+T('حذف',r.del,r.del);T('آخر مستخلص وبنود المقاول',/آخر مستخلص/.test(r.ctx.con)&&/بند 1/.test(r.ctx.con)&&/آخر مصروف/.test(r.ctx.con),r.ctx.con.slice(0,300));T('سلف العامل',/عامل س/.test(r.ctx.adv)&&/150/.test(r.ctx.adv),r.ctx.adv.slice(0,200));
 console.log(JSON.stringify(r.toasts));console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();
