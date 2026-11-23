@@ -38,7 +38,9 @@ var PFX='claude_v4_';
 var COL={projects:PFX+'projects',txs:PFX+'txs',accounts:PFX+'accounts',sitereps:PFX+'sitereps',files:PFX+'files'};
 var CFGDOC=PFX+'meta/config';
 var LEGACY={projects:'projects',txs:'txs',accounts:'accounts'};   // أماكن النسخة القديمة المشتركة (قبل العزل)
-function clean(o){var c=JSON.parse(JSON.stringify(o));c.ns=NS;return c}
+/* Firestore لا يقبل مصفوفة داخل مصفوفة: نحوّل الداخلية إلى كائن بمفاتيح 0,1,2 (يبقى c[0] يعمل عند القراءة) */
+function flatNest(v,inArr){if(Array.isArray(v)){var r=v.map(function(x){return flatNest(x,true)});if(inArr){var o={};r.forEach(function(x,i){o[i]=x});return o}return r}if(v&&typeof v==='object'){var q={};Object.keys(v).forEach(function(k){q[k]=flatNest(v[k],false)});return q}return v}
+function clean(o){var c=flatNest(JSON.parse(JSON.stringify(o)),false);c.ns=NS;return c}
 async function dbSetMany(col,arr){if(!arr.length)return true;try{for(var i=0;i<arr.length;i+=400){var b=S.db.batch();arr.slice(i,i+400).forEach(function(o){b.set(S.db.collection(COL[col]).doc(o.id),clean(o))});await b.commit()}return true}catch(e){console.error(e);toast('⚠ تعذر الحفظ — تحقق من الاتصال');return false}}
 async function dbDelMany(col,ids){if(!ids.length)return true;try{for(var i=0;i<ids.length;i+=400){var b=S.db.batch();ids.slice(i,i+400).forEach(function(id){b.delete(S.db.collection(COL[col]).doc(id))});await b.commit()}return true}catch(e){console.error(e);toast('⚠ تعذر الحذف — تحقق من الاتصال');return false}}
 async function dbSet(col,o){try{await S.db.collection(COL[col]).doc(o.id).set(clean(o));return true}catch(e){console.error(e);toast('⚠ تعذر الحفظ — تحقق من الاتصال');return false}}
