@@ -1,0 +1,13 @@
+const { chromium } = require('playwright');
+let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.stringify(x))}};
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await(await b.newContext({viewport:{width:390,height:800}})).newPage();
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForFunction(()=>window.S&&S.db);
+const r=await pg.evaluate(async()=>{S.user='a@x.com';S.role='admin';dbSet=async()=>true;
+ var t=today(),d=(n)=>impAdd(t,n);
+ S.projects=[{id:'p1',name:'م',start:d(-60),months:6,boq:[{id:'b1',code:'1',name:'أ',group:'ج1',qty:100,price:10},{id:'b2',code:'2',name:'ب',group:'ج2',qty:100,price:10}]}];
+ S.txs=[{id:'x1',type:'progress',status:'approved',project_id:'p1',boq_id:'b1',qty:20,date:t},{id:'x2',type:'progress',status:'approved',project_id:'p1',boq_id:'b2',qty:100,date:t}];
+ S.pl.pid='p1';var p=S.projects[0];p.plan=[{id:'f1',name:'مرحلة1',start:d(-60),end:d(0),boq:['b1']},{id:'f2',name:'مرحلة2',start:d(-30),end:d(60),boq:['b2']}];
+ var s1=plStat(p,p.plan[0]),s2=plStat(p,p.plan[1]);go('plan');var html=document.getElementById('main')?document.getElementById('main').innerText:'';
+ await ACT.plGen();return{s1:s1,s2:s2,html:html.slice(0,300),gen:p.plan.length,ov:document.documentElement.scrollWidth>innerWidth+2}});
+T('متأخرة',r.s1.st==='b'&&Math.round(r.s1.a)===20,r.s1);T('مكتملة',r.s2.st==='g',r.s2);T('تظهر الشاشة',/مراحل الخطة|الجدول/.test(r.html),r.html);T('توليد من المجموعات',r.gen===2,r.gen);T('بدون تمرير أفقي',!r.ov,r.ov);
+console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();
