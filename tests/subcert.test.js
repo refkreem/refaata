@@ -23,7 +23,7 @@ const own=await pg.evaluate(()=>[contractorLedger('c1','p1').owed,contractorLedg
 T('المشروع الثاني منفصل',own[0]===13000&&own[1]===3500,own);
 // تعديل شهادة سابقة وإعادة الاحتساب
 await pg.evaluate(()=>{const t=S.txs.find(x=>x.cum&&x.no==='2'&&x.project_id==='p1');openForm('sub',t)});await pg.waitForTimeout(150);
-await pg.fill('#c_cum','26000');await pg.click('[data-a=msave]');await pg.waitForTimeout(300);
+await pg.fill('#c_cum','26000');await pg.fill('#c_reason','تصحيح');await pg.click('[data-a=msave]');await pg.waitForTimeout(300);
 const g=await pg.evaluate(()=>S.txs.filter(x=>x.cum&&x.project_id==='p1').sort((a,b)=>a.date.localeCompare(b.date)).map(x=>[x.gross,x.net]));
 T('بعد التعديل: الفروق تُعاد (10000،16000،4000)',g[0][0]===10000&&g[1][0]===16000&&g[2][0]===4000,g);
 T('سجل المراجعة للتعديل',await pg.evaluate(()=>{const t=S.txs.find(x=>x.cum&&x.no==='2'&&x.project_id==='p1');return t.audit&&t.audit.length===1&&t.audit[0].reason==='تصحيح'&&t.audit[0].ch.some(c=>c[0]==='cum_value')}));
