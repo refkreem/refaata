@@ -17,5 +17,5 @@ T('التوقع متسق مع مجموع البنود (37500+1500)',pr.fc===3900
 T('تصفية: تجاوز الموازنة ← بند واحد، خاسر ← بند واحد',await pg.evaluate(()=>{S.cc.tab='boq';S.cc.flag='over';const a=ccRes().rows.length;S.cc.flag='loss';const b=ccRes().rows.length;S.cc.flag='';return a===1&&b===1}));
 T('الشاشة وعلامات الخسارة',await pg.evaluate(()=>{S.cc.tab='boq';go('costctl');const m=document.getElementById('main').innerHTML;return m.includes('بنود خاسرة')&&m.includes('تحليل بنود المقايسة')}));
 T('تقرير ربحية البنود في المركز يطابق',await pg.evaluate(()=>{S.pc.rep='boqp';S.pc.project='p1';const r=PC.boqp.run(S.pc);return r.rows.length===2&&r.rows[0][11]===37500}));
-T('زر لوحة التحكم',await pg.evaluate(()=>{go('dashboard');return document.getElementById('main').innerHTML.includes('ضبط التكلفة وتحليل المقايسة')}));
+T('زر لوحة التحكم',await pg.evaluate(()=>{return MENU.some(m=>m[0]==='costctl'&&m[4]!=='hide')}));
 T('لا أخطاء',bad===0);console.log(ok+' pass, '+bad+' fail');await b.close();process.exit(bad?1:0)})();

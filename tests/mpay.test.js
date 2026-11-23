@@ -5,7 +5,7 @@ await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('
 await pg.evaluate(async()=>{S.projects=[{id:'p1',name:'أ',value:600000,boq:[]},{id:'p2',name:'ب',value:400000,boq:[]}];S.accounts=[{id:'a1',name:'بنك',kind:'bank',opening:200000}];S.cfg.staff=[{id:'s1',name:'مهندس 1',job:'مهندس',salary:10000,allow:1000,active:true},{id:'s2',name:'سائق',job:'سائق',salary:5000,active:true,project_id:'p2'}];S.cfg.mp={ins_pct:10,tax_pct:0};
  await saveTx({type:'adv',kind:'worker',party:'سائق',date:'2026-10-01',amount:1000,account_id:'a1',desc:'سلفة'},null);S.mp.month='2026-10';go('mpay')});
 T('المسودة تُقترح من السجل (تأمينات 10%)',await pg.evaluate(()=>{const r=mpFinish(mpRows());return r.length===2&&r[0].gross===11000&&r[0].ins===1000&&r[0].net===10000}));
-T('زر لوحة التحكم',await pg.evaluate(()=>{go('dashboard');const ok=document.getElementById('main').innerHTML.includes('GENERATE MONTHLY PAYROLL');go('mpay');return ok}));
+T('زر لوحة التحكم',await pg.evaluate(()=>{const ok=MENU.some(m=>m[0]==='mpay');go('mpay');return ok}));
 // سلفة السائق 1000 تُخصم
 await pg.evaluate(()=>{const tr=[...document.querySelectorAll('#mp_tbl tbody tr')][1];const i=tr.querySelector('[data-k=adv]');i.value=1000;i.dispatchEvent(new Event('input',{bubbles:true}))});
 T('الصافي يتحدث حيًا',await pg.evaluate(()=>[...document.querySelectorAll('.mp_n')].map(x=>x.textContent.replace(/,/g,'')).join()==='10000,3500'));

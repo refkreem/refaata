@@ -10,7 +10,7 @@ const r1=await pg.evaluate(()=>wkRows({week:'2026-10-21',project:'p1'}).map(r=>(
 T('الأسبوع 2: التراكمي 25000 والاستحقاق 15000 ومدفوع سابقًا 10000',r1.length===1&&r1[0].cum===25000&&r1[0].ent===15000&&r1[0].before===10000&&r1[0].net===15000&&r1[0].rem===15000&&r1[0].st==='review',r1);
 T('المشروعان حسابان مستقلان',await pg.evaluate(()=>wkRows({week:'2026-10-21'}).length===2));
 T('الشاشة تُعرض والأزرار موجودة',await pg.evaluate(()=>{const m=document.getElementById('main').innerHTML;return m.includes('اعتماد المحدد للصرف')&&m.includes('مدفوعات المقاولين')}));
-T('زر لوحة التحكم',await pg.evaluate(()=>{go('dashboard');return document.getElementById('main').innerHTML.includes('GENERATE WEEKLY PAYMENTS')}));
+T('زر لوحة التحكم',await pg.evaluate(()=>{return MENU.some(m=>m[0]==='wkpay'&&m[4]!=='hide')}));
 // اعتماد قبل الصرف
 await pg.evaluate(()=>{S.wk.project='p1';S.wk.sel={};wkRows().forEach(r=>S.wk.sel[r.key]=1);return ACT.wkToSt('approved')});await pg.waitForTimeout(200);
 T('الاعتماد لا يعني دفعًا',await pg.evaluate(()=>{const r=wkRows({week:'2026-10-21',project:'p1'})[0];return r.st==='approved'&&r.paid===0&&r.rem===15000}));

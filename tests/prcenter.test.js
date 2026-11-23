@@ -25,5 +25,5 @@ r=await run('boqp',{project:'p1'});T('10 ربحية البند: قيمة 50000 �
 r=await run('cashpay',{from:'2026-10-01',to:'2026-10-31'});T('11 مدفوعات الخزينة: تشمل السلف والدفعات',r.rows.length>=5&&r.tot[5]>0,r.rows.length);
 r=await run('liab');T('12 الالتزامات: مقاول 21000 ومورد 2000 ومرتبات 10000',r.rows.some(x=>x[0]==='مقاول باطن'&&x[2]===21000)&&r.rows.some(x=>x[0]==='مورد'&&x[2]===2000)&&r.rows.some(x=>String(x[0]).includes('مرتبات')),r.rows);
 T('الترويسة والتواقيع في الصفحة',r.html.includes('شركة الاختبار')&&r.html.includes('أعدّه')&&r.html.includes('راجعه')&&r.html.includes('اعتمده'));
-T('زر لوحة التحكم ودالة Excel',await pg.evaluate(()=>{go('dashboard');const a=document.getElementById('main').innerHTML.includes('PRINT CENTER');S.pc.rep='psum';const r=pcRun();const sh=xlSheetFromRes({title:'x',cols:r.cols,rows:r.rows},'s');return a&&typeof ACT.pcXl==='function'&&sh.cols.length===16}));
+T('زر لوحة التحكم ودالة Excel',await pg.evaluate(()=>{const a=MENU.some(m=>m[0]==='prcenter'&&m[4]!=='hide');S.pc.rep='psum';const r=pcRun();const sh=xlSheetFromRes({title:'x',cols:r.cols,rows:r.rows},'s');return a&&typeof ACT.pcXl==='function'&&sh.cols.length===16}));
 T('لا أخطاء',bad===0);console.log(ok+' pass, '+bad+' fail');await b.close();process.exit(bad?1:0)})();

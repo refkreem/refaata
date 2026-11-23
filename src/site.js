@@ -14,7 +14,7 @@ VIEWS.sitereps=function(){var f=S.sr,P=S.projects;
  var pend=srAll().filter(function(r){return r.status==='submitted'||r.status==='review'}).length;
  return pg('التقرير اليومي للموقع',S.role==='supervisor'?'':'<button class="btn p" data-a="srNew">+ تقرير جديد</button>',(srCanReview()&&pend?'<div class="hint w">'+pend+' تقرير بانتظار المراجعة</div>':'')+flt+tbl([{h:'التاريخ'},{h:'المشروع'},{h:'المهندس'},{h:'عدد العمالة',n:1},{h:'بنود منفذة',n:1},{h:'الحالة'},{h:''}],rows,{empty:'لا توجد تقارير'}))};
 ACT.srF=function(k,el){S.sr[k]=el&&el.value!=null?el.value:'';render()};
-function srBoqOpts(pid,sel){var p=proj(pid);return opts((p&&p.boq)||[],sel||'',function(b){return b.id},boqLabel,'—')}
+function srBoqOpts(pid,sel){var p=proj(pid);return opts((p&&p.boq)||[],sel||'',function(b){return b.id},boqLabel,'—')+(p?'<option value="__new">＋ إضافة بند جديد للمقايسة…</option>':'')}
 function srForm(r){r=r||{};var P=S.projects;if(!P.length){toast('لا توجد مشاريع مخصصة لك');return}
  S.srPh=(r.photos||[]).slice();var pid=r.pid||P[0].id,man=r.manpower||[],wk=r.works||[],R=[0,1,2,3,4];
  var mh=R.map(function(i){var m=man[i]||{};return'<div class="fg" style="grid-template-columns:2fr 1fr 1fr">'+inp('sm_t'+i,m.trade||'','text','placeholder="التخصص / المهنة"')+inp('sm_c'+i,m.count||'','number','placeholder="العدد"')+inp('sm_h'+i,m.hours||'','number','placeholder="ساعات"')+'</div>'}).join('');

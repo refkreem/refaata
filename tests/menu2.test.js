@@ -1,0 +1,16 @@
+const { chromium } = require('playwright');
+let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.stringify(x))}};
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await(await b.newContext({viewport:{width:1280,height:800}})).newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForFunction(()=>window.S&&S.db);
+const r=await pg.evaluate(async()=>{S.user='a@x.com';S.role='admin';S.projects=[{id:'p1',name:'مشروع بلا مقايسة',boq:[]}];S.cfg.contractors=[];S.accounts=[{id:'a1',name:'الخزينة',opening:100}];S.txs=[];dbSet=async()=>true;
+ var nav=document.getElementById('side').innerText;render();nav=document.getElementById('side').innerText;
+ go('dayexp');var v1=S.view;go('paycenter');var v2=S.view;go('dashboard');var v3=S.view;
+ var links=document.querySelectorAll('#side a').length;
+ S.role='admin';openForm('progress');await new Promise(r=>setTimeout(r,100));document.getElementById('t_proj').value='p1';document.getElementById('t_proj').dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('t_proj').dispatchEvent(new Event('change',{bubbles:true}));
+ var opt=[].slice.call(document.querySelectorAll('#t_boq option')).map(o=>o.value);
+ var s=document.getElementById('t_boq');s.value='__new';s.dispatchEvent(new Event('change',{bubbles:true}));var box=!!document.querySelector('.nbq');
+ document.querySelector('.nb_n').value='تركيب سيراميك';document.querySelector('.nb_q').value='100';document.querySelector('.nb_p').value='50';document.querySelector('.nb_ok').click();await new Promise(r=>setTimeout(r,200));
+ return{v1:v1,v2:v2,v3:v3,links:links,opt:opt,box:box,boq:S.projects[0].boq.length,sel:document.getElementById('t_boq').value===S.projects[0].boq[0].id,hasHidden:/دفعات مقاولين بلا اسم|مركز الصرف الأسبوعي|لوحة التحكم/.test(nav)}});
+T('dayexp→quick',r.v1==='quick',r);T('paycenter→wkpay',r.v2==='wkpay',r);T('dashboard→mgr',r.v3==='mgr',r);T('القائمة مختصرة',r.links<=26,r);T('لا ظهور للمخفي',!r.hasHidden,r);
+T('خيار بند جديد',r.opt.indexOf('__new')>=0,r);T('صندوق الإضافة',r.box,r);T('أُضيف البند واختير',r.boq===1&&r.sel,r);T('بلا أخطاء',!errs.length,errs);
+console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();

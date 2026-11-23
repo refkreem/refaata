@@ -31,9 +31,10 @@ try{new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEac
 function ask(title,fields,cb,label){modal(title,'<div class="fg">'+fields+'</div>',{save:async function(){return await cb()},saveLabel:label})}
 
 /* ---------- router ---------- */
-function go(view,vp,tab,nb){if(!nb&&S.view&&(S.view!==view||S.vp!==(vp||null))){S.hist=S.hist||[];S.hist.push({v:S.view,p:S.vp,t:S.tab,y:window.scrollY});if(S.hist.length>40)S.hist.shift()}S.view=view;S.vp=vp||null;if(tab)S.tab=tab;$('side').classList.remove('open');render();window.scrollTo(0,0)}
+var VALIAS={dashboard:'mgr',dayexp:'quick',sitemon:'mgr',custrec:'custweek',paycenter:'wkpay',budget:'costctl'};
+function go(view,vp,tab,nb){view=VALIAS[view]||view;if(!nb&&S.view&&(S.view!==view||S.vp!==(vp||null))){S.hist=S.hist||[];S.hist.push({v:S.view,p:S.vp,t:S.tab,y:window.scrollY});if(S.hist.length>40)S.hist.shift()}S.view=view;S.vp=vp||null;if(tab)S.tab=tab;$('side').classList.remove('open');render();window.scrollTo(0,0)}
 function pendingCount(){return S.txs.filter(function(t){return t.status==='pending'}).length}
-function renderNav(){var n=pendingCount(),lastG='';$('side').innerHTML=MENU.filter(menuAllowed).map(function(m){var g=m[4]&&m[4]!==lastG&&m[4]!=='الرئيسية'?'<div class="navg">'+m[4]+'</div>':'';lastG=m[4]||lastG;return g+'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
+function renderNav(){var n=pendingCount(),lastG='';$('side').innerHTML=MENU.filter(function(m){return m[4]!=='hide'&&menuAllowed(m)}).map(function(m){var g=m[4]&&m[4]!==lastG&&m[4]!=='الرئيسية'?'<div class="navg">'+m[4]+'</div>':'';lastG=m[4]||lastG;return g+'<a class="'+(S.view===m[0]?'on':'')+'" data-a="go" data-p="'+m[0]+'"><span class="ic">'+m[1]+'</span>'+m[2]+(m[0]==='review'&&n?'<span class="bdg">'+n+'</span>':'')+'</a>'}).join('');
  $('roleTag').textContent=ROLE_NAMES[S.role]||''}
 function render(){if(!S.db){return}var a=MENU.filter(menuAllowed);if(!a.some(function(m){return m[0]===S.view}))S.view=a[0][0];renderNav();var f=VIEWS[S.view];$('main').innerHTML=(S.loadErr?'<div class="hint b" style="margin-bottom:12px"><b>تعذر الاتصال بقاعدة البيانات</b> ('+h(S.loadErr)+'). غالبًا لم تُنشأ قاعدة Firestore بعد في مشروع Firebase، أو قواعد الأمان تمنع القراءة. أنشئ Firestore Database ثم اضغط زر التحديث ⟳.</div>':'')+(f?f():'');if(AFTER[S.view])AFTER[S.view]();var bb=$('backBtn');if(bb)bb.style.display=(S.hist&&S.hist.length)?'':'none'}
 var VIEWS={},AFTER={};
