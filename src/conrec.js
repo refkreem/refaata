@@ -25,9 +25,9 @@ ACT.fpSet=async function(id){var c=v$('fp_'+id);if(!c){toast('اختر المق�
 /* ملف المقاول: كل حركاته مع تعديل/نقل مشروع/حذف */
 S.cfile=S.cfile||'';
 ACT.conFile=function(id){S.cfile=id;go('confile')};
-ACT.cfSel=function(){S.cfile=v$('cf_con');render()};
+document.addEventListener('change',function(ev){if(ev.target.id==='cf_con'){S.cfile=ev.target.value;render()}});
 VIEWS.confile=function(){var cs=S.cfg.contractors||[],id=S.cfile;
- var sel='<div class="flt"><select id="cf_con" data-a="cfSel">'+opts(cs,id,function(c){return c.id},function(c){return c.name},'— اختر المقاول —')+'</select></div>';
+ var sel='<div class="flt"><select id="cf_con">'+opts(cs,id,function(c){return c.id},function(c){return c.name},'— اختر المقاول —')+'</select></div>';
  if(!id)return pg('ملف المقاول','',sel+'<div class="empty">اختر المقاول لعرض كل حركاته وتصحيحها</div>');
  var L=S.txs.filter(function(t){return t.party_id===id&&(t.type==='sub'||t.type==='adv'||(t.type==='payment'&&t.kind==='contractor'))&&t.status!=='cancelled'}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))});
  var G={};L.forEach(function(t){var k=t.project_id||'';(G[k]=G[k]||[]).push(t)});

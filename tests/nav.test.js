@@ -4,8 +4,8 @@ let ok=0,bad=0;const T=(n,c,x)=>{if(c)ok++;else{bad++;console.log('✗',n,JSON.s
 await pg.route(/gstatic|cdnjs|googleapis|jsdelivr/,r=>r.abort());await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForFunction(()=>window.S&&S.db);
 const r=await pg.evaluate(async()=>{S.user='a@x.com';S.role='admin';S.projects=[{id:'p1',name:'قديم',boq:[]},{id:'p2',name:'جديد',boq:[]}];S.cfg.contractors=[{id:'c1',name:'مسعد'}];S.accounts=[];
  S.txs=[{id:'s1',type:'sub',cum:true,party_id:'c1',project_id:'p1',cum_value:2800,net:2800,paid:0,date:'2026-11-04',status:'approved'}];dbSet=async function(){return true};
- go('projects');go('confile');var a=document.getElementById('backBtn').style.display;ACT.conFile('c1');
+ go('projects');go('confile');var a=document.getElementById('backBtn').style.display;go('confile');document.getElementById('cf_con').value='c1';document.getElementById('cf_con').dispatchEvent(new Event('change',{bubbles:true}));var shown=document.getElementById('main').innerText.indexOf('قديم')>=0;
  document.getElementById('cf_to_p1').value='p2';await ACT.cfMove('p1');var moved=S.txs[0].project_id;
- ACT.back();var v=S.view;return{a:a,moved:moved,v:v,hist:(S.hist||[]).length,txt:document.getElementById('main').innerText.length}});
-T('زر الرجوع ظاهر',r.a==='',r);T('نقل المشروع',r.moved==='p2',r);T('رجوع للسابقة',r.v==='confile'||r.v==='projects',r);T('بلا أخطاء',!errs.length,errs);
+ ACT.back();var v=S.view;return{shown:shown,a:a,moved:moved,v:v,hist:(S.hist||[]).length,txt:document.getElementById('main').innerText.length}});
+T('زر الرجوع ظاهر',r.a==='',r);T('الحركات تظهر عند الاختيار',r.shown,r);T('نقل المشروع',r.moved==='p2',r);T('رجوع للسابقة',r.v==='confile'||r.v==='projects',r);T('بلا أخطاء',!errs.length,errs);
 console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();
