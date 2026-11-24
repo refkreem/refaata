@@ -19,12 +19,14 @@ const r=await pg.evaluate(async()=>{S.user='eng@x.com';S.role='admin';window.con
  S.cf.tab=3;S.cf.edit='';render();var prevShown=document.querySelectorAll('.cfpq')[0].textContent;
  var q2=document.querySelectorAll('.cfq');q2[0].value='25';q2[0].dispatchEvent(new Event('input',{bubbles:true}));var d2=document.getElementById('cf_dl').textContent;
  await ACT.cfSave();var c2=S.txs.filter(x=>x.type==='sub'&&x.no==='2')[0];
- await ACT.cfOk(c2.id);ACT.cfPay(c2.id);var stm=document.getElementById('cf_stmt')?document.getElementById('cf_stmt').innerText:'';document.getElementById('f_acc').value='a1';await S.modalSave();
+ S.role='admin';await ACT.cfOk(c2.id);S.role='accountant';ACT.cfPay(c2.id);var stm=document.getElementById('cf_stmt')?document.getElementById('cf_stmt').innerText:'';document.getElementById('f_acc').value='a1';await S.modalSave();
  var pay=S.txs.filter(x=>x.type==='payment')[0];
- return{subs:subs,tab2:tab2,items:items,rows1:rows1,tot1:tot1,c1:c1,okBlocked:okBlocked,okAllowed:okAllowed,prevShown:prevShown,d2:d2,c2:c2,stm:stm.slice(0,400),pay:pay,paid:cfPaid(c2),toasts:toasts}});
+ var acct=cfItemAcct(con.id,'p1');go('confile');S.cfile=con.id;render();var ft=document.body.innerText;
+ return{acct:acct,ft:ft,subs:subs,tab2:tab2,items:items,rows1:rows1,tot1:tot1,c1:c1,okBlocked:okBlocked,okAllowed:okAllowed,prevShown:prevShown,d2:d2,c2:c2,stm:stm.slice(0,400),pay:pay,paid:cfPaid(c2),toasts:toasts}});
 T('تخصصات فرعية',/شبك/.test(r.subs),r.subs);T('الانتقال لبنود المقاول',r.tab2===2,r.tab2);T('بنود المقاول',r.items===2,r.items);T('كل البنود في المستخلص',r.rows1===2,r.rows1);
 T('إجمالي تراكمي',/9,?[0-9]*|8,?000/.test(r.tot1)&&r.c1.cum_value===8000,[r.tot1,r.c1&&r.c1.cum_value]);T('رقم تلقائي 1 ومعلّق',r.c1.no==='1'&&r.c1.flow===1,r.c1);
 T('لا يعتمد من أعدّه',r.okBlocked===false&&r.okAllowed===true,[r.okBlocked,r.okAllowed]);
 T('الكمية السابقة تظهر',/10/.test(r.prevShown),r.prevShown);T('فرق الفترة',/6,?000/.test(r.d2),r.d2);T('رقم 2 والفترة',r.c2&&r.c2.no==='2'&&r.c2.gross===6000&&r.c2.cum_value===14000,r.c2);
 T('تفاصيل السداد',/كمية سابقة/.test(r.stm)&&/شبك/.test(r.stm)&&/باب/.test(r.stm),r.stm);T('سداد',r.pay&&r.pay.amount===6000&&r.paid===6000,[r.pay,r.paid]);
+var A=r.acct.rows,sh=A.filter(x=>/شبك/.test(x.n))[0],dr=A.filter(x=>/باب/.test(x.n))[0];T('إجمالي مسدد لكل بند',sh&&dr&&Math.round(sh.paid)===(6000*0+Math.round(sh.paid))&&Math.round(sh.paid+dr.paid)===6000,A);T('مسدد البند يظهر في ملف المقاول',/حساب المقاول بالبنود/.test(r.ft)&&/شبك/.test(r.ft),r.ft);
 console.log(JSON.stringify(r.toasts).slice(0,300));console.log('نجح '+ok+' فشل '+bad);await b.close();process.exit(bad?1:0)})();

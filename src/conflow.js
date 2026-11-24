@@ -85,3 +85,19 @@ function cfTab4(){var f=S.cf.f||'all',L=cfCerts(S.cf.pid,S.cf.con).filter(functi
  var np=cfCerts().filter(function(t){return t.status==='pending'}).length;
  return cfSel(1)+'<div class="flt noprint"><select id="cf_f">'+[['all','كل الحالات'],['pending','بانتظار الاعتماد ('+np+')'],['approved','معتمدة'],['rejected','مرفوضة']].map(function(q){return'<option value="'+q[0]+'"'+(f===q[0]?' selected':'')+'>'+q[1]+'</option>'}).join('')+'</select>'+(S.role==='admin'?'<button class="btn sm" data-a="cfPerm">🔐 صلاحيات الاعتماد</button>':'')+'</div><div class="card sm13">'+tbl([{h:'رقم'},{h:'المشروع'},{h:'المقاول'},{h:'التاريخ'},{h:'تراكمي',n:1},{h:'الفترة',n:1},{h:'الصافي',n:1},{h:'مدفوع',n:1},{h:'متبقي',n:1},{h:'الحالة'},{h:''}],rows,{empty:'لا توجد مستخلصات'})+'</div>'}
 VIEWS.conflow=function(){var b=[cfTab1,cfTab2,cfTab3,cfTab4][S.cf.tab-1]();return pg('دورة المقاول المستندية','',cfTabs()+b)};
+/* ===== حساب المقاول بالبنود: قيمة الأعمال والمستحق والمسدد والمتبقي لكل بند على حدة ===== */
+function cfItemAcct(con,pid){var R={},order=[],un=0;var pids=pid?[pid]:S.projects.map(function(p){return p.id});
+ pids.forEach(function(p){var prevMap={};certsOf(p,con).filter(function(t){return t.status==='approved'}).forEach(function(t){var L=t.cert_lines||[],gross=num(t.gross),paid=cfPaid(t),net=num(t.net),vals=[];
+  if(!L.length){var k0=p+'|legacy';R[k0]=R[k0]||(order.push(k0),{n:'مستخلصات بدون تفصيل بنود',pj:p,u:'',q:0,v:0,net:0,paid:0});R[k0].v+=gross;R[k0].net+=net;R[k0].paid+=paid;return}
+  var tv=0;L.forEach(function(l){var pq=num((prevMap[cfLineKey(l)]||{}).q),v=(num(l.q)-pq)*num(l.p)*(l.c==null||l.c===''?100:num(l.c))/100;vals.push(v);tv+=v});var den=Math.abs(tv)>0.005?tv:gross;
+  L.forEach(function(l,i){var k=p+'|'+cfLineKey(l),r=R[k]||(order.push(k),R[k]={n:l.d||'بند',pj:p,u:l.u||'',q:0,v:0,net:0,paid:0}),sh=den?vals[i]/den:0;r.q=num(l.q);r.u=l.u||r.u;r.v+=vals[i];r.net+=net*sh;r.paid+=paid*sh});
+  prevMap={};L.forEach(function(l){prevMap[cfLineKey(l)]=l})});
+  S.txs.forEach(function(t){if(t.type==='payment'&&t.kind==='contractor'&&t.party_id===con&&t.project_id===p&&!t.cert_id&&t.status!=='rejected'&&t.status!=='cancelled'&&t.status!=='pending')un+=num(t.amount)})});
+ var rows=order.map(function(k){return R[k]});return{rows:rows,unlinked:un}}
+function cfItemAcctHtml(con,pid){var A=cfItemAcct(con,pid),T={v:0,net:0,paid:0},rows=A.rows.map(function(r){T.v+=r.v;T.net+=r.net;T.paid+=r.paid;return[h(r.n),h(pname(r.pj)),h(r.u),fmt(r.q),fmt(r.v),fmt(r.net),fmt(r.paid),fmt(r.net-r.paid)]});
+ if(A.unlinked){T.paid+=A.unlinked;rows.push(['دفعات عامة غير مرتبطة بمستخلص','','','','0','0',fmt(A.unlinked),fmt(-A.unlinked)])}
+ if(!rows.length)return'';rows.push(['<b>الإجمالي</b>','','','','<b>'+fmt(T.v)+'</b>','<b>'+fmt(T.net)+'</b>','<b>'+fmt(T.paid)+'</b>','<b>'+fmt(T.net-T.paid)+'</b>']);
+ return'<div class="card sm13"><h3>📊 حساب المقاول بالبنود (من المستخلصات المعتمدة)</h3>'+tbl([{h:'البند'},{h:'المشروع'},{h:'وحدة'},{h:'منفّذ',n:1},{h:'قيمة الأعمال',n:1},{h:'صافي المستحق',n:1},{h:'المسدّد',n:1},{h:'المتبقي',n:1}],rows,{})+'<div class="fnt" style="font-size:12px">يُوزَّع المسدّد على البنود بنسبة قيمة كل بند في المستخلص المسدَّد منه.</div></div>'}
+var _cfT4=cfTab4;cfTab4=function(){var h0=_cfT4();return h0+(S.cf.con?cfItemAcctHtml(S.cf.con,S.cf.pid||''):'')};
+VIEWS.conflow=function(){var b=[cfTab1,cfTab2,cfTab3,cfTab4][S.cf.tab-1]();return pg('دورة المقاول المستندية','',cfTabs()+b)};
+var _cfFile=VIEWS.confile;VIEWS.confile=function(){var o=_cfFile();return o+(S.cfile?cfItemAcctHtml(S.cfile,''):'')};
