@@ -9,6 +9,17 @@ await pg.evaluate(()=>{S.user='a@x.com';S.role='admin';dbSet=async()=>true;windo
  S.projects=[{id:'p1',name:'مستشفى',boq:[{id:'b1',code:'1',name:'جدران',qty:1,price:1}]}];S.txs=[];window.__t=[];window.toast=m=>__t.push(m);go('drawings')});
 await pg.setInputFiles('#dw_file',{name:'plan.dxf',mimeType:'application/dxf',buffer:Buffer.from(dxf)});
 await pg.waitForFunction(()=>S.dw.doc,null,{timeout:10000});
+const rb=await pg.evaluate(async()=>{var t=today(),d=n=>impAdd(t,n),p=S.projects[0];p.boq=[{id:'b1',code:'1',name:'جدران',qty:100,price:10}];S.txs=[{id:'x1',type:'progress',status:'approved',project_id:'p1',boq_id:'b1',qty:20,date:t}];
+ p.plan=[{id:'f1',name:'مرحلة1',start:d(-60),end:d(0),boq:['b1']}];set=(id,v)=>{document.getElementById(id).value=v};
+ S.dw.plan='';S.dw.doc=null;render();ACT.dwNewBoard();set('dw_bn','موقع');await S.modalSave();var pl=dwActive();await new Promise(r=>setTimeout(r,100));
+ S.dw.mode='rect';S.dw.pts=[[100,100],[400,300]];ACT.dwFinish();set('dw_sl','مبنى أ');set('dw_sph','f1');await S.modalSave();
+ S.dw.mode='text';S.dw.pts=[[500,500]];ACT.dwFinish();set('dw_sl','مدخل');await S.modalSave();
+ S.dw.mode='zone';S.dw.pts=[[600,100],[800,100],[700,300]];ACT.dwFinish();set('dw_sl','ساحة');await S.modalSave();
+ await new Promise(r=>setTimeout(r,100));var cv=document.getElementById('dw_cv'),px=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data,red=0;for(var i=0;i<px.length;i+=4)if(px[i]>150&&px[i+1]<90&&px[i+2]<90)red++;
+ var n=pl.shapes.length,ph=pl.shapes[0].phase_id,txt=document.body.innerText;await ACT.dwDelShape(pl.shapes[2].id);var n2=pl.shapes.length;
+ return{n:n,ph:ph,red:red,late:/متأخرة/.test(txt)&&/20%/.test(txt),n2:n2,type:pl.type}});
+T('لوحة رسم',rb.type==='board',rb.type);T('3 عناصر',rb.n===3,rb.n);T('ربط بمرحلة',rb.ph==='f1',rb.ph);T('تلوين المرحلة المتأخرة بالأحمر',rb.red>150,rb.red);T('حالة وتقدم المرحلة في الجدول',rb.late,rb.late);T('حذف عنصر',rb.n2===2,rb.n2);
+await pg.evaluate(async()=>{S.dw.plan='';S.dw.doc=null;await ACT.dwOpen(S.projects[0].plans[0].id)});
 const r=await pg.evaluate(async()=>{var pl=dwActive(),d=S.dw.doc;await new Promise(r=>setTimeout(r,100));
  var cv=document.getElementById('dw_cv'),px=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data,dark=0;for(var i=0;i<px.length;i+=4)if(px[i]<120)dark++;
  var segs=d.n,txt=d.texts.length,cal=pl.cal,stored=pl.stored;
